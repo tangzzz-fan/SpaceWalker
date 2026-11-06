@@ -19,7 +19,7 @@
 id: 003
 title: 平面锚定与放置
 status: ready-for-agent
-stage: A
+stage: M0
 blocked_by: [002]
 ---
 
@@ -31,6 +31,8 @@ blocked_by: [002]
 
 ## 备注
 ```
+
+`stage` 取 `M0`/`M1`/`M2`/`M3`（交付里程碑），不是产品阶段 A/B/C；对应关系见 PRD §5。
 
 ## 状态词汇
 

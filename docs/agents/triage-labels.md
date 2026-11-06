@@ -14,4 +14,5 @@
 
 - 一个 issue 同时只有一个状态标签。
 - 从 `needs-triage` 进入 `ready-for-agent` 的前提是：验收标准可测、依赖已清、涉及的真机能力已确认可用。
-- 真机专属验证（AR 追踪、遮挡、性能）一律先标 `ready-for-human`，不得由 agent 自行判定通过。
+- 真机专属验证（AR 追踪、遮挡、性能）不得由 agent 自行判定通过。
+- 含真机验收的实现 ticket 标 `ready-for-agent`，真机验收统一由对应门禁 ticket 承接（M0→006，M1→011）；纯真机项（门禁、验收清单）标 `ready-for-human`。
