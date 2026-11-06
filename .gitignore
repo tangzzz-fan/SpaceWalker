@@ -18,8 +18,8 @@ DerivedData/
 # SwiftPM
 .swiftpm/
 
-# 本地审计 / 临时文件
-.scratch/
+# 本地临时文件（.scratch 下的 tickets 需要入库，只忽略临时目录）
+.scratch/tmp/
 .DS_Store
 
 # fastlane
