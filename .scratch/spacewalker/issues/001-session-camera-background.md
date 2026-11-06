@@ -3,7 +3,7 @@ id: 001
 title: 会话与相机背景骨架
 status: ready-for-agent
 stage: M0
-blocked_by: []
+blocked_by: [000]
 ---
 
 ## 背景
