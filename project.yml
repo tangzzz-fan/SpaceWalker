@@ -1,0 +1,70 @@
+name: SpaceWalker
+
+options:
+  bundleIdPrefix: com.tango
+  deploymentTarget:
+    iOS: "26.0"
+  groupSortPosition: top
+  createIntermediateGroups: true
+
+schemes:
+  SpaceWalker:
+    build:
+      targets:
+        SpaceWalker: all
+        SpaceWalkerTests: [test]
+    run:
+      config: Debug
+    test:
+      config: Debug
+      targets:
+        - SpaceWalkerTests
+    profile:
+      config: Release
+    analyze:
+      config: Debug
+    archive:
+      config: Release
+
+settings:
+  base:
+    SDKROOT: iphoneos
+    SWIFT_VERSION: "6.0"
+    SWIFT_STRICT_CONCURRENCY: complete
+    TARGETED_DEVICE_FAMILY: "1,2"
+    CLANG_ENABLE_MODULES: YES
+    ENABLE_USER_SCRIPT_SANDBOXING: YES
+
+targets:
+  SpaceWalker:
+    type: application
+    platform: iOS
+    sources:
+      - path: Sources
+    info:
+      path: Supporting/Info.plist
+      properties:
+        CFBundleDisplayName: SpaceWalker
+        NSCameraUsageDescription: "SpaceWalker 需要相机画面，才能把虚拟星图叠加到真实空间。"
+        UILaunchScreen:
+          UIColorName: ""
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+        UIRequiredDeviceCapabilities:
+          - arm64
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.tango.SpaceWalker
+        SUPPORTED_PLATFORMS: iphoneos iphonesimulator
+
+  SpaceWalkerTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: Tests
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.tango.SpaceWalkerTests
+        GENERATE_INFOPLIST_FILE: YES
+    dependencies:
+      - target: SpaceWalker

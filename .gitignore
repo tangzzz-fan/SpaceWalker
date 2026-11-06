@@ -1,0 +1,29 @@
+# XcodeGen 生成的工程文件（project.yml 才是 source of truth）
+*.xcodeproj/
+xcuserdata/
+*.xcworkspace/xcuserdata/
+
+# 构建产物
+DerivedData/
+.build/
+*.moved-aside
+*.pbxuser
+*.mode1v3
+*.mode2v3
+*.perspectivev3
+*.hmap
+*.ipa
+*.dSYM.zip
+
+# SwiftPM
+.swiftpm/
+
+# 本地审计 / 临时文件
+.scratch/
+.DS_Store
+
+# fastlane
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots/**/*.png
+fastlane/test_output
