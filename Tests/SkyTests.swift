@@ -2130,3 +2130,34 @@ final class SkyAttitudeFrameTests: XCTestCase {
         XCTAssertEqual(rolled.y, 0, accuracy: 0.001)
     }
 }
+
+@MainActor
+final class FengshenLocateTests: XCTestCase {
+    /// 封神榜里「可定位」的每一条，都必须真能从星官解析出分组——
+    /// 否则列表上给了定位按钮，点下去却什么也不发生。
+    func testEveryLocatableLordResolvesToAGroup() throws {
+        let stars = try XCTUnwrap(StarCatalog.loadFromBundle(.main)).stars
+        let groups = SkyGroupIndex.groups(stars: stars)
+        let locatable = FengshenInfo.all.filter(\.isLocatable)
+        XCTAssertEqual(locatable.count, 43)
+
+        var broken: [String] = []
+        for lord in locatable {
+            guard let asterism = lord.asterism else { continue }
+            if SkyGroupIndex.group(forAsterism: asterism, in: groups) == nil {
+                broken.append("\(lord.title)->\(asterism)")
+            }
+        }
+        XCTAssertTrue(broken.isEmpty, "解析不到分组：\(broken.joined(separator: ", "))")
+    }
+
+    /// 28 宿各一位星君；南斗六星另带「斗」标签，所以带 mansion 的共 34 条、宿名仍是 28 个。
+    func testMansionLordsCoverTwentyEightMansions() throws {
+        let lords = FengshenInfo.all.filter { $0.mansion != nil }
+        let names = Set(lords.compactMap(\.mansion))
+        XCTAssertEqual(names.count, 28)
+        for lord in lords {
+            XCTAssertEqual(lord.asterism, "\(lord.mansion ?? "")宿", "\(lord.title) 的星官应为对应宿")
+        }
+    }
+}
