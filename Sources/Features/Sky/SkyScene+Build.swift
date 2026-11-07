@@ -188,6 +188,23 @@ extension SkyScene {
             }
         )
 
+        // 索引与网格分开建：网格是渲染，索引是查询，任何一边失败不该拖垮另一边。
+        asterismFields = AsterismCatalog.all.compactMap { asterism in
+            let points = asterism.members.compactMap { hip in
+                starsByHIP[hip].map { SkyPicker.direction(for: $0) }
+            }
+            guard !points.isEmpty else { return nil }
+            let sum = points.reduce(SIMD3<Float>(0, 0, 0), +)
+            let center = simd_length(sum) > 0.001 ? simd_normalize(sum) : points[0]
+            let radius = points.map { SkyPicker.offsetDegrees(center, $0) }.max() ?? 1
+            return AsterismField(
+                asterism: asterism,
+                center: center,
+                radius: radius,
+                constellation: constellation(at: center)?.abbreviation
+            )
+        }
+
         var segments: [(SIMD3<Float>, SIMD3<Float>)] = []
         var drawnGroups = 0
         for asterism in AsterismCatalog.all {
@@ -203,16 +220,6 @@ extension SkyScene {
               )
         else { return }
 
-        asterismFields = AsterismCatalog.all.compactMap { asterism in
-            let points = asterism.members.compactMap { hip in
-                starsByHIP[hip].map { SkyPicker.direction(for: $0) }
-            }
-            guard !points.isEmpty else { return nil }
-            let sum = points.reduce(SIMD3<Float>(0, 0, 0), +)
-            let center = simd_length(sum) > 0.001 ? simd_normalize(sum) : points[0]
-            let radius = points.map { SkyPicker.offsetDegrees(center, $0) }.max() ?? 1
-            return AsterismField(asterism: asterism, center: center, radius: radius)
-        }
         let material = UnlitMaterial(color: uiColor(Self.asterismColor, brightness: Self.asterismBaseBrightness))
         let node = Entity()
         node.name = "asterism.lines"

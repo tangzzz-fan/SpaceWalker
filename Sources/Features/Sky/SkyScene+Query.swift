@@ -115,6 +115,13 @@ extension SkyScene {
         )
     }
 
+    /// 哪些星官落在某个星座的轮廓里。
+    func asterisms(in constellation: String) -> [Asterism] {
+        asterismFields
+            .filter { $0.constellation == constellation }
+            .map(\.asterism)
+    }
+
     /// 星官大多没有闭合轮廓，只能按「它占的那片天」判：落在中心半径内即命中。
     /// 半径外留 1° 余量，判定用「偏离半径的比例」而不是绝对角度，
     /// 免得一个很大的星官在所有方向上通吃。
@@ -192,5 +199,29 @@ extension SkyScene {
     func project(_ star: Star, in content: RealityViewCameraContent) -> CGPoint? {
         let world = field.convert(position: StarField.position(for: star), to: nil)
         return content.project(point: world, to: Self.space)
+    }
+}
+
+extension SkyScene.Candidates {
+    /// 交给仲裁器的候选。
+    ///
+    /// 星官是「星座里的一组星」，比星座更细一级。两者同在一个互斥槽位里时，
+    /// 细的会吃掉整体：猎户座中心必然落在参宿里，星座轮廓就永远轮不到。
+    /// 所以星官只在星座与星群都未命中时参与——那时它才是用户唯一能读到的目标。
+    ///
+    /// 星座层关掉后星座候选一并退出，星官随之接管：看哪套体系由图层开关决定。
+    func forAttention(
+        cultureEnabled: Bool,
+        showsConstellations: Bool,
+        showsPatterns: Bool
+    ) -> AttentionArbiter.Candidates {
+        let constellation = showsConstellations ? self.constellation?.abbreviation : nil
+        let pattern = showsPatterns ? self.pattern?.id : nil
+        return AttentionArbiter.Candidates(
+            star: star,
+            constellation: constellation,
+            pattern: pattern,
+            asterism: (cultureEnabled && constellation == nil && pattern == nil) ? asterism?.name : nil
+        )
     }
 }

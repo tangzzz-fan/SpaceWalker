@@ -43,12 +43,14 @@ extension SkyView {
             session.showsOutlines = true
             scene.setSilhouettesVisible(true)
         }
+        session.showsConstellations = LaunchMode.constellationLayerEnabled(
+            environment: ProcessInfo.processInfo.environment
+        )
         if LaunchMode.allLayersEnabled(environment: ProcessInfo.processInfo.environment) {
-            session.showsConstellations = true
             session.showsOutlines = true
             session.showsAsterisms = store.state.flags.cultureEnabled
             session.showsPatterns = store.state.flags.deepEnabled
-            scene.setConstellationsVisible(true)
+            scene.setConstellationsVisible(session.showsConstellations)
             scene.setSilhouettesVisible(true)
             scene.setAsterismsVisible(true)
             scene.setPatternsVisible(true)
@@ -250,11 +252,10 @@ extension SkyView {
 
         let step = session.attention.step(
             now: now,
-            candidates: AttentionArbiter.Candidates(
-                star: candidates.star,
-                constellation: candidates.constellation?.abbreviation,
-                pattern: session.showsPatterns ? candidates.pattern?.id : nil,
-                asterism: store.state.flags.cultureEnabled ? candidates.asterism?.name : nil
+            candidates: candidates.forAttention(
+                cultureEnabled: store.state.flags.cultureEnabled,
+                showsConstellations: session.showsConstellations,
+                showsPatterns: session.showsPatterns
             )
         )
         react(to: step, candidates: candidates)

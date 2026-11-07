@@ -65,6 +65,8 @@ final class SkyScene {
         var asterism: Asterism
         var center: SIMD3<Float>
         var radius: Double
+        /// 中心落在哪个星座轮廓里。星座卡据此回指星官，信息不因优先级丢掉。
+        var constellation: String?
     }
 
     var starCount: Int {

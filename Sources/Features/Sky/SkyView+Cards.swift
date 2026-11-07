@@ -142,6 +142,14 @@ extension SkyView {
                         .lineLimit(4)
                         .fixedSize(horizontal: false, vertical: true)
                 }
+                if let names = asterismsLine(constellation) {
+                    // 星官不再抢星座的确认权，但它不该就此消失：
+                    // 「这片天里有哪几组中国星官」正是星座卡该回答的下一句。
+                    Text("星官：\(names)")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(2)
+                }
                 Text("\(constellation.starCount) 颗连线星 · 落在骨架范围内 0.6 秒识别")
                     .font(.caption2)
                     .foregroundStyle(.tertiary)
@@ -161,6 +169,13 @@ extension SkyView {
             }
             .padding(10)
         }
+    }
+
+    /// 星座轮廓内落着哪几组中国星官。太长的列表对卡片没意义，取前三。
+    func asterismsLine(_ constellation: Constellation) -> String? {
+        guard store.state.flags.cultureEnabled else { return nil }
+        let names = scene.asterisms(in: constellation.abbreviation).prefix(3).map(\.name)
+        return names.isEmpty ? nil : names.joined(separator: " · ")
     }
 
     func asterismCard(_ asterism: Asterism) -> some View {

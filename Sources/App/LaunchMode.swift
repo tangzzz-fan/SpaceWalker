@@ -86,6 +86,11 @@ enum LaunchMode {
         environment["SPACEWALKER_LAYERS"] == "1"
     }
 
+    /// 关掉星座层，用于无头验收星官接管（星官只在星座与星群都未命中时参与）。
+    static func constellationLayerEnabled(environment: [String: String]) -> Bool {
+        environment["SPACEWALKER_NOCONST"] != "1"
+    }
+
     /// 帧率日志：Debug 构建默认就开——真机验收不该依赖「记得加参数」，
     /// 忘了加就得让人再跑一遍。`SPACEWALKER_FPS=0` 可关。
     static func perfLogEnabled(environment: [String: String]) -> Bool {
