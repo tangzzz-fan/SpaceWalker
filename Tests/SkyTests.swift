@@ -1008,6 +1008,87 @@ final class SkyGroupTests: XCTestCase {
     }
 }
 
+final class SkySeasonTests: XCTestCase {
+    private func stars() throws -> [Star] {
+        try XCTUnwrap(StarCatalog.loadFromBundle(.main)).stars
+    }
+
+    private func beijingMidJanuary() -> Date {
+        var components = DateComponents()
+        components.year = 2026
+        components.month = 1
+        components.day = 15
+        components.hour = 14
+        components.minute = 0
+        components.timeZone = TimeZone(identifier: "UTC")
+        return Calendar(identifier: .gregorian).date(from: components) ?? Date(timeIntervalSince1970: 1_768_000_000)
+    }
+
+    func testBestMonthsWindowWrapsAtNewYear() {
+        XCTAssertEqual(SkySeason.bestMonths(rightAscensionHours: 5.6), [12, 1, 2])
+        XCTAssertEqual(SkySeason.bestMonths(rightAscensionHours: 16.5), [5, 6, 7])
+        XCTAssertEqual(SkySeason.bestMonths(rightAscensionHours: 22), [8, 9, 10])
+    }
+
+    func testSeasonLabelHandlesYearBoundary() {
+        XCTAssertEqual(SkySeason.label([12, 1, 2]), "12 月 – 次年 2 月")
+        XCTAssertEqual(SkySeason.label([10, 11, 12]), "10–12 月")
+        XCTAssertEqual(SkySeason.label([1, 2, 3]), "1–3 月")
+    }
+
+    func testDirectionLabels() {
+        XCTAssertEqual(SkySeason.directionLabel(azimuth: 0), "北")
+        XCTAssertEqual(SkySeason.directionLabel(azimuth: 90), "东")
+        XCTAssertEqual(SkySeason.directionLabel(azimuth: 180), "南")
+        XCTAssertEqual(SkySeason.directionLabel(azimuth: 275), "西")
+        XCTAssertEqual(SkySeason.directionLabel(azimuth: 350), "北")
+    }
+
+    func testGroupCoordinateMatchesMembers() throws {
+        let stars = try stars()
+        let groups = SkyGroupIndex.groups(stars: stars)
+        let orion = try XCTUnwrap(groups.first { $0.title == "猎户座" })
+        let coordinate = try XCTUnwrap(SkySeason.coordinate(orion, stars: stars))
+
+        XCTAssertEqual(coordinate.rightAscension, 5.6, accuracy: 0.4)
+        XCTAssertEqual(coordinate.declination, 0, accuracy: 8)
+    }
+
+    func testTonightRankingAtBeijingMidJanuary() throws {
+        let stars = try stars()
+        let groups = SkyGroupIndex.groups(stars: stars)
+        let picks = SkySeason.rank(
+            groups: groups,
+            stars: stars,
+            latitude: 31.25,
+            longitude: 120.6,
+            date: beijingMidJanuary(),
+            limit: 5
+        )
+
+        XCTAssertFalse(picks.isEmpty)
+        XCTAssertLessThanOrEqual(picks.count, 5)
+        XCTAssertTrue(picks.contains { $0.group.title == "猎户座" })
+        XCTAssertGreaterThan(picks.first?.altitude ?? 0, 60)
+        for pick in picks {
+            XCTAssertGreaterThan(pick.altitude, 12)
+            XCTAssertEqual(pick.group.kind, .constellation)
+        }
+        let scores = picks.map(SkySeason.score)
+        XCTAssertEqual(scores, scores.sorted(by: >))
+    }
+
+    func testAltitudeDrivesScore() {
+        let group = SkyGroup(
+            id: "constellation:Test", kind: .constellation, title: "测试",
+            starNames: [], fengshenLord: nil, fengshenPerson: nil
+        )
+        let low = TonightPick(group: group, altitude: 15, azimuth: 90, bestMonths: [1, 2, 3], magnitude: 0)
+        let high = TonightPick(group: group, altitude: 75, azimuth: 180, bestMonths: [1, 2, 3], magnitude: 0)
+        XCTAssertGreaterThan(SkySeason.score(high), SkySeason.score(low))
+    }
+}
+
 final class AppRouteTests: XCTestCase {
     func testRouteSwitchIsReduced() {
         var state = AppState()

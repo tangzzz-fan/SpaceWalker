@@ -13,6 +13,8 @@ struct SkyView: View {
     @State private var lastDrag: CGSize = .zero
     @State private var selected: Star?
     @State private var selectedGroup: SkyGroup?
+    @State private var groups: [SkyGroup] = []
+    @State private var tonight: [TonightPick] = []
     @State private var motionActive = false
     @State private var showsCredits = false
     @State private var showsConstellations = true
@@ -77,6 +79,7 @@ struct SkyView: View {
         .onChange(of: observer.stage) { _, _ in
             alignmentStamp = 0
             applyAlignment()
+            refreshTonight()
         }
         .onDisappear {
             attitude.stop()
@@ -92,6 +95,7 @@ struct SkyView: View {
             StarFinderView(
                 stars: catalog?.stars ?? [],
                 initialQuery: LaunchMode.finderQuery(environment: ProcessInfo.processInfo.environment),
+                tonight: tonight,
                 onPick: { star in startGuide(to: star) },
                 onPickGroup: { group in focus(group: group) }
             )
@@ -304,6 +308,23 @@ struct SkyView: View {
         SessionLog.append("sky.guide start=\(star.name)")
     }
 
+    private func refreshTonight() {
+        guard observer.stage == .ready,
+              let latitude = observer.latitude,
+              let longitude = observer.longitude,
+              !groups.isEmpty
+        else {
+            tonight = []
+            return
+        }
+        tonight = SkySeason.rank(
+            groups: groups,
+            stars: catalog?.stars ?? [],
+            latitude: latitude,
+            longitude: longitude
+        )
+    }
+
     private func focus(group: SkyGroup) {
         let stars = catalog?.stars ?? []
         guard let direction = SkyGroupIndex.anchor(group, stars: stars) else { return }
@@ -346,6 +367,23 @@ struct SkyView: View {
                 Text(String(format: "最亮 %@ · 视星等 %.2f", StarDisplay.make(for: brightest).title, brightest.magnitude))
                     .font(.caption)
                     .foregroundStyle(.secondary)
+            }
+            if let coordinate = SkySeason.coordinate(group, stars: stars) {
+                let months = SkySeason.bestMonths(rightAscensionHours: coordinate.rightAscension)
+                Text("最佳观赏 \(SkySeason.label(months))")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                if let latitude = observer.latitude, let sidereal = observer.currentSiderealDegrees() {
+                    let horizontal = Astronomy.horizontal(
+                        rightAscensionHours: coordinate.rightAscension,
+                        declinationDegrees: coordinate.declination,
+                        siderealDegrees: sidereal,
+                        latitude: latitude
+                    )
+                    Text(String(format: "此刻 高度 %.0f° · %@", horizontal.altitude, SkySeason.directionLabel(azimuth: horizontal.azimuth)))
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
             }
             HStack(spacing: 6) {
                 ForEach(members, id: \.name) { member in
@@ -559,6 +597,8 @@ struct SkyView: View {
             let started = ProcessInfo.processInfo.systemUptime
             let loaded = StarCatalog.loadFromBundle()
             catalog = loaded
+            groups = SkyGroupIndex.groups(stars: loaded?.stars ?? [])
+            refreshTonight()
             SessionLog.append(
                 String(
                     format: "sky.catalog stars=%d elapsedMs=%.0f",

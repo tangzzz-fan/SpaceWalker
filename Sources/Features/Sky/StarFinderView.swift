@@ -3,6 +3,7 @@ import SwiftUI
 struct StarFinderView: View {
     var stars: [Star]
     var initialQuery: String = ""
+    var tonight: [TonightPick] = []
     var onPick: (Star) -> Void
     var onPickGroup: (SkyGroup) -> Void
 
@@ -14,11 +15,13 @@ struct StarFinderView: View {
     init(
         stars: [Star],
         initialQuery: String = "",
+        tonight: [TonightPick] = [],
         onPick: @escaping (Star) -> Void,
         onPickGroup: @escaping (SkyGroup) -> Void
     ) {
         self.stars = stars
         self.initialQuery = initialQuery
+        self.tonight = tonight
         self.onPick = onPick
         self.onPickGroup = onPickGroup
         _query = State(initialValue: initialQuery)
@@ -44,6 +47,7 @@ struct StarFinderView: View {
                 } else if let constellation {
                     constellationSection(constellation)
                 } else {
+                    tonightSection
                     groupSection
                     chineseSection
                     curatedSection
@@ -89,6 +93,49 @@ struct StarFinderView: View {
                     }
                 } header: {
                     Text("恒星 \(results.count)")
+                }
+            }
+        }
+    }
+
+    private var tonightSection: some View {
+        Group {
+            if !tonight.isEmpty {
+                Section {
+                    ForEach(tonight) { pick in
+                        Button {
+                            onPickGroup(pick.group)
+                            dismiss()
+                        } label: {
+                            HStack(spacing: 10) {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    HStack(spacing: 6) {
+                                        Text(pick.group.title)
+                                            .font(.body)
+                                        if pick.isWellPlaced {
+                                            Text("位置好")
+                                                .font(.caption2)
+                                                .padding(.horizontal, 6)
+                                                .padding(.vertical, 1)
+                                                .background(.green.opacity(0.22), in: Capsule())
+                                        }
+                                    }
+                                    Text("\(pick.altitudeText) · 最佳 \(pick.seasonText)")
+                                        .font(.caption2)
+                                        .foregroundStyle(.secondary)
+                                }
+                                Spacer()
+                                Image(systemName: "scope")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                        .buttonStyle(.plain)
+                    }
+                } header: {
+                    Text("今夜此刻最适合看")
+                } footer: {
+                    Text("按当前高度与该星座最亮星综合排序，只列高度 12° 以上的星座。")
                 }
             }
         }
