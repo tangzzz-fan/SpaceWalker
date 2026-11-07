@@ -57,6 +57,12 @@ xcrun devicectl device process launch --device <UDID> \
 
 ## 5. 取回日志
 
+`SessionLog` 除了写文件，也会以 `notice` 级打到统一日志（subsystem `com.tango.spacewalker`，category `filelog`），所以两种取法都行。
+
+**边跑边看（推荐，能同时看画面和读数）**：打开 Console.app，左侧选中 iPhone，右上搜索 `subsystem:com.tango.spacewalker`，等级选 Include Info/Debug。
+
+**事后取文件**：
+
 ```bash
 xcrun devicectl device copy from --device <UDID> \
   --domain-type appDataContainer --domain-identifier com.tango.spacewalker \
@@ -73,6 +79,17 @@ sky.perf avg=60.0 min=59.8 hitch=0.0% thermal=nominal layers=line+outline+asteri
 ```
 
 `entities=16` 是个好消息也是条线索：整个天球只有 16 个实体、12 个 mesh，说明掉帧（如果有）不会来自节点数量，只可能来自像素填充率——也就是轮廓色块与 814 段星官的覆盖面积。
+
+**控制台里还会有这些，都不是我们的问题**（已逐条核对）：
+
+| 输出 | 来源 | 要不要管 |
+|---|---|---|
+| `asset string 'engine:throttleGhosted.rematerial' parse failed` | RealityKit 内部降频材质 | 不用，删代码也不消失 |
+| `EnvironmentResource with no skybox texture is no longer supported` | RealityKit 默认环境（iOS 27 弃用提示） | 不用，试过移除 `content.environment` 仍然报警 |
+| `VideoLightSpillGenerator ... YCBCR8_420_2P` | 相机纹理预热，星图是虚拟相机 | 不用，预期 |
+| `cannot add handler to 0 from 0 - dropping` ×N | xpc/analytics | 不用 |
+| `CoreMotion.plist ... Operation not permitted` | 沙盒读系统偏好 | 不用，姿态数据正常 |
+| `AX Safe category ...`、`PointerUI ...` | 辅助功能 / 指针服务 | 不用 |
 
 ## 6. 判读
 

@@ -31,6 +31,8 @@ enum SessionLog {
 
     static func append(_ message: String) {
         let line = "[\(AppClock.elapsedMilliseconds())ms] \(message)\n"
+        // 控制台也留一份：真机验收时可以直接 `log stream` 看，不必每次都把文件捞回来。
+        logger.notice("\(line, privacy: .public)")
         guard let data = line.data(using: .utf8) else { return }
 
         do {
