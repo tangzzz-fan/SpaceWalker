@@ -9,7 +9,6 @@ struct SolarSystemState: Equatable, Sendable {
     var isPaused = false
     var selected: BodyID?
     var showsOrbits = true
-    var isARPresented = false
 
     var rateInRange: Double {
         min(max(daysPerSecond, Self.rateRange.lowerBound), Self.rateRange.upperBound)
@@ -23,7 +22,6 @@ enum SolarSystemAction: Equatable, Sendable {
     case select(BodyID?)
     case toggleOrbits
     case reset
-    case setARPresented(Bool)
 }
 
 enum SolarSystemReducer {
@@ -53,8 +51,6 @@ enum SolarSystemReducer {
             state.days = 0
             state.selected = nil
 
-        case .setARPresented(let presented):
-            state.isARPresented = presented
         }
     }
 }

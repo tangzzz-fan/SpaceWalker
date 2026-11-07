@@ -38,7 +38,6 @@ final class SkyScene {
     var asterismHighlightID: String?
     var starsByHIP: [Int: Star] = [:]
     var asterismSegmentCount = 0
-    var asterismGroupCount = 0
     var asterismsRequested = false
     var patternNode: Entity?
     var patternMaterial: UnlitMaterial?

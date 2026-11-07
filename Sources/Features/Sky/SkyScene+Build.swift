@@ -212,7 +212,6 @@ extension SkyScene {
         asterismNode = node
         asterismMaterial = material
         asterismSegmentCount = segments.count
-        asterismGroupCount = drawnGroups
     }
 
     func asterismSegments(

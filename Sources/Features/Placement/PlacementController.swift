@@ -30,10 +30,6 @@ final class PlacementController {
     private(set) var debugLine: String?
     private(set) var anchorWorldPosition: SIMD3<Float>?
 
-    var hasPlacement: Bool {
-        cube != nil
-    }
-
     func attach(_ content: RealityViewCameraContent) {
         self.content = content
         logger.notice("placement attached")

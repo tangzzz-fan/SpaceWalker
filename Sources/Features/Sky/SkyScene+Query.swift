@@ -56,10 +56,6 @@ extension SkyScene {
         return Constellations.all.first { $0.abbreviation == best.key }
     }
 
-    func constellationAtCenter() -> Constellation? {
-        constellation(at: viewDirectionInField)
-    }
-
     /// 点环方向落在哪个闭合星群内部。命中多个时取距离中心最近的一个。
     func pattern(at direction: SIMD3<Float>) -> SkyPattern? {
         var best: (key: String, dot: Float)?
@@ -71,10 +67,6 @@ extension SkyScene {
         }
         guard let best else { return nil }
         return SkyPatternCatalog.pattern(id: best.key)
-    }
-
-    func patternAtCenter() -> SkyPattern? {
-        pattern(at: viewDirectionInField)
     }
 
     /// 星群几何中心方向，用于对准与调试。
@@ -128,9 +120,10 @@ extension SkyScene {
     private func selectableStar(along direction: SIMD3<Float>) -> Star? {
         guard viewSize.height > 1 else { return nil }
         guard let star = SkyPicker.nearest(to: direction, in: nodes, limit: 1).first else { return nil }
-        // 十字线半径是屏幕点，换成角度才能与视场无关。视场 60°、高 852pt 时，
-        // 22pt 约等于 1.55°；改用角度判定后，捏合缩放不会让命中范围跟着变。
-        let tolerance = Double(fieldOfView) * Double(SkyPicker.crosshairRadius) / Double(viewSize.height)
+        // 准星半径是屏幕点，换算成角度才能与视场无关。换算要用投影焦距而不是线性近似：
+        // 线性近似在 60° 视场下把 1.708° 算成 1.549°，圈边上的星会被准星拒绝、点选却接受。
+        let focal = Double(viewSize.height) / 2 / tan(Double(fieldOfView) * .pi / 360)
+        let tolerance = atan(Double(SkyPicker.crosshairRadius) / focal) * 180 / .pi
         guard SkyPicker.offsetDegrees(SkyPicker.direction(for: star), direction) <= tolerance else {
             return nil
         }

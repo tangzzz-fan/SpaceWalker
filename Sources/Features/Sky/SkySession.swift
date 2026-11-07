@@ -40,7 +40,6 @@ final class SkySession {
     var perf = SkyPerformanceProbe()
     var tonightStamp: TimeInterval = 0
 
-    var isMotionActive: Bool { attitude.isAvailable }
     var canFollowAttitude: Bool { attitude.isAvailable }
 
     /// 用户意图：跟随姿态，还是自己拖。设备没有陀螺仪时只能手动。

@@ -78,13 +78,6 @@ final class ProbeRecorder {
         return summary
     }
 
-    func resetDrift() {
-        driftPositions.removeAll()
-        lastDriftSample = nil
-        summary.maxDriftMeters = 0
-        summary.driftDirection = .zero
-        summary.driftSamples = 0
-    }
 }
 
 struct ProbeSummary: Equatable, Sendable {

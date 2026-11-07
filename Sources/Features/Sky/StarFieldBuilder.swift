@@ -160,10 +160,6 @@ enum StarFieldBuilder {
         return convexHull(projected).map { points[$0] }
     }
 
-    static func sphericalPolygon(points: [SIMD3<Float>], radius: Float) -> StarMeshData {
-        polygon(ring: hullRing(points), radius: radius)
-    }
-
     static func polygon(ring: [SIMD3<Float>], radius: Float) -> StarMeshData {
         guard ring.count >= 3 else { return StarMeshData(positions: [], normals: [], indices: []) }
 
