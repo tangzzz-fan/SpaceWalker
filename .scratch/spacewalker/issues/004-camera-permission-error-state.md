@@ -26,3 +26,13 @@ blocked_by: [001]
 
 - 解释页文案走集中管理，不硬编码在视图里。
 - 不请求相册、麦克风等无关权限。
+
+## 实现进展（2026-11-07）
+
+三条可由 agent 取证，两条必须人工。
+
+- 已实现：`CameraPermissionState`（AV 状态映射）、`PermissionGate`（状态 → 页面，纯函数）、`PermissionState`（Redux 切片）、`PermissionView` / `PermissionRequestingView`、`PermissionCopy`（文案集中）。
+- 真机证据：已授权进入 AR 画面；拒绝态解释页含「去设置开启相机权限」；受限态解释页无按钮。见 `docs/gates/M0/004-*.jpg` 与 `logs/004-*.log`。
+- 单次请求：`requestedThisLaunch` + `PermissionGate.shouldRequestAccess` 保证启动内只请求一次，拒绝后不再弹框；对应单测覆盖。
+- 待人工：① 真机设置里关闭相机 → 重进看解释页 → 设置里打开 → 返回应用能否直接进入（代码路径是 `scenePhase == .active` → 重新读权限 → 展示内容页，但未实测返回场景）；② 连续拒绝 3 次不崩；③ VoiceOver 朗读顺序与文案。
+- 备注：本机相机权限一直是已授权状态，拒绝/受限两态由 `SPACEWALKER_FORCE_PERMISSION` 注入复现。
