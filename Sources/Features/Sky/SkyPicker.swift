@@ -7,6 +7,22 @@ enum SkyPicker {
     static let prefilterDegrees: Float = 4
     static let candidateLimit = 4
 
+    static func nearby(
+        to star: Star,
+        in stars: [Star],
+        within degrees: Double = 1.5,
+        limit: Int = 4
+    ) -> [Star] {
+        let origin = direction(for: star)
+        let threshold = Float(cos(degrees * .pi / 180))
+        return stars
+            .filter { $0.isSelectable && $0.name != star.name }
+            .filter { simd_dot(origin, direction(for: $0)) > threshold }
+            .sorted { $0.magnitude < $1.magnitude }
+            .prefix(limit)
+            .map { $0 }
+    }
+
     static func offsetDegrees(_ a: SIMD3<Float>, _ b: SIMD3<Float>) -> Double {
         let normalizedA = simd_length(a) > 0.0001 ? simd_normalize(a) : SIMD3<Float>(0, 0, -1)
         let normalizedB = simd_length(b) > 0.0001 ? simd_normalize(b) : SIMD3<Float>(0, 0, -1)

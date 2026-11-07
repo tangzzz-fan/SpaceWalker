@@ -211,6 +211,29 @@ final class SkyPickerTests: XCTestCase {
         Star(rightAscensionHours: ra, declinationDegrees: dec, magnitude: mag, colorIndex: 0, name: name, constellation: "")
     }
 
+    func testOffsetDegreesMatchesGeometry() {
+        XCTAssertEqual(SkyPicker.offsetDegrees(SIMD3(0, 0, -1), SIMD3(0, 0, -1)), 0, accuracy: 0.001)
+        XCTAssertEqual(SkyPicker.offsetDegrees(SIMD3(1, 0, 0), SIMD3(0, 0, -1)), 90, accuracy: 0.001)
+        XCTAssertEqual(SkyPicker.offsetDegrees(SIMD3(0, 0, 1), SIMD3(0, 0, -1)), 180, accuracy: 0.001)
+        XCTAssertEqual(SkyPicker.offsetDegrees(SIMD3(0, 0, -3), SIMD3(0, 0, -1)), 0, accuracy: 0.001)
+    }
+
+    func testNearbyFindsBeltNeighbours() throws {
+        let catalog = try XCTUnwrap(StarCatalog.loadFromBundle(.main))
+        let alnitak = try XCTUnwrap(catalog.stars.first { $0.name == "Alnitak" })
+        let nearby = SkyPicker.nearby(to: alnitak, in: catalog.stars)
+
+        XCTAssertEqual(nearby.first?.name, "Alnilam")
+        XCTAssertFalse(nearby.contains { $0.name == "Alnitak" })
+        XCTAssertTrue(nearby.allSatisfy(\.isSelectable))
+    }
+
+    func testNearbyStopsAtOnePointFiveDegrees() throws {
+        let catalog = try XCTUnwrap(StarCatalog.loadFromBundle(.main))
+        let sirius = try XCTUnwrap(catalog.stars.first { $0.name == "Sirius" })
+        XCTAssertTrue(SkyPicker.nearby(to: sirius, in: catalog.stars).isEmpty)
+    }
+
     func testNearestKeepsOnlyPrefilterWindow() {
         let sirius = star(6.753, -16.72, -1.44, "Sirius")
         let far = star(6.753, -11.72, 1.0, "FiveDegreesNorth")
@@ -621,6 +644,123 @@ final class ConstellationInfoTests: XCTestCase {
         let abbreviations = Set(catalog.stars.map(\.constellation).filter { !$0.isEmpty })
         let missing = abbreviations.subtracting(ConstellationInfo.latinNames.keys)
         XCTAssertTrue(missing.isEmpty, "缺少拉丁名：\(missing.sorted())")
+    }
+}
+
+final class StarDisplayTests: XCTestCase {
+    func testBedouSevenStarsMapToBeidou() {
+        let expected = ["天枢": 1, "天璇": 2, "天玑": 3, "天权": 4, "玉衡": 5, "开阳": 6, "摇光": 7]
+        for (name, index) in expected {
+            let asterism = AsterismParser.asterism(for: name)
+            XCTAssertEqual(asterism?.name, "北斗", "\(name) 应属北斗")
+            XCTAssertEqual(asterism?.index, index, "\(name) 序号")
+        }
+    }
+
+    func testMansionMapping() {
+        let orion = AsterismParser.asterism(for: "参宿四")
+        XCTAssertEqual(orion?.name, "参宿")
+        XCTAssertEqual(orion?.index, 4)
+        XCTAssertEqual(orion?.mansion, "参宿")
+        XCTAssertEqual(orion?.symbol, "西方白虎")
+
+        let heart = AsterismParser.asterism(for: "心宿二")
+        XCTAssertEqual(heart?.mansion, "心宿")
+        XCTAssertEqual(heart?.symbol, "东方青龙")
+    }
+
+    func testNonMansionAsterism() {
+        let capella = AsterismParser.asterism(for: "五车二")
+        XCTAssertEqual(capella?.name, "五车")
+        XCTAssertEqual(capella?.index, 2)
+        XCTAssertNil(capella?.mansion)
+    }
+
+    func testTwoCharacterAsterismWithDoubleDigitIndex() {
+        let star = AsterismParser.asterism(for: "天市右垣十一")
+        XCTAssertEqual(star?.name, "天市右垣")
+        XCTAssertEqual(star?.index, 11)
+    }
+
+    func testSingleCharacterPrefixIsNotAnAsterism() {
+        XCTAssertNil(AsterismParser.asterism(for: "天一"))
+        XCTAssertNil(AsterismParser.asterism(for: "天狼"))
+        XCTAssertNil(AsterismParser.asterism(for: "大角"))
+    }
+
+    func testNumberParsing() {
+        XCTAssertEqual(AsterismParser.number(from: "四"), 4)
+        XCTAssertEqual(AsterismParser.number(from: "十"), 10)
+        XCTAssertEqual(AsterismParser.number(from: "十一"), 11)
+        XCTAssertEqual(AsterismParser.number(from: "十四"), 14)
+        XCTAssertEqual(AsterismParser.number(from: "二十"), 20)
+        XCTAssertEqual(AsterismParser.number(from: "二十三"), 23)
+    }
+
+    func testDisplayPrefersChinese() {
+        let star = Star(
+            rightAscensionHours: 5.92, declinationDegrees: 7.4, magnitude: 0.45,
+            colorIndex: 1.5, name: "Betelgeuse", constellation: "Ori"
+        )
+        let display = StarDisplay.make(for: star)
+        XCTAssertEqual(display.title, "参宿四")
+        XCTAssertEqual(display.subtitle, "Betelgeuse")
+        XCTAssertEqual(display.asterismLine, "星官 参宿 · 第 4 星")
+        XCTAssertEqual(display.mansionLine, "二十八宿 参宿 · 西方白虎")
+        XCTAssertEqual(display.constellation, "猎户座")
+    }
+
+    func testDisplayFallsBackToLatin() {
+        let star = Star(
+            rightAscensionHours: 3.77, declinationDegrees: 24.0, magnitude: 4.14,
+            colorIndex: 0, name: "Merope", constellation: "Tau"
+        )
+        let display = StarDisplay.make(for: star)
+        XCTAssertEqual(display.title, "昴宿五")
+        XCTAssertEqual(display.subtitle, "Merope")
+    }
+
+    func testOfficialChineseNameFlagged() {
+        let star = Star(
+            rightAscensionHours: 5.63, declinationDegrees: 21.1, magnitude: 2.97,
+            colorIndex: 0, name: "Tianguan", constellation: "Tau"
+        )
+        XCTAssertTrue(StarDisplay.make(for: star).official)
+        XCTAssertFalse(StarDisplay.make(for: Star(
+            rightAscensionHours: 6.75, declinationDegrees: -16.7, magnitude: -1.44,
+            colorIndex: 0, name: "Sirius", constellation: "CMa"
+        )).official)
+    }
+}
+
+final class CompanionTests: XCTestCase {
+    func testUnresolvableCompanionsAreHidden() throws {
+        let catalog = try XCTUnwrap(StarCatalog.loadFromBundle(.main))
+        let byName = Dictionary(grouping: catalog.stars, by: \.name).compactMapValues { $0.first }
+
+        XCTAssertEqual(byName["Castor B"]?.isCompanion, true)
+        XCTAssertEqual(byName["Toliman"]?.isCompanion, true)
+        XCTAssertEqual(byName["Castor"]?.isCompanion, false)
+        XCTAssertEqual(byName["Castor"]?.isSelectable, true)
+        XCTAssertEqual(byName["Rigil Kentaurus"]?.isSelectable, true)
+    }
+
+    func testCompanionMarkingKeepsBrighterMember() {
+        var stars = [
+            Star(rightAscensionHours: 6.0, declinationDegrees: 10, magnitude: 1.5, colorIndex: 0, name: "Primary", constellation: "Ori"),
+            Star(rightAscensionHours: 6.0, declinationDegrees: 10.001, magnitude: 3.0, colorIndex: 0, name: "Faint", constellation: "Ori"),
+            Star(rightAscensionHours: 6.0, declinationDegrees: 40, magnitude: 2.0, colorIndex: 0, name: "Other", constellation: "Ori"),
+        ]
+        StarCatalog.markCompanions(in: &stars)
+        XCTAssertFalse(stars[0].isCompanion)
+        XCTAssertTrue(stars[1].isCompanion)
+        XCTAssertFalse(stars[2].isCompanion)
+    }
+
+    func testSelectableCountAfterMerge() throws {
+        let catalog = try XCTUnwrap(StarCatalog.loadFromBundle(.main))
+        XCTAssertEqual(catalog.stars.filter(\.isSelectable).count, 286)
+        XCTAssertEqual(catalog.stars.filter { $0.isCompanion }.count, 15)
     }
 }
 

@@ -111,6 +111,8 @@ enum ChineseStarNames {
         "Atlas": "昴宿七",
         "Electra": "昴宿一",
         "Maia": "昴宿四",
+        "Merope": "昴宿五",
+        "Taygeta": "昴宿二",
         "Ain": "毕宿一",
         "Gomeisa": "南河二",
         "Menkar": "天囷一",

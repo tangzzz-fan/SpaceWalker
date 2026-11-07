@@ -8,13 +8,14 @@ struct Star: Equatable, Sendable {
     var colorIndex: Double
     var name: String
     var constellation: String
+    var isCompanion: Bool = false
 
     var isNamed: Bool {
         !name.isEmpty
     }
 
     var isSelectable: Bool {
-        isNamed && magnitude <= StarField.selectableMagnitudeLimit
+        isNamed && !isCompanion && magnitude <= StarField.selectableMagnitudeLimit
     }
 }
 
@@ -27,20 +28,18 @@ struct StarCatalog: Equatable, Sendable {
 
     static func decode(_ data: Data) throws -> StarCatalog {
         let payload = try JSONDecoder().decode(Payload.self, from: data)
-        return StarCatalog(
-            source: payload.source,
-            license: payload.license,
-            stars: payload.stars.map {
-                Star(
-                    rightAscensionHours: $0.ra,
-                    declinationDegrees: $0.dec,
-                    magnitude: $0.mag,
-                    colorIndex: $0.ci,
-                    name: $0.name,
-                    constellation: $0.con
-                )
-            }
-        )
+        var stars = payload.stars.map {
+            Star(
+                rightAscensionHours: $0.ra,
+                declinationDegrees: $0.dec,
+                magnitude: $0.mag,
+                colorIndex: $0.ci,
+                name: $0.name,
+                constellation: $0.con
+            )
+        }
+        markCompanions(in: &stars)
+        return StarCatalog(source: payload.source, license: payload.license, stars: stars)
     }
 
     static func loadFromBundle(_ bundle: Bundle = .main) -> StarCatalog? {
@@ -51,6 +50,33 @@ struct StarCatalog: Equatable, Sendable {
             return nil
         }
         return catalog
+    }
+
+    static let companionSeparationDegrees: Double = 0.05
+
+    static func markCompanions(in stars: inout [Star]) {
+        let named = stars.indices.filter { stars[$0].isNamed }
+        guard named.count > 1 else { return }
+        let vectors = stars.map {
+            StarField.direction(
+                rightAscensionHours: $0.rightAscensionHours,
+                declinationDegrees: $0.declinationDegrees
+            )
+        }
+        let threshold = cos(companionSeparationDegrees * .pi / 180)
+
+        for a in 0..<(named.count - 1) {
+            for b in (a + 1)..<named.count {
+                let first = named[a]
+                let second = named[b]
+                guard simd_dot(vectors[first], vectors[second]) > Float(threshold) else { continue }
+                if stars[first].magnitude <= stars[second].magnitude {
+                    stars[second].isCompanion = true
+                } else {
+                    stars[first].isCompanion = true
+                }
+            }
+        }
     }
 
     private struct Payload: Decodable {

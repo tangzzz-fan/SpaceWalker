@@ -295,32 +295,80 @@ struct SkyView: View {
     }
 
     private func starCard(_ star: Star) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack(alignment: .firstTextBaseline) {
-                Text(star.name.isEmpty ? "未命名恒星" : star.name)
+        let display = StarDisplay.make(for: star)
+        let nearby = SkyPicker.nearby(to: star, in: catalog?.stars ?? [])
+        return VStack(alignment: .leading, spacing: 6) {
+            HStack(alignment: .firstTextBaseline, spacing: 6) {
+                Text(display.title)
                     .font(.headline)
+                if display.official {
+                    Text("IAU")
+                        .font(.system(size: 9, weight: .medium))
+                        .padding(.horizontal, 5)
+                        .padding(.vertical, 1)
+                        .background(.white.opacity(0.18), in: Capsule())
+                }
+                if let subtitle = display.subtitle {
+                    Text(subtitle)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
                 Spacer()
-                Text(star.constellation.isEmpty ? "—" : star.constellation)
+                Text(display.constellation.isEmpty ? "—" : display.constellation)
                     .font(.caption2)
                     .padding(.horizontal, 8)
                     .padding(.vertical, 3)
                     .background(.white.opacity(0.12), in: Capsule())
             }
+            if let line = display.asterismLine {
+                Text(line)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
+            if let line = display.mansionLine {
+                Text(line)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
             Text(String(format: "视星等 %.2f · 赤经 %.2fh · 赤纬 %.1f°", star.magnitude, star.rightAscensionHours, star.declinationDegrees))
                 .font(.caption)
-                .foregroundStyle(.secondary)
-            Text(String(format: "色指数 %.2f（越小越偏蓝）", star.colorIndex))
-                .font(.caption2)
                 .foregroundStyle(.secondary)
             if let horizontal = horizontal(for: star) {
                 Text(String(format: "高度 %.1f° · 方位 %.1f°（此刻）", horizontal.altitude, horizontal.azimuth))
                     .font(.caption2)
                     .foregroundStyle(.secondary)
+            }
+            if !nearby.isEmpty {
+                HStack(spacing: 6) {
+                    Text("附近")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                    ForEach(nearby, id: \.name) { item in
+                        Button {
+                            selected = item
+                            dwell.reset()
+                            hud.show(0)
+                            SessionLog.append("sky.nearby pick=\(item.name)")
+                        } label: {
+                            Text(StarDisplay.make(for: item).title)
+                                .font(.caption2)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 3)
+                                .background(.white.opacity(0.10), in: Capsule())
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding(.top, 2)
+            }
+            if let horizontal = horizontal(for: star) {
                 alignmentButton(star: star, azimuth: horizontal.azimuth)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(14)
+        .padding(.trailing, 22)
         .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16))
         .overlay(alignment: .topTrailing) {
             Button {
@@ -429,6 +477,10 @@ struct SkyView: View {
             currentRegion = region
             try? await Task.sleep(for: .seconds(2))
             infoRegion = region
+        }
+        if let name = LaunchMode.starPreview(environment: ProcessInfo.processInfo.environment),
+           let star = catalog?.stars.first(where: { $0.name == name }) {
+            selected = star
         }
         if let target = LaunchMode.guideTarget(environment: ProcessInfo.processInfo.environment) {
             let stars = catalog?.stars ?? []

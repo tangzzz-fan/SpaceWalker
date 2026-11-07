@@ -47,6 +47,10 @@ enum LaunchMode {
         environment["SPACEWALKER_REGION"]
     }
 
+    static func starPreview(environment: [String: String]) -> String? {
+        environment["SPACEWALKER_STAR"]
+    }
+
     static func autoAREnabled(environment: [String: String]) -> Bool {
         environment["SPACEWALKER_AUTOAR"] == "1"
     }
