@@ -18,6 +18,14 @@ final class TiangongSession {
     var selected: TiangongModuleID?
     var separated: Set<TiangongModuleID> = []
 
+    var dockingActive = false
+    var dockingOffset = SIMD3<Float>(0, 0, 0.42)
+    var dockingOutcome: TiangongDocking.Outcome = .approaching
+    var controlMode: TiangongDocking.ControlMode = .coarse
+    var dockingElapsed: TimeInterval = 0
+    var dockingHolding: TimeInterval = 0
+
+    @ObservationIgnored private var lastDockingOffset: SIMD3<Float>?
     @ObservationIgnored var viewSize: CGSize = .zero
     @ObservationIgnored private var dragging: TiangongModuleID?
     @ObservationIgnored private var dragStart: SIMD3<Float> = .zero
@@ -37,6 +45,9 @@ final class TiangongSession {
         scene.attach(content)
         scene.apply(rig: rig)
         applyLaunchState()
+        if LaunchMode.tiangongDockingOnLaunch(environment: ProcessInfo.processInfo.environment) {
+            beginDocking()
+        }
         SessionLog.append("tiangong.attach modules=\(TiangongModuleID.allCases.count)")
         SessionLog.append("tiangong.budget triangles=\(scene.triangleEstimate)")
     }
@@ -123,6 +134,119 @@ final class TiangongSession {
             UIImpactFeedbackGenerator(style: .rigid).impactOccurred()
             SessionLog.append("tiangong.assembly id=\(id.rawValue) reject=\(failure) reason=\(failure.message)")
         }
+    }
+
+    // MARK: - 对接
+
+    func beginDocking() {
+        separated.removeAll()
+        scene.applySeparation(separated, animated: false)
+        dockingActive = true
+        dockingOffset = SIMD3(0, 0, 0.42)
+        dockingOutcome = .approaching
+        dockingElapsed = 0
+        dockingHolding = 0
+        lastDockingOffset = nil
+        selected = nil
+        applyShipPosition()
+        SessionLog.append("tiangong.docking begin")
+    }
+
+    func endDocking() {
+        dockingActive = false
+        dockingOutcome = .approaching
+        scene.setPosition(TiangongLayout.shenzhouCenter, for: .shenzhou)
+        SessionLog.append("tiangong.docking end")
+    }
+
+    func toggleControlMode() {
+        controlMode = controlMode == .coarse ? .fine : .coarse
+        SessionLog.append("tiangong.docking mode=\(controlMode.rawValue)")
+    }
+
+    func moveShip(drag: CGSize, magnification: CGFloat) {
+        guard dockingActive, !isTerminal else { return }
+        let scale = TiangongAssembly.metersPerPoint(
+            distance: rig.distance,
+            fieldOfViewDegrees: 50,
+            screenHeight: viewSize.height
+        )
+        let delta = TiangongDocking.offsetDelta(
+            drag: drag,
+            magnification: magnification,
+            mode: controlMode,
+            metersPerPoint: scale
+        )
+        dockingOffset += delta
+        dockingOffset.x = min(max(dockingOffset.x, -0.25), 0.25)
+        dockingOffset.y = min(max(dockingOffset.y, -0.25), 0.25)
+        dockingOffset.z = min(max(dockingOffset.z, 0), 0.6)
+        applyShipPosition()
+    }
+
+    func stepDocking(delta: TimeInterval) {
+        guard dockingActive, !isTerminal else { return }
+        dockingElapsed += delta
+        let speed: Float = lastDockingOffset.map {
+            simd_length(dockingOffset - $0) / Float(max(delta, 0.001))
+        } ?? 0
+        lastDockingOffset = dockingOffset
+
+        let outcome = TiangongDocking.judge(
+            TiangongDocking.Input(
+                offset: dockingOffset,
+                speed: speed,
+                elapsed: dockingElapsed,
+                holding: dockingHolding
+            ),
+            delta: delta
+        )
+        dockingOutcome = outcome
+
+        switch outcome {
+        case .holding(let value):
+            dockingHolding = value
+        case .docked:
+            UINotificationFeedbackGenerator().notificationOccurred(.success)
+            SessionLog.append("tiangong.docking docked elapsed=\(String(format: "%.1f", dockingElapsed))")
+        case .failed(let failure):
+            UINotificationFeedbackGenerator().notificationOccurred(.error)
+            SessionLog.append("tiangong.docking failed=\(failure.rawValue) reason=\(failure.message)")
+        case .approaching:
+            break
+        }
+    }
+
+    func resetDocking() {
+        beginDocking()
+    }
+
+    var isTerminal: Bool {
+        switch dockingOutcome {
+        case .docked, .failed: true
+        default: false
+        }
+    }
+
+    var dockingHeadline: String? {
+        switch dockingOutcome {
+        case .approaching:
+            "轴向距离 " + TiangongFormat.meters(abs(dockingOffset.z))
+        case .holding(let value):
+            "已进入容差 · 保持 \(String(format: "%.1f", value)) s"
+        case .docked:
+            "对接成功"
+        case .failed(let failure):
+            "对接失败：" + failure.message
+        }
+    }
+
+    private func applyShipPosition() {
+        let halfLength = TiangongScale.display(TiangongModel.shenzhouLength) / 2
+        scene.setPosition(
+            SIMD3(dockingOffset.x, dockingOffset.y, TiangongLayout.dockingPortZ + dockingOffset.z + halfLength),
+            for: .shenzhou
+        )
     }
 
     func toggleDisassembly(_ id: TiangongModuleID) {

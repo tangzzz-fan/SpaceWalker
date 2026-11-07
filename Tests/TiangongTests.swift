@@ -200,3 +200,79 @@ final class TiangongAssemblyTests: XCTestCase {
         XCTAssertEqual(TiangongAssembly.metersPerPoint(distance: 1, fieldOfViewDegrees: 50, screenHeight: 0), 0)
     }
 }
+
+final class TiangongDockingTests: XCTestCase {
+    private func input(
+        z: Float = 0,
+        x: Float = 0,
+        y: Float = 0,
+        angle: Float = 0,
+        speed: Float = 0,
+        elapsed: TimeInterval = 0,
+        holding: TimeInterval = 0
+    ) -> TiangongDocking.Input {
+        TiangongDocking.Input(
+            offset: SIMD3(x, y, z),
+            angleDegrees: angle,
+            speed: speed,
+            angularSpeed: 0,
+            elapsed: elapsed,
+            holding: holding
+        )
+    }
+
+    /// 远离对接口时只报「还在接近」，不做任何失败判定。
+    func testFarAwayIsApproaching() {
+        XCTAssertEqual(TiangongDocking.judge(input(z: 0.4), delta: 0.1), .approaching)
+    }
+
+    /// 进入 2cm 后要稳住 1 秒才算成功。
+    func testHoldThenDock() {
+        XCTAssertEqual(TiangongDocking.judge(input(holding: 0), delta: 0.4), .holding(0.4))
+        XCTAssertEqual(TiangongDocking.judge(input(holding: 0.9), delta: 0.2), .docked)
+    }
+
+    func testFourFailures() {
+        XCTAssertEqual(TiangongDocking.judge(input(speed: 0.03), delta: 0.1), .failed(.tooFast))
+        XCTAssertEqual(TiangongDocking.judge(input(x: 0.05), delta: 0.1), .failed(.offAxis))
+        XCTAssertEqual(TiangongDocking.judge(input(angle: 6), delta: 0.1), .failed(.tooSteep))
+        XCTAssertEqual(TiangongDocking.judge(input(elapsed: 90), delta: 0.1), .failed(.timeout))
+    }
+
+    /// 每类失败有专属文案，互不混淆。
+    func testFailureMessagesAreDistinct() {
+        let messages = [TiangongDocking.Failure.tooFast, .offAxis, .tooSteep, .timeout].map(\.message)
+        XCTAssertEqual(Set(messages).count, 4)
+    }
+
+    /// 容差边界：刚好在内通过，刚好在外失败。
+    func testToleranceBoundary() {
+        let insideZ = TiangongDocking.axialTolerance * 0.99
+        let outsideZ = TiangongDocking.axialTolerance * 1.01
+        XCTAssertEqual(TiangongDocking.judge(input(z: insideZ), delta: 0.1), .holding(0.1))
+        XCTAssertEqual(TiangongDocking.judge(input(z: outsideZ), delta: 0.1), .approaching)
+
+        let insideX = TiangongDocking.axialTolerance * 0.99
+        let outsideX = TiangongDocking.axialTolerance * 1.01
+        if case .failed = TiangongDocking.judge(input(x: insideX, holding: 0), delta: 0.1) {
+            XCTFail("横向在容差内不该失败")
+        }
+        XCTAssertEqual(TiangongDocking.judge(input(x: outsideX, holding: 0), delta: 0.1), .failed(.offAxis))
+    }
+
+    func testDeterministic() {
+        let sample = input(z: 0.01, x: 0.01, angle: 2, speed: 0.01, holding: 0.5)
+        let first = TiangongDocking.judge(sample, delta: 0.1)
+        for _ in 0..<20 {
+            XCTAssertEqual(TiangongDocking.judge(sample, delta: 0.1), first)
+        }
+    }
+
+    /// 精调档的位移是粗调的 1/4。
+    func testFineModeIsQuarterSensitivity() {
+        let drag = CGSize(width: 100, height: 0)
+        let coarse = TiangongDocking.offsetDelta(drag: drag, magnification: 1, mode: .coarse, metersPerPoint: 0.001)
+        let fine = TiangongDocking.offsetDelta(drag: drag, magnification: 1, mode: .fine, metersPerPoint: 0.001)
+        XCTAssertEqual(fine.x / coarse.x, 0.25, accuracy: 0.0001)
+    }
+}

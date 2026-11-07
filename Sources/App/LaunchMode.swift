@@ -149,6 +149,10 @@ enum LaunchMode {
         return Set(raw.split(separator: ",").compactMap { TiangongModuleID(rawValue: String($0)) })
     }
 
+    static func tiangongDockingOnLaunch(environment: [String: String]) -> Bool {
+        environment["SPACEWALKER_TG_DOCK"] == "1"
+    }
+
     static func asterismBrowserOnLaunch(environment: [String: String]) -> Bool {
         environment["SPACEWALKER_ASTERISMS"] == "1"
     }

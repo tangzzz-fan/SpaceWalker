@@ -10,8 +10,10 @@ struct TiangongView: View {
     @State private var probeLine: String?
     @State private var showsHistory = false
     @State private var dragMode: DragMode = .none
+    @State private var lastDrag: CGSize = .zero
+    @State private var dockTicker = Timer.publish(every: 0.1, on: .main, in: .common).autoconnect()
 
-    private enum DragMode { case none, orbit, module }
+    private enum DragMode { case none, orbit, module, docking }
 
     var body: some View {
         ZStack {
@@ -27,7 +29,10 @@ struct TiangongView: View {
             VStack(alignment: .leading, spacing: 0) {
                 topBar
                 Spacer(minLength: 0)
-                if let selected = session.selected {
+                if session.dockingActive {
+                    dockingCard
+                        .padding(.bottom, 10)
+                } else if let selected = session.selected {
                     infoCard(selected)
                         .padding(.bottom, 10)
                 }
@@ -43,6 +48,11 @@ struct TiangongView: View {
             // 碰撞体与投影要等渲染就绪，立刻自检会全空。
             try? await Task.sleep(for: .seconds(1.2))
             probeLine = session.scene.verifyPicking()
+        }
+        .onReceive(dockTicker) { _ in
+            if session.dockingActive {
+                session.stepDocking(delta: 0.1)
+            }
         }
         .sheet(isPresented: $showsHistory) {
             TiangongHistorySheet()
@@ -103,18 +113,36 @@ struct TiangongView: View {
         DragGesture(minimumDistance: 4)
             .onChanged { value in
                 if dragMode == .none {
-                    dragMode = session.beginModuleDrag(at: value.startLocation) ? .module : .orbit
+                    if session.dockingActive {
+                        dragMode = .docking
+                    } else if session.beginModuleDrag(at: value.startLocation) {
+                        dragMode = .module
+                    } else {
+                        dragMode = .orbit
+                    }
+                    lastDrag = .zero
                 }
                 switch dragMode {
-                case .module: session.dragModule(translation: value.translation)
-                case .orbit: session.rotate(translation: value.translation)
-                case .none: break
+                case .module:
+                    session.dragModule(translation: value.translation)
+                case .orbit:
+                    session.rotate(translation: value.translation)
+                case .docking:
+                    let delta = CGSize(
+                        width: value.translation.width - lastDrag.width,
+                        height: value.translation.height - lastDrag.height
+                    )
+                    session.moveShip(drag: delta, magnification: 1)
+                    lastDrag = value.translation
+                case .none:
+                    break
                 }
             }
             .onEnded { _ in
                 switch dragMode {
                 case .module: session.endModuleDrag()
                 case .orbit: session.endDrag()
+                case .docking: lastDrag = .zero
                 case .none: break
                 }
                 dragMode = .none
@@ -124,10 +152,16 @@ struct TiangongView: View {
     private var zoomGesture: some Gesture {
         MagnifyGesture()
             .onChanged { value in
-                session.magnify(value.magnification)
+                if session.dockingActive {
+                    session.moveShip(drag: .zero, magnification: value.magnification)
+                } else {
+                    session.magnify(value.magnification)
+                }
             }
             .onEnded { _ in
-                session.endMagnify()
+                if !session.dockingActive {
+                    session.endMagnify()
+                }
             }
     }
 
@@ -199,6 +233,35 @@ struct TiangongView: View {
         TiangongFormat.meters(meters)
     }
 
+    private var dockingCard: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(alignment: .firstTextBaseline, spacing: 6) {
+                Image(systemName: "dot.scope")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                Text(session.dockingHeadline ?? "")
+                    .font(.headline)
+                Spacer(minLength: 6)
+                Button(session.controlMode == .coarse ? "粗调" : "精调") {
+                    session.toggleControlMode()
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.mini)
+            }
+            if case .failed = session.dockingOutcome {
+                Button("重试") { session.resetDocking() }
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.small)
+            }
+            Text("拖动平移 · 捏合推进 · 单指转视角已停用")
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(14)
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16))
+    }
+
     private var controlBar: some View {
         HStack(spacing: 18) {
             Button {
@@ -224,6 +287,18 @@ struct TiangongView: View {
                     .frame(width: 28, height: 28)
             }
             .accessibilityLabel("星图")
+
+            Button {
+                if session.dockingActive {
+                    session.endDocking()
+                } else {
+                    session.beginDocking()
+                }
+            } label: {
+                Image(systemName: session.dockingActive ? "xmark.circle" : "arrow.up.forward.circle")
+                    .frame(width: 28, height: 28)
+            }
+            .accessibilityLabel(session.dockingActive ? "退出对接" : "对接任务")
 
             Button {
                 showsHistory = true
