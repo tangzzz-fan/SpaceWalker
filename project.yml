@@ -26,6 +26,12 @@ schemes:
     archive:
       config: Release
 
+packages:
+  TGReduxKit:
+    path: "../Tango Vendor Packages/TGReduxKit"
+  TGFeatureFlag:
+    path: "../Tango Vendor Packages/TGFeatureFlag"
+
 settings:
   base:
     SDKROOT: iphoneos
@@ -52,6 +58,11 @@ targets:
           - UIInterfaceOrientationPortrait
         UIRequiredDeviceCapabilities:
           - arm64
+    dependencies:
+      - package: TGReduxKit
+        product: TGReduxKit
+      - package: TGFeatureFlag
+        product: TGFeatureFlag
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.tango.SpaceWalker

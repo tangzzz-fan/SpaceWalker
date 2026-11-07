@@ -1,14 +1,20 @@
 import SwiftUI
+import TGReduxKit
 
 struct ContentView: View {
+    @Environment(Store<AppState, AppAction>.self) private var store
+
     var body: some View {
-        VStack(spacing: 12) {
-            Text("SpaceWalker")
-                .font(.largeTitle)
-            Text("工程骨架已就绪 · 等待 AR 交互方向确认")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
+        Group {
+            if store.state.flags.prototypeEnabled {
+                PrototypeView()
+            } else {
+                ContentUnavailableView(
+                    "原型未启用",
+                    systemImage: "sparkles",
+                    description: Text("在 Feature Flag 中开启 spacewalker.prototype")
+                )
+            }
         }
-        .padding()
     }
 }
