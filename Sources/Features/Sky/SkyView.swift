@@ -37,6 +37,8 @@ struct SkyView: View {
     @State private var dwell = DwellSelector()
     @State private var hud = DwellHUD()
     @State private var observer = SkyObserver()
+    @State private var perf = SkyPerformanceProbe()
+    @State private var perfSummary: ProbeSummary?
     @State private var diagnosticsStamp: TimeInterval = 0
     @State private var tonightStamp: TimeInterval = 0
 
@@ -59,6 +61,16 @@ struct SkyView: View {
 
             VStack(alignment: .leading, spacing: 0) {
                 topBar
+                if let summary = perfSummary {
+                    Text(summary.fpsOnlyLine)
+                        .font(.system(size: 10, design: .monospaced))
+                        .foregroundStyle(.secondary)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 3)
+                        .background(.ultraThinMaterial, in: Capsule())
+                        .frame(maxWidth: .infinity, alignment: .trailing)
+                        .padding(.top, 6)
+                }
                 Spacer(minLength: 0)
                 if let guide {
                     guideBar(guide)
@@ -153,6 +165,9 @@ struct SkyView: View {
             scene.build(catalog: catalog)
             content.add(scene.root)
             scene.attach(content)
+            if LaunchMode.fpsProbeEnabled(environment: ProcessInfo.processInfo.environment) {
+                perf.attach(content)
+            }
             scene.apply(rig: rig)
         } update: { _ in
             scene.apply(rig: rig)
@@ -887,6 +902,16 @@ struct SkyView: View {
             showsOutlines = true
             scene.setSilhouettesVisible(true)
         }
+        if LaunchMode.allLayersEnabled(environment: ProcessInfo.processInfo.environment) {
+            showsConstellations = true
+            showsOutlines = true
+            showsAsterisms = true
+            showsPatterns = true
+            scene.setConstellationsVisible(true)
+            scene.setSilhouettesVisible(true)
+            scene.setAsterismsVisible(true)
+            scene.setPatternsVisible(true)
+        }
         if let raw = LaunchMode.patternPreview(environment: ProcessInfo.processInfo.environment) {
             showsPatterns = true
             scene.setPatternsVisible(true)
@@ -963,6 +988,32 @@ struct SkyView: View {
                 startGuide(to: star)
             }
         }
+        if LaunchMode.fpsProbeEnabled(environment: ProcessInfo.processInfo.environment) {
+            Task {
+                var loggedBudget = false
+                while !Task.isCancelled {
+                    if !loggedBudget, scene.isReady {
+                        loggedBudget = true
+                        SessionLog.append(scene.budget())
+                    }
+                    perfSummary = perf.tick(
+                        now: ProcessInfo.processInfo.systemUptime,
+                        layers: layerLabel
+                    )
+                    try? await Task.sleep(for: .seconds(1))
+                }
+            }
+        }
+    }
+
+    /// 当前点亮了哪几层，写进 `sky.perf`，掉帧时能对上号。
+    private var layerLabel: String {
+        var parts: [String] = []
+        if showsConstellations { parts.append("line") }
+        if showsOutlines { parts.append("outline") }
+        if showsAsterisms { parts.append("asterism") }
+        if showsPatterns { parts.append("pattern") }
+        return parts.isEmpty ? "none" : parts.joined(separator: "+")
     }
 
     private func startMotion() {

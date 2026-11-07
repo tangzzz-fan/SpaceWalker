@@ -81,6 +81,16 @@ enum LaunchMode {
         return raw
     }
 
+    /// 一次点亮全部图形层（连线 + 轮廓 + 星官 + 星群），用于真机负载验收。
+    static func allLayersEnabled(environment: [String: String]) -> Bool {
+        environment["SPACEWALKER_LAYERS"] == "1"
+    }
+
+    /// 帧率探针：屏幕右上角读数 + 每 5 秒一行 `sky.perf`。
+    static func fpsProbeEnabled(environment: [String: String]) -> Bool {
+        environment["SPACEWALKER_FPS"] == "1"
+    }
+
     /// 把星图对准指定星座（缩写，如 Ori），用于模拟器无陀螺仪时的验证。
     static func aimConstellation(environment: [String: String]) -> String? {
         guard let raw = environment["SPACEWALKER_AIM"], !raw.isEmpty, raw != "0" else { return nil }

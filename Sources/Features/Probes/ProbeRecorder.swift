@@ -3,7 +3,9 @@ import os
 import RealityKit
 import SwiftUI
 
-private final class FrameRateBox: @unchecked Sendable {
+/// 帧间隔的线程安全盒子：`SceneEvents.Update` 在渲染线程回调，读数在主线程拿，
+/// 两边不能直接共享一个 struct。星图探针也用它。
+final class FrameRateBox: @unchecked Sendable {
     private let lock = OSAllocatedUnfairLock(initialState: FrameRateSampler())
 
     func append(_ delta: TimeInterval) {

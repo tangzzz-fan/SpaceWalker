@@ -1712,3 +1712,49 @@ final class SkyPatternTests: XCTestCase {
         )
     }
 }
+
+final class SkyPerformanceProbeTests: XCTestCase {
+    func testSamplerAveragesAndFindsWorstFrame() {
+        var sampler = FrameRateSampler(window: 10, hitchThreshold: 1.0 / 30.0)
+        for _ in 0..<8 { sampler.append(1.0 / 60.0) }
+        sampler.append(1.0 / 20.0)
+        XCTAssertEqual(sampler.sampleCount, 9)
+        XCTAssertEqual(sampler.minimumFPS, 20, accuracy: 0.001)
+        XCTAssertEqual(sampler.hitchCount, 1)
+        XCTAssertEqual(sampler.hitchRatio, 1.0 / 9, accuracy: 0.0001)
+        XCTAssertEqual(sampler.averageFPS, 9 / (8 / 60.0 + 0.05), accuracy: 0.01)
+    }
+
+    func testSamplerKeepsOnlyTheWindow() {
+        var sampler = FrameRateSampler(window: 5)
+        for index in 0..<12 { sampler.append(Double(index + 1) / 1000) }
+        XCTAssertEqual(sampler.sampleCount, 5)
+        XCTAssertEqual(sampler.averageFPS, 5 / (50.0 / 1000), accuracy: 0.01)
+    }
+
+    func testSamplerIgnoresNonPositiveDeltas() {
+        var sampler = FrameRateSampler()
+        sampler.append(0)
+        sampler.append(-1)
+        XCTAssertEqual(sampler.sampleCount, 0)
+        XCTAssertEqual(sampler.averageFPS, 0)
+        XCTAssertEqual(sampler.minimumFPS, 0)
+        XCTAssertEqual(sampler.hitchRatio, 0)
+    }
+
+    func testProbeSummaryLineIsCompact() {
+        var summary = ProbeSummary()
+        summary.fps = 58.4
+        summary.minimumFPS = 41.2
+        summary.hitches = 2
+        XCTAssertEqual(summary.fpsOnlyLine, "58fps · min 41 · 卡顿 2")
+    }
+
+    func testLayerAndFPSProbeSwitches() {
+        XCTAssertTrue(LaunchMode.allLayersEnabled(environment: ["SPACEWALKER_LAYERS": "1"]))
+        XCTAssertFalse(LaunchMode.allLayersEnabled(environment: ["SPACEWALKER_LAYERS": "0"]))
+        XCTAssertFalse(LaunchMode.allLayersEnabled(environment: [:]))
+        XCTAssertTrue(LaunchMode.fpsProbeEnabled(environment: ["SPACEWALKER_FPS": "1"]))
+        XCTAssertFalse(LaunchMode.fpsProbeEnabled(environment: [:]))
+    }
+}

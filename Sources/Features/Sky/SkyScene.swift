@@ -649,6 +649,26 @@ final class SkyScene {
 
     static let screenCenterDirection = SIMD3<Float>(0, 0, -1)
 
+    /// 场景预算：实体数与各层线段数。掉帧时先分清是「节点太多」还是「像素太多」。
+    func budget() -> String {
+        var entities = 0
+        var meshes = 0
+        func walk(_ node: Entity) {
+            entities += 1
+            if node.components[ModelComponent.self] != nil { meshes += 1 }
+            for child in node.children { walk(child) }
+        }
+        walk(root)
+        return String(
+            format: "sky.budget entities=%d meshes=%d constellation=%d asterism=%d pattern=%d",
+            entities,
+            meshes,
+            constellationCount,
+            asterismSegmentCount,
+            patternSegmentCount
+        )
+    }
+
     func pickDiagnostics(radius: CGFloat = 60) -> String {
         guard let content, viewSize.width > 0 else { return "sky.pickNear not-ready" }
         let center = CGPoint(x: viewSize.width / 2, y: viewSize.height / 2)
