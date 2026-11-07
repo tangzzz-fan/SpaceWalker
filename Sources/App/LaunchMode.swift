@@ -39,6 +39,10 @@ enum LaunchMode {
         environment["SPACEWALKER_FINDER"] == "1"
     }
 
+    static func finderQuery(environment: [String: String]) -> String {
+        environment["SPACEWALKER_QUERY"] ?? ""
+    }
+
     static func guideTarget(environment: [String: String]) -> String? {
         environment["SPACEWALKER_GUIDE"]
     }
@@ -53,6 +57,10 @@ enum LaunchMode {
 
     static func aimTarget(environment: [String: String]) -> String? {
         environment["SPACEWALKER_AIM"]
+    }
+
+    static func groupPreview(environment: [String: String]) -> String? {
+        environment["SPACEWALKER_GROUP"]
     }
 
     static func autoAREnabled(environment: [String: String]) -> Bool {

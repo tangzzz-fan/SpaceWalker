@@ -2,15 +2,38 @@ import SwiftUI
 
 struct StarFinderView: View {
     var stars: [Star]
+    var initialQuery: String = ""
     var onPick: (Star) -> Void
+    var onPickGroup: (SkyGroup) -> Void
 
     @Environment(\.dismiss) private var dismiss
-    @State private var query = ""
+    @State private var query: String
     @State private var constellation: StarFinder.ConstellationGroup?
     @State private var showsAllChinese = false
 
+    init(
+        stars: [Star],
+        initialQuery: String = "",
+        onPick: @escaping (Star) -> Void,
+        onPickGroup: @escaping (SkyGroup) -> Void
+    ) {
+        self.stars = stars
+        self.initialQuery = initialQuery
+        self.onPick = onPick
+        self.onPickGroup = onPickGroup
+        _query = State(initialValue: initialQuery)
+    }
+
     private var results: [StarFinder.Hit] {
         StarFinder.search(stars, query: query)
+    }
+
+    private var allGroups: [SkyGroup] {
+        SkyGroupIndex.groups(stars: stars)
+    }
+
+    private var groupResults: [SkyGroup] {
+        SkyGroupIndex.search(allGroups, query: query)
     }
 
     var body: some View {
@@ -21,6 +44,7 @@ struct StarFinderView: View {
                 } else if let constellation {
                     constellationSection(constellation)
                 } else {
+                    groupSection
                     chineseSection
                     curatedSection
                     brightestSection
@@ -44,19 +68,76 @@ struct StarFinderView: View {
     }
 
     private var searchSection: some View {
-        Section {
-            if results.isEmpty {
-                Text("没有匹配的星，试试「天狼」「北斗」「猎户」")
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
-            } else {
-                ForEach(results, id: \.star.name) { hit in
-                    row(hit)
+        Group {
+            if !groupResults.isEmpty {
+                Section("星官 / 星座 / 宿") {
+                    ForEach(groupResults) { group in
+                        groupRow(group)
+                    }
                 }
             }
-        } header: {
-            Text("搜索结果 \(results.count)")
+            if results.isEmpty, groupResults.isEmpty {
+                Section {
+                    Text("没有匹配，试试「天狼」「参宿」「北斗」「参水猿」")
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                }
+            } else if !results.isEmpty {
+                Section {
+                    ForEach(results, id: \.star.name) { hit in
+                        row(hit)
+                    }
+                } header: {
+                    Text("恒星 \(results.count)")
+                }
+            }
         }
+    }
+
+    private var groupSection: some View {
+        Section {
+            ForEach(Array(allGroups.prefix(12))) { group in
+                groupRow(group)
+            }
+        } header: {
+            Text("星官与星宿")
+        } footer: {
+            Text("星官是中国传统的星组划分，与西方星座边界不重合。搜索星宿名或封神名号（如「参水猿」）也能直接定位。")
+        }
+    }
+
+    private func groupRow(_ group: SkyGroup) -> some View {
+        Button {
+            onPickGroup(group)
+            dismiss()
+        } label: {
+            HStack(spacing: 10) {
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack(spacing: 6) {
+                        Text(group.title)
+                            .font(.body)
+                        Text(group.kind.label)
+                            .font(.caption2)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 1)
+                            .background(.tint.opacity(0.18), in: Capsule())
+                    }
+                    HStack(spacing: 6) {
+                        Text(group.subtitle)
+                        if let line = group.fengshenLine {
+                            Text(line)
+                        }
+                    }
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                }
+                Spacer()
+                Image(systemName: "scope")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .buttonStyle(.plain)
     }
 
     private func constellationSection(_ group: StarFinder.ConstellationGroup) -> some View {

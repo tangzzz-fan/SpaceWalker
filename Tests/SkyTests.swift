@@ -940,6 +940,74 @@ final class ConstellationFigureTests: XCTestCase {
     }
 }
 
+final class SkyGroupTests: XCTestCase {
+    private func catalog() throws -> [Star] {
+        try XCTUnwrap(StarCatalog.loadFromBundle(.main)).stars
+    }
+
+    func testAsterismGroupsMatchKnownCounts() throws {
+        let groups = SkyGroupIndex.groups(stars: try catalog())
+        let byTitle = Dictionary(grouping: groups, by: \.title).compactMapValues { $0.first }
+
+        XCTAssertEqual(byTitle["参宿"]?.memberCount, 7)
+        XCTAssertEqual(byTitle["昴宿"]?.memberCount, 6)
+        XCTAssertEqual(byTitle["五车"]?.memberCount, 5)
+        XCTAssertEqual(byTitle["北斗"]?.memberCount, 8)
+        XCTAssertNil(byTitle["北斗七星"])
+        XCTAssertEqual(byTitle["参宿"]?.kind, .mansion)
+        XCTAssertEqual(byTitle["五车"]?.kind, .asterism)
+    }
+
+    func testGroupsAreUniqueAndSelectableOnly() throws {
+        let stars = try catalog()
+        let groups = SkyGroupIndex.groups(stars: stars)
+        let selectable = Set(stars.filter(\.isSelectable).map(\.name))
+
+        XCTAssertEqual(Set(groups.map(\.id)).count, groups.count)
+        for group in groups {
+            XCTAssertTrue(Set(group.starNames).isSubset(of: selectable), group.title)
+            XCTAssertGreaterThanOrEqual(group.memberCount, 1, group.title)
+        }
+    }
+
+    func testSearchByFengshenName() throws {
+        let groups = SkyGroupIndex.groups(stars: try catalog())
+        XCTAssertEqual(SkyGroupIndex.search(groups, query: "参水猿").first?.title, "参宿")
+        XCTAssertEqual(SkyGroupIndex.search(groups, query: "角木蛟").first?.title, "角宿")
+    }
+
+    func testSearchByMansionAndConstellation() throws {
+        let groups = SkyGroupIndex.groups(stars: try catalog())
+        XCTAssertEqual(SkyGroupIndex.search(groups, query: "心宿").first?.title, "心宿")
+        XCTAssertEqual(SkyGroupIndex.search(groups, query: "猎户").first?.title, "猎户座")
+        XCTAssertEqual(SkyGroupIndex.search(groups, query: "北斗").first?.title, "北斗")
+        XCTAssertEqual(SkyGroupIndex.search(groups, query: "北斗七星").first?.title, "北斗")
+        XCTAssertEqual(SkyGroupIndex.search(groups, query: "大三角").first?.kind, .curated)
+    }
+
+    func testAnchorSitsAtGroupCentroid() throws {
+        let stars = try catalog()
+        let groups = SkyGroupIndex.groups(stars: stars)
+        let pleiades = try XCTUnwrap(groups.first { $0.title == "昴宿" })
+        let anchor = try XCTUnwrap(SkyGroupIndex.anchor(pleiades, stars: stars))
+        let alcyone = try XCTUnwrap(stars.first { $0.name == "Alcyone" })
+        let alignment = simd_dot(anchor, SkyPicker.direction(for: alcyone))
+
+        XCTAssertEqual(simd_length(anchor), 1, accuracy: 0.0005)
+        XCTAssertGreaterThan(alignment, 0.99)
+    }
+
+    func testBrightestAndMembersOrdering() throws {
+        let stars = try catalog()
+        let groups = SkyGroupIndex.groups(stars: stars)
+        let orion = try XCTUnwrap(groups.first { $0.title == "参宿" })
+        XCTAssertEqual(SkyGroupIndex.brightest(orion, stars: stars)?.name, "Rigel")
+
+        let members = SkyGroupIndex.members(orion, stars: stars, limit: 3)
+        XCTAssertEqual(members.map(\.name), ["Rigel", "Betelgeuse", "Bellatrix"])
+    }
+}
+
 final class AppRouteTests: XCTestCase {
     func testRouteSwitchIsReduced() {
         var state = AppState()

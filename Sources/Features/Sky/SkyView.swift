@@ -12,6 +12,7 @@ struct SkyView: View {
     @State private var attitude = DeviceAttitude()
     @State private var lastDrag: CGSize = .zero
     @State private var selected: Star?
+    @State private var selectedGroup: SkyGroup?
     @State private var motionActive = false
     @State private var showsCredits = false
     @State private var showsConstellations = true
@@ -51,6 +52,10 @@ struct SkyView: View {
                     guideBar(guide)
                         .padding(.bottom, 10)
                 }
+                if let selectedGroup {
+                    groupCard(selectedGroup)
+                        .padding(.bottom, 10)
+                }
                 if let selected {
                     starCard(selected)
                         .padding(.bottom, 10)
@@ -84,9 +89,12 @@ struct SkyView: View {
             }
         }
         .sheet(isPresented: $showsFinder) {
-            StarFinderView(stars: catalog?.stars ?? []) { star in
-                startGuide(to: star)
-            }
+            StarFinderView(
+                stars: catalog?.stars ?? [],
+                initialQuery: LaunchMode.finderQuery(environment: ProcessInfo.processInfo.environment),
+                onPick: { star in startGuide(to: star) },
+                onPickGroup: { group in focus(group: group) }
+            )
         }
     }
 
@@ -120,6 +128,7 @@ struct SkyView: View {
                 .onEnded { value in
                     let hit = scene.pick(at: value.location)
                     selected = hit
+                    selectedGroup = nil
                     dwell.reset()
                     hud.show(0)
                     SessionLog.append("sky.select name=\(hit?.name ?? "none") mag=\(hit?.magnitude ?? 0)")
@@ -289,9 +298,97 @@ struct SkyView: View {
         guide = star
         guideVector = scene.guideVector(to: star)
         selected = nil
+        selectedGroup = nil
         dwell.reset()
         hud.show(0)
         SessionLog.append("sky.guide start=\(star.name)")
+    }
+
+    private func focus(group: SkyGroup) {
+        let stars = catalog?.stars ?? []
+        guard let direction = SkyGroupIndex.anchor(group, stars: stars) else { return }
+        scene.aim(at: direction)
+        selectedGroup = group
+        selected = nil
+        guide = nil
+        guideVector = nil
+        dwell.reset()
+        hud.show(0)
+        SessionLog.append("sky.group focus=\(group.id) members=\(group.memberCount)")
+    }
+
+    private func groupCard(_ group: SkyGroup) -> some View {
+        let stars = catalog?.stars ?? []
+        let members = SkyGroupIndex.members(group, stars: stars)
+        let brightest = SkyGroupIndex.brightest(group, stars: stars)
+        return VStack(alignment: .leading, spacing: 6) {
+            HStack(alignment: .firstTextBaseline, spacing: 6) {
+                Text(group.title)
+                    .font(.headline)
+                Text(group.kind.label)
+                    .font(.system(size: 9, weight: .medium))
+                    .padding(.horizontal, 5)
+                    .padding(.vertical, 1)
+                    .background(.white.opacity(0.18), in: Capsule())
+                Spacer()
+                Text("\(group.memberCount) 颗")
+                    .font(.caption2)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 3)
+                    .background(.white.opacity(0.12), in: Capsule())
+            }
+            if let line = group.fengshenLine {
+                Text(line)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
+            if let brightest {
+                Text(String(format: "最亮 %@ · 视星等 %.2f", StarDisplay.make(for: brightest).title, brightest.magnitude))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            HStack(spacing: 6) {
+                ForEach(members, id: \.name) { member in
+                    Button {
+                        selected = member
+                        selectedGroup = nil
+                        dwell.reset()
+                        hud.show(0)
+                    } label: {
+                        Text(StarDisplay.make(for: member).title)
+                            .font(.caption2)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 3)
+                            .background(.white.opacity(0.10), in: Capsule())
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.top, 2)
+            if let brightest {
+                Button {
+                    startGuide(to: brightest)
+                } label: {
+                    Label("指路到 \(StarDisplay.make(for: brightest).title)", systemImage: "location.north.line")
+                        .font(.caption)
+                }
+                .buttonStyle(.bordered)
+                .padding(.top, 2)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(14)
+        .padding(.trailing, 22)
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16))
+        .overlay(alignment: .topTrailing) {
+            Button {
+                selectedGroup = nil
+            } label: {
+                Image(systemName: "xmark.circle.fill")
+                    .foregroundStyle(.secondary)
+            }
+            .padding(10)
+        }
     }
 
     private func starCard(_ star: Star) -> some View {
@@ -483,6 +580,15 @@ struct SkyView: View {
             try? await Task.sleep(for: .seconds(2))
             infoRegion = region
         }
+        if let title = LaunchMode.groupPreview(environment: ProcessInfo.processInfo.environment),
+           let stars = catalog?.stars {
+            let groups = SkyGroupIndex.groups(stars: stars)
+            if let group = groups.first(where: { $0.title == title })
+                ?? SkyGroupIndex.search(groups, query: title).first {
+                try? await Task.sleep(for: .milliseconds(600))
+                focus(group: group)
+            }
+        }
         if let abbreviation = LaunchMode.aimTarget(environment: ProcessInfo.processInfo.environment),
            let stars = catalog?.stars {
             let members = stars.filter { $0.constellation == abbreviation }
@@ -587,6 +693,7 @@ struct SkyView: View {
         hud.show(dwell.progress)
         guard let hit else { return }
         selected = hit
+        selectedGroup = nil
         UIImpactFeedbackGenerator(style: .light).impactOccurred()
         SessionLog.append(
             String(
