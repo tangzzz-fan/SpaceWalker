@@ -1,4 +1,5 @@
 import SwiftUI
+import TGReduxKit
 
 struct StarFinderView: View {
     var stars: [Star]
@@ -14,6 +15,7 @@ struct StarFinderView: View {
     @State private var showsAllChinese = false
     @State private var tour: TonightTour?
     @State private var showsFengshen = false
+    @Environment(Store<AppState, AppAction>.self) private var store
     private let startsWithTour: Bool
     private let fengshenTarget: String?
 
@@ -78,12 +80,14 @@ struct StarFinderView: View {
                     }
                 }
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        showsFengshen = true
-                    } label: {
-                        Label("封神星榜", systemImage: "scroll")
+                    if store.state.flags.cultureEnabled {
+                        Button {
+                            showsFengshen = true
+                        } label: {
+                            Label("封神星榜", systemImage: "scroll")
+                        }
+                        .accessibilityLabel("封神星榜")
                     }
-                    .accessibilityLabel("封神星榜")
                 }
             }
             .searchable(text: $query, placement: .navigationBarDrawer(displayMode: .always), prompt: "星名 / 中文名 / 星座")
@@ -106,7 +110,8 @@ struct StarFinderView: View {
             FengshenBoardView(
                 focusAsterism: initialFengshenFocus,
                 initialDepartment: initialFengshenDepartment,
-                initialQuery: initialFengshenQuery
+                initialQuery: initialFengshenQuery,
+                showsShuihu: store.state.flags.deepEnabled
             ) { asterism in
                 showsFengshen = false
                 locate(asterism: asterism)

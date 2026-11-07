@@ -4,6 +4,8 @@ import SwiftUI
 /// 其中有星官对应者可一键定位到星图。
 struct FengshenBoardView: View {
     var onLocate: (String) -> Void
+    /// 水浒对照属深度层，未释出时整块不出现。
+    var showsShuihu = true
 
     @Environment(\.dismiss) private var dismiss
     @State private var query: String
@@ -15,9 +17,11 @@ struct FengshenBoardView: View {
         focusAsterism: String? = nil,
         initialDepartment: String? = nil,
         initialQuery: String = "",
+        showsShuihu: Bool = true,
         onLocate: @escaping (String) -> Void
     ) {
         self.onLocate = onLocate
+        self.showsShuihu = showsShuihu
         _query = State(initialValue: initialQuery)
         _path = State(initialValue: Self.initialPath(
             focusAsterism: focusAsterism,
@@ -75,7 +79,7 @@ struct FengshenBoardView: View {
                     .listRowInsets(EdgeInsets(top: 4, leading: 0, bottom: 4, trailing: 0))
                 }
 
-                if query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                if showsShuihu, query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                     Section {
                         NavigationLink(value: Self.shuihuRoute) {
                             HStack(alignment: .firstTextBaseline, spacing: 10) {
@@ -108,6 +112,7 @@ struct FengshenBoardView: View {
                                 lord: lord,
                                 showsAffiliation: true,
                                 highlighted: highlight.contains(lord.id),
+                                showsShuihu: showsShuihu,
                                 onLocate: onLocate
                             )
                         }
@@ -135,6 +140,7 @@ struct FengshenBoardView: View {
                         department: destination,
                         onlyLocatable: onlyLocatable,
                         highlight: highlight,
+                        showsShuihu: showsShuihu,
                         onLocate: onLocate
                     )
                 }
@@ -180,6 +186,7 @@ struct FengshenDepartmentView: View {
     var department: String
     var onlyLocatable: Bool
     var highlight: Set<String> = []
+    var showsShuihu = true
     var onLocate: (String) -> Void
 
     private var lords: [FengshenLord] {
@@ -212,6 +219,7 @@ struct FengshenDepartmentView: View {
                                 lord: lord,
                                 showsAffiliation: false,
                                 highlighted: highlight.contains(lord.id),
+                                showsShuihu: showsShuihu,
                                 onLocate: onLocate
                             )
                             .id(lord.id)
@@ -236,6 +244,7 @@ private struct FengshenRow: View {
     var lord: FengshenLord
     var showsAffiliation: Bool
     var highlighted: Bool = false
+    var showsShuihu = true
     var onLocate: (String) -> Void
 
     var body: some View {
@@ -280,7 +289,7 @@ private struct FengshenRow: View {
                             .lineLimit(1)
                     }
                 }
-                if let shuihu = lord.shuihu {
+                if showsShuihu, let shuihu = lord.shuihu {
                     HStack(spacing: 5) {
                         Text("水浒")
                             .font(.system(size: 9, weight: .semibold))

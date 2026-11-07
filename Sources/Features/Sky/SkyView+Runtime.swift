@@ -43,8 +43,8 @@ extension SkyView {
         if LaunchMode.allLayersEnabled(environment: ProcessInfo.processInfo.environment) {
             session.showsConstellations = true
             session.showsOutlines = true
-            session.showsAsterisms = true
-            session.showsPatterns = true
+            session.showsAsterisms = store.state.flags.cultureEnabled
+            session.showsPatterns = store.state.flags.deepEnabled
             scene.setConstellationsVisible(true)
             scene.setSilhouettesVisible(true)
             scene.setAsterismsVisible(true)

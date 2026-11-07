@@ -222,7 +222,8 @@ extension SkyView {
               let sidereal = session.observer.currentSiderealDegrees()
         else {
             let stars = session.catalog?.stars ?? []
-            return "\(stars.count) 颗恒星 · \(stars.filter(\.isSelectable).count) 颗可选中 · \(Constellations.all.count) 个星座 · \(AsterismCatalog.all.count) 个星官"
+            let base = "\(stars.count) 颗恒星 · \(stars.filter(\.isSelectable).count) 颗可选中 · \(Constellations.all.count) 个星座"
+            return store.state.flags.cultureEnabled ? "\(base) · \(AsterismCatalog.all.count) 个星官" : base
         }
         let base = String(format: "%.1f°N %.1f°E · 恒星时 %.1f°", latitude, longitude, sidereal)
         return session.observer.clock.isNow ? base : "\(base) · \(timeOffsetLabel)"
@@ -321,9 +322,11 @@ extension SkyView {
                 Toggle(isOn: $session.showsOutlines) {
                     Label("星座轮廓", systemImage: "square.on.circle")
                 }
-                Divider()
-                Toggle(isOn: $session.showsPatterns) {
-                    Label("星群（大三角）", systemImage: "triangle")
+                if store.state.flags.deepEnabled {
+                    Divider()
+                    Toggle(isOn: $session.showsPatterns) {
+                        Label("星群（大三角）", systemImage: "triangle")
+                    }
                 }
             } label: {
                 Label(
@@ -338,16 +341,18 @@ extension SkyView {
             }
             .accessibilityLabel("星座连线、轮廓与星群")
 
-            Button {
-                session.showsAsterisms.toggle()
-            } label: {
-                Label("星官", systemImage: "circle.grid.3x3")
-                    .font(.caption2)
-                    .lineLimit(1)
-                    .fixedSize()
-                    .foregroundStyle(session.showsAsterisms ? Color(red: 0.94, green: 0.82, blue: 0.56) : .primary)
+            if store.state.flags.cultureEnabled {
+                Button {
+                    session.showsAsterisms.toggle()
+                } label: {
+                    Label("星官", systemImage: "circle.grid.3x3")
+                        .font(.caption2)
+                        .lineLimit(1)
+                        .fixedSize()
+                        .foregroundStyle(session.showsAsterisms ? Color(red: 0.94, green: 0.82, blue: 0.56) : .primary)
+                }
+                .accessibilityLabel("中国星官连线")
             }
-            .accessibilityLabel("中国星官连线")
 
             Button {
                 toggleAlignment()

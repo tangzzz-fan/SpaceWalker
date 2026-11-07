@@ -86,7 +86,10 @@ struct SkyView: View {
             }
         }
         .sheet(item: $fengshenFocus) { target in
-            FengshenBoardView(focusAsterism: target.id) { asterism in
+            FengshenBoardView(
+                focusAsterism: target.id,
+                showsShuihu: store.state.flags.deepEnabled
+            ) { asterism in
                 fengshenFocus = nil
                 if let group = SkyGroupIndex.group(forAsterism: asterism, in: session.groups) {
                     focus(group: group)
