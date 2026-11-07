@@ -250,7 +250,8 @@ extension SkyView {
             candidates: AttentionArbiter.Candidates(
                 star: candidates.star,
                 constellation: candidates.constellation?.abbreviation,
-                pattern: session.showsPatterns ? candidates.pattern?.id : nil
+                pattern: session.showsPatterns ? candidates.pattern?.id : nil,
+                asterism: store.state.flags.cultureEnabled ? candidates.asterism?.name : nil
             )
         )
         react(to: step, candidates: candidates)
@@ -266,11 +267,15 @@ extension SkyView {
                     scene.highlightConstellation(key)
                 case .pattern(let id):
                     scene.highlightPattern(id)
+                case .asterism(let id):
+                    scene.highlightAsterism(id)
                 case .star, .none:
                     scene.highlightConstellation(nil)
                     scene.highlightPattern(nil)
+                    scene.highlightAsterism(nil)
                     session.identifiedConstellation = nil
                     session.identifiedPattern = nil
+                    session.identifiedAsterism = nil
                 }
             case .confirmed(let target):
                 switch target {
@@ -291,6 +296,11 @@ extension SkyView {
                     session.identifiedConstellation = candidates.constellation
                     UIImpactFeedbackGenerator(style: .soft).impactOccurred()
                     SessionLog.append("sky.constellation dwell=\(key)")
+                case .asterism(let name):
+                    session.selected = nil
+                    session.identifiedAsterism = candidates.asterism
+                    UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+                    SessionLog.append("sky.asterism dwell=\(name)")
                 case .pattern(let id):
                     session.selected = nil
                     session.identifiedPattern = candidates.pattern

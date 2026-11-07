@@ -57,6 +57,15 @@ final class SkyScene {
     var interfaceRoll: Float = 0
     /// 最近一次设备姿态推出的场景朝向，跳转偏移与界面补偿都以它为基准。
     var attitudeBase: simd_quatf?
+    /// 星官命中用的天区：中心方向 + 覆盖半径，建场景时算一次。
+    /// 只用「离最近成员星 2°」会漏掉井宿、角宿这种铺得很开的星官。
+    var asterismFields: [AsterismField] = []
+
+    struct AsterismField {
+        var asterism: Asterism
+        var center: SIMD3<Float>
+        var radius: Double
+    }
 
     var starCount: Int {
         nodes.count

@@ -7,12 +7,14 @@ struct AttentionArbiter: Equatable, Sendable {
         case star(Star)
         case constellation(String)
         case pattern(String)
+        case asterism(String)
     }
 
     struct Candidates: Equatable, Sendable {
         var star: Star?
         var constellation: String?
         var pattern: String?
+        var asterism: String?
     }
 
     enum Effect: Equatable, Sendable {
@@ -46,6 +48,7 @@ struct AttentionArbiter: Equatable, Sendable {
         if candidates.star != nil {
             clear(.constellation, effects: &effects)
             clear(.pattern, effects: &effects)
+            clear(.asterism, effects: &effects)
             progress = dwell.progress
             if let hit {
                 confirmed = .star(hit)
@@ -54,7 +57,12 @@ struct AttentionArbiter: Equatable, Sendable {
             return Step(progress: progress, effects: effects)
         }
 
-        if let key = candidates.constellation {
+        if let key = candidates.asterism {
+            clear(.constellation, effects: &effects)
+            clear(.pattern, effects: &effects)
+            advance(.asterism, key: key, delta: delta, effects: &effects)
+            progress = tracks[.asterism]?.progress ?? 0
+        } else if let key = candidates.constellation {
             clear(.pattern, effects: &effects)
             advance(.constellation, key: key, delta: delta, effects: &effects)
             progress = tracks[.constellation]?.progress ?? 0
@@ -65,6 +73,7 @@ struct AttentionArbiter: Equatable, Sendable {
         } else {
             clear(.constellation, effects: &effects)
             clear(.pattern, effects: &effects)
+            clear(.asterism, effects: &effects)
             progress = dwell.progress
         }
 
@@ -78,6 +87,10 @@ struct AttentionArbiter: Equatable, Sendable {
         case .constellation(let key):
             dismissed[.constellation] = key
             tracks[.constellation]?.confirmed = false
+            if confirmed == target { confirmed = nil }
+        case .asterism(let key):
+            dismissed[.asterism] = key
+            tracks[.asterism]?.confirmed = false
             if confirmed == target { confirmed = nil }
         case .pattern(let key):
             dismissed[.pattern] = key
@@ -146,11 +159,13 @@ struct AttentionArbiter: Equatable, Sendable {
     private enum RegionKind: Hashable {
         case constellation
         case pattern
+        case asterism
 
         func target(_ key: String) -> Target {
             switch self {
             case .constellation: return .constellation(key)
             case .pattern: return .pattern(key)
+            case .asterism: return .asterism(key)
             }
         }
     }

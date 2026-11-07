@@ -2081,6 +2081,35 @@ final class SkyFieldOfViewTests: XCTestCase {
 }
 
 @MainActor
+final class AsterismHitTests: XCTestCase {
+    private func scene() -> SkyScene {
+        let scene = SkyScene()
+        let center = simd_normalize(SIMD3<Float>(0.2, 0.1, -1))
+        scene.asterismFields = [
+            SkyScene.AsterismField(
+                asterism: Asterism(id: "x", name: "北斗", members: [1], lines: []),
+                center: center,
+                radius: 1
+            )
+        ]
+        return scene
+    }
+
+    func testHitsNearMemberStar() {
+        let scene = self.scene()
+        XCTAssertEqual(scene.asterism(at: simd_normalize(SIMD3<Float>(0.2, 0.1, -1)))?.name, "北斗")
+    }
+
+    /// 2° 以内算命中，超过就不该再抢星座卡的位置。
+    func testMissesBeyondThreshold() {
+        let scene = self.scene()
+        let far = simd_quatf(angle: 4 * .pi / 180, axis: SIMD3<Float>(0, 1, 0))
+            .act(simd_normalize(SIMD3<Float>(0.2, 0.1, -1)))
+        XCTAssertNil(scene.asterism(at: far))
+    }
+}
+
+@MainActor
 final class SkyAttitudeFrameTests: XCTestCase {
     private func target() -> SIMD3<Float> {
         simd_normalize(SIMD3<Float>(0.3, 0.2, -1))
@@ -2159,5 +2188,22 @@ final class FengshenLocateTests: XCTestCase {
         for lord in lords {
             XCTAssertEqual(lord.asterism, "\(lord.mansion ?? "")宿", "\(lord.title) 的星官应为对应宿")
         }
+    }
+}
+
+@MainActor
+final class AsterismIndexTests: XCTestCase {
+    /// 星官索引不依赖图层是否打开——否则「星官层关闭时指过去什么也没有」。
+    func testIndexBuiltWithRealCatalog() throws {
+        let catalog = try XCTUnwrap(StarCatalog.loadFromBundle(.main))
+        let scene = SkyScene()
+        scene.build(catalog: catalog)
+        XCTAssertEqual(scene.asterismFields.count, AsterismCatalog.all.count)
+
+        var misses: [String] = []
+        for field in scene.asterismFields where scene.asterism(at: field.center) == nil {
+            misses.append(field.asterism.name)
+        }
+        XCTAssertTrue(misses.isEmpty, "指到自身中心却认不出：\(misses.prefix(6))")
     }
 }

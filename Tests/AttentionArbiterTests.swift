@@ -213,6 +213,25 @@ final class AttentionArbiterTests: XCTestCase {
         XCTAssertEqual(arbiter.focus, .constellation("Ori"))
     }
 
+    /// 星官比星座轮廓更具体：指着北斗就该说北斗，而不是大熊座。
+    func testAsterismOutranksConstellation() {
+        var arbiter = AttentionArbiter()
+        var confirmed: [AttentionArbiter.Target] = []
+        for index in 0..<7 {
+            let step = arbiter.step(
+                now: Double(index) * 0.1,
+                candidates: AttentionArbiter.Candidates(
+                    star: nil,
+                    constellation: "UMa",
+                    pattern: nil,
+                    asterism: "北斗"
+                )
+            )
+            confirmed += confirms(step)
+        }
+        XCTAssertEqual(confirmed, [.asterism("北斗")])
+    }
+
     func testResetClearsEverything() {
         var arbiter = AttentionArbiter()
         run(&arbiter, from: 0, count: 7, candidates: candidates(constellation: "Ori"))

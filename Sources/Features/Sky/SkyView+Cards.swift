@@ -14,6 +14,9 @@ extension SkyView {
         if let constellation = session.identifiedConstellation {
             constellationBadge(constellation)
         }
+        if let asterism = session.identifiedAsterism {
+            asterismCard(asterism)
+        }
         if let pattern = session.identifiedPattern {
             patternBadge(pattern)
         }
@@ -157,6 +160,50 @@ extension SkyView {
                     .foregroundStyle(.secondary)
             }
             .padding(10)
+        }
+    }
+
+    func asterismCard(_ asterism: Asterism) -> some View {
+        let lords = FengshenInfo.lords(forAsterism: asterism.name)
+        return VStack(alignment: .leading, spacing: 5) {
+            HStack(alignment: .firstTextBaseline, spacing: 6) {
+                Image(systemName: "circle.grid.3x3")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                Text(asterism.name)
+                    .font(.headline)
+                Text(asterism.isMansion ? "二十八宿" : "星官")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                Spacer(minLength: 6)
+            }
+            Text("\(asterism.members.count) 颗成员星 · \(asterism.segmentCount) 段连线")
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+            if let lord = lords.first {
+                Text("封神：\(lord.title) · \(lord.person)")
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+            }
+            Text("落在星官内 0.6 秒识别")
+                .font(.caption2)
+                .foregroundStyle(.tertiary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(14)
+        .padding(.trailing, 22)
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16))
+        .overlay(alignment: .topTrailing) {
+            Button {
+                session.attention.dismiss(.asterism(asterism.name))
+                session.identifiedAsterism = nil
+                scene.highlightAsterism(nil)
+            } label: {
+                Image(systemName: "xmark")
+                    .font(.caption2)
+                    .padding(8)
+            }
+            .accessibilityLabel("收起星官卡")
         }
     }
 

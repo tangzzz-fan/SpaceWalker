@@ -31,6 +31,7 @@ final class SkySession {
     var showsPatterns = false
     var identifiedConstellation: Constellation?
     var identifiedPattern: SkyPattern?
+    var identifiedAsterism: Asterism?
     var guide: Star?
     var guideVector: GuideVector?
     var currentRegion: SkyRegion?

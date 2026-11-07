@@ -101,6 +101,7 @@ extension SkyScene {
         var star: Star?
         var constellation: Constellation?
         var pattern: SkyPattern?
+        var asterism: Asterism?
     }
 
     /// 沿视线取候选。点环传中心方向；B 阶段的视锥选中传视锥内的若干方向，
@@ -109,8 +110,27 @@ extension SkyScene {
         Candidates(
             star: selectableStar(along: direction),
             constellation: constellation(at: direction),
-            pattern: pattern(at: direction)
+            pattern: pattern(at: direction),
+            asterism: asterism(at: direction)
         )
+    }
+
+    /// 星官大多没有闭合轮廓，只能按「它占的那片天」判：落在中心半径内即命中。
+    /// 半径外留 1° 余量，判定用「偏离半径的比例」而不是绝对角度，
+    /// 免得一个很大的星官在所有方向上通吃。
+    static let asterismPadDegrees: Double = 1.0
+
+    func asterism(at direction: SIMD3<Float>) -> Asterism? {
+        var best: (asterism: Asterism, score: Double)?
+        for field in asterismFields {
+            let distance = SkyPicker.offsetDegrees(field.center, direction)
+            guard distance <= max(field.radius, 1) + Self.asterismPadDegrees else { continue }
+            let score = distance / max(field.radius, 1)
+            if best == nil || score < best!.score {
+                best = (field.asterism, score)
+            }
+        }
+        return best?.asterism
     }
 
     func pickAtCenter() -> Star? {
