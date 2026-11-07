@@ -84,7 +84,7 @@ enum StarField {
         return SIMD3(
             Float(cos(dec) * cos(ra)),
             Float(sin(dec)),
-            Float(cos(dec) * sin(ra))
+            Float(-cos(dec) * sin(ra))
         )
     }
 

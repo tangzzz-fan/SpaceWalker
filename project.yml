@@ -55,6 +55,7 @@ targets:
       properties:
         CFBundleDisplayName: SpaceWalker
         NSCameraUsageDescription: "SpaceWalker 需要相机画面，才能把虚拟星图叠加到真实空间。"
+        NSLocationWhenInUseUsageDescription: "SpaceWalker 用你的大致位置与航向，把星图对齐到今夜此刻的真实天空。"
         UILaunchScreen:
           UIColorName: ""
         UISupportedInterfaceOrientations:

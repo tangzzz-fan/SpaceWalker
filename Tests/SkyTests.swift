@@ -17,7 +17,15 @@ final class StarCatalogTests: XCTestCase {
         XCTAssertEqual(vernal.z, 0, accuracy: 0.0001)
 
         let sixHours = StarField.direction(rightAscensionHours: 6, declinationDegrees: 0)
-        XCTAssertEqual(sixHours.z, 1, accuracy: 0.0001)
+        XCTAssertEqual(sixHours.z, -1, accuracy: 0.0001)
+    }
+
+    func testDirectionBasisIsRightHanded() {
+        let vernal = StarField.direction(rightAscensionHours: 0, declinationDegrees: 0)
+        let pole = StarField.direction(rightAscensionHours: 0, declinationDegrees: 90)
+        let sixthHour = StarField.direction(rightAscensionHours: 6, declinationDegrees: 0)
+
+        XCTAssertEqual(simd_dot(simd_cross(vernal, pole), sixthHour), -1, accuracy: 0.0001)
     }
 
     func testPositionSitsOnSphere() {
@@ -290,6 +298,107 @@ final class DwellSelectorTests: XCTestCase {
         _ = selector.update(candidate: sirius, at: 0)
         _ = selector.update(candidate: sirius, at: 0.9)
         XCTAssertEqual(selector.progress, DwellSelector.maximumStep / DwellSelector.required, accuracy: 0.0001)
+    }
+}
+
+final class AstronomyTests: XCTestCase {
+    private let j2000Noon = Date(timeIntervalSince1970: 946_728_000)
+
+    func testJulianDayAtJ2000Epoch() {
+        XCTAssertEqual(Astronomy.julianDay(j2000Noon), 2451545.0, accuracy: 0.0001)
+    }
+
+    func testGreenwichSiderealAtJ2000Epoch() {
+        let degrees = Astronomy.greenwichSiderealDegrees(julianDay: 2451545.0)
+        XCTAssertEqual(degrees, 280.46061837, accuracy: 0.0001)
+    }
+
+    func testLocalSiderealShiftsWithLongitude() {
+        let jd = Astronomy.julianDay(j2000Noon)
+        let greenwich = Astronomy.localSiderealDegrees(julianDay: jd, longitude: 0)
+        let east = Astronomy.localSiderealDegrees(julianDay: jd, longitude: 116.4)
+        XCTAssertEqual(Astronomy.normalized(east - greenwich), 116.4, accuracy: 0.001)
+    }
+
+    func testLocalSiderealAdvancesWithTime() {
+        let jd = Astronomy.julianDay(j2000Noon)
+        let later = Astronomy.localSiderealDegrees(julianDay: jd + 1.0 / 24, longitude: 116.4)
+        let now = Astronomy.localSiderealDegrees(julianDay: jd, longitude: 116.4)
+        XCTAssertEqual(Astronomy.normalized(later - now), 15.041, accuracy: 0.01)
+    }
+
+    func testPolarisAltitudeMatchesLatitude() {
+        let jd = Astronomy.julianDay(j2000Noon)
+        for latitude in [0.0, 23.5, 39.9, 60.0] {
+            let sidereal = Astronomy.localSiderealDegrees(julianDay: jd, longitude: 116.4)
+            let result = Astronomy.horizontal(
+                rightAscensionHours: 2.53,
+                declinationDegrees: Astronomy.polarisDeclination,
+                siderealDegrees: sidereal,
+                latitude: latitude
+            )
+            XCTAssertEqual(result.altitude, latitude, accuracy: 1.0, "纬度 \(latitude)")
+        }
+    }
+
+    func testVernalEquinoxAtZenithAtEquator() {
+        let result = Astronomy.horizontal(
+            rightAscensionHours: 0,
+            declinationDegrees: 0,
+            siderealDegrees: 0,
+            latitude: 0
+        )
+        XCTAssertEqual(result.altitude, 90, accuracy: 0.001)
+    }
+
+    func testEquatorialToHorizontalIsProperRotation() {
+        let rotation = Astronomy.equatorialToHorizontalRotation(siderealDegrees: 137.5, latitude: 39.9)
+        let matrix = simd_float3x3(rotation)
+        XCTAssertEqual(simd_determinant(matrix), 1, accuracy: 0.001)
+
+        let identity = matrix * matrix.transpose
+        for column in 0..<3 {
+            for row in 0..<3 {
+                let expected: Float = column == row ? 1 : 0
+                XCTAssertEqual(identity[column][row], expected, accuracy: 0.001)
+            }
+        }
+    }
+
+    func testRotationMatchesDirectHorizontalForManyStars() {
+        let latitude = 39.9
+        let sidereal = 137.5
+        let rotation = Astronomy.equatorialToHorizontalRotation(siderealDegrees: sidereal, latitude: latitude)
+        let stars: [(Double, Double)] = [(6.753, -16.72), (18.616, 38.78), (2.53, 89.26), (0, 0), (12, -60)]
+
+        for (ra, dec) in stars {
+            let horizontal = Astronomy.horizontal(
+                rightAscensionHours: ra,
+                declinationDegrees: dec,
+                siderealDegrees: sidereal,
+                latitude: latitude
+            )
+            let expected = Astronomy.worldDirection(altitude: horizontal.altitude, azimuth: horizontal.azimuth)
+            let actual = rotation.act(StarField.direction(rightAscensionHours: ra, declinationDegrees: dec))
+            XCTAssertEqual(simd_length(actual - expected), 0, accuracy: 0.001, "RA \(ra) Dec \(dec)")
+        }
+    }
+
+    func testFieldRotationPutsHeadingStarInFrontOfDevice() {
+        let trueAzimuth = 60.0
+        let sceneAzimuth = 30.0
+        let star = Astronomy.worldDirection(altitude: 10, azimuth: trueAzimuth)
+        let rotation = Astronomy.yawRotation(degrees: Astronomy.fieldRotationDegrees(trueHeading: trueAzimuth, sceneAzimuth: sceneAzimuth))
+        let placed = rotation.act(star)
+
+        XCTAssertEqual(Astronomy.sceneAzimuth(placed), sceneAzimuth, accuracy: 0.001)
+        XCTAssertEqual(Double(placed.y), Double(star.y), accuracy: 0.0001)
+    }
+
+    func testSceneAzimuthOfNorthIsZero() {
+        XCTAssertEqual(Astronomy.sceneAzimuth(SIMD3(0, 0, -1)), 0, accuracy: 0.0001)
+        XCTAssertEqual(Astronomy.sceneAzimuth(SIMD3(1, 0, 0)), 90, accuracy: 0.0001)
+        XCTAssertEqual(Astronomy.sceneAzimuth(SIMD3(0, 0, 1)), 180, accuracy: 0.0001)
     }
 }
 

@@ -16,6 +16,8 @@ struct SkyView: View {
     @State private var showsCredits = false
     @State private var dwell = DwellSelector()
     @State private var hud = DwellHUD()
+    @State private var observer = SkyObserver()
+    @State private var alignmentStamp: TimeInterval = 0
 
     var body: some View {
         ZStack {
@@ -52,7 +54,14 @@ struct SkyView: View {
             await load()
             await runPickProbe()
         }
-        .onDisappear { attitude.stop() }
+        .onChange(of: observer.stage) { _, _ in
+            alignmentStamp = 0
+            applyAlignment()
+        }
+        .onDisappear {
+            attitude.stop()
+            observer.disable()
+        }
         .sheet(isPresented: $showsCredits) { creditsSheet }
     }
 
@@ -110,16 +119,30 @@ struct SkyView: View {
         VStack(alignment: .leading, spacing: 4) {
             Text("星图")
                 .font(.system(size: 22, weight: .semibold, design: .rounded))
-            Text("\(catalog?.stars.count ?? 0) 颗恒星 · 赤道坐标 J2000")
+            Text(skySubtitle)
                 .font(.caption)
                 .foregroundStyle(.secondary)
             Text(motionActive ? "姿态跟随 · 转动手机环顾" : "拖动旋转（无陀螺仪时的降级）")
                 .font(.caption2)
                 .foregroundStyle(.secondary)
+            Text(observer.statusText)
+                .font(.caption2)
+                .foregroundStyle(observer.isOn ? .primary : .secondary)
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 10)
         .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
+    }
+
+    private var skySubtitle: String {
+        guard observer.stage == .ready,
+              let latitude = observer.latitude,
+              let longitude = observer.longitude,
+              let sidereal = observer.currentSiderealDegrees()
+        else {
+            return "\(catalog?.stars.count ?? 0) 颗恒星 · 赤道坐标 J2000"
+        }
+        return String(format: "%.1f°N %.1f°E · 恒星时 %.1f°", latitude, longitude, sidereal)
     }
 
     private var hintBar: some View {
@@ -135,6 +158,14 @@ struct SkyView: View {
             }
 
             Spacer()
+
+            Button {
+                toggleAlignment()
+            } label: {
+                Label(observer.isOn ? "今夜" : "对齐今夜", systemImage: observer.isOn ? "location.fill" : "location")
+                    .font(.caption)
+            }
+            .accessibilityLabel("对齐今夜此刻的真实天空")
 
             Button {
                 store.dispatch(.route(.solarSystem))
@@ -174,6 +205,11 @@ struct SkyView: View {
             Text(String(format: "色指数 %.2f（越小越偏蓝）", star.colorIndex))
                 .font(.caption2)
                 .foregroundStyle(.secondary)
+            if let horizontal = horizontal(for: star) {
+                Text(String(format: "高度 %.1f° · 方位 %.1f°（此刻）", horizontal.altitude, horizontal.azimuth))
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(14)
@@ -225,6 +261,9 @@ struct SkyView: View {
             )
         }
         startMotion()
+        if LaunchMode.autoAlignEnabled(environment: ProcessInfo.processInfo.environment), !observer.isOn {
+            observer.enable()
+        }
     }
 
     private func startMotion() {
@@ -232,9 +271,47 @@ struct SkyView: View {
         guard !attitude.isAvailable else { return }
         attitude.start { orientation in
             scene.setAttitude(orientation)
+            observer.calibrate(sceneAzimuth: Astronomy.sceneAzimuth(scene.deviceForwardWorld))
+            applyAlignment()
             stepDwell()
         }
         motionActive = attitude.isAvailable
+    }
+
+    private func toggleAlignment() {
+        if observer.isOn {
+            observer.disable()
+            scene.setField(orientation: simd_quatf(ix: 0, iy: 0, iz: 0, r: 1))
+            alignmentStamp = 0
+            SessionLog.append("sky.align off")
+        } else {
+            observer.enable()
+            alignmentStamp = 0
+        }
+    }
+
+    private func applyAlignment() {
+        guard observer.isOn else { return }
+        let now = ProcessInfo.processInfo.systemUptime
+        guard now - alignmentStamp > 1 else { return }
+        alignmentStamp = now
+        guard let orientation = observer.fieldOrientation() else { return }
+        scene.setField(orientation: orientation)
+    }
+
+    private func horizontal(for star: Star) -> Astronomy.Horizontal? {
+        guard observer.stage == .ready,
+              let latitude = observer.latitude,
+              let sidereal = observer.currentSiderealDegrees()
+        else {
+            return nil
+        }
+        return Astronomy.horizontal(
+            rightAscensionHours: star.rightAscensionHours,
+            declinationDegrees: star.declinationDegrees,
+            siderealDegrees: sidereal,
+            latitude: latitude
+        )
     }
 
     private func stepDwell() {
@@ -250,7 +327,12 @@ struct SkyView: View {
 
     private func runPickProbe() async {
         guard LaunchMode.pickProbeEnabled(environment: ProcessInfo.processInfo.environment) else { return }
-        for _ in 0..<40 where !scene.isReady {
+        for _ in 0..<60 {
+            let alignmentSettled = !observer.isOn
+                || observer.stage == .ready
+                || observer.stage == .denied
+                || observer.stage == .unavailable
+            if scene.isReady, alignmentSettled { break }
             try? await Task.sleep(for: .milliseconds(50))
         }
         guard scene.isReady else {

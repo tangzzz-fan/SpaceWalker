@@ -31,6 +31,10 @@ enum LaunchMode {
         environment["SPACEWALKER_PICKPROBE"] == "1"
     }
 
+    static func autoAlignEnabled(environment: [String: String]) -> Bool {
+        environment["SPACEWALKER_ALIGN"] == "1"
+    }
+
     static func autoAREnabled(environment: [String: String]) -> Bool {
         environment["SPACEWALKER_AUTOAR"] == "1"
     }

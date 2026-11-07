@@ -11,6 +11,7 @@ final class SkyScene {
     private(set) var root = Entity()
     private var content: RealityViewCameraContent?
     private var nodes: [Star] = []
+    private var field = Entity()
     private var isBuilt = false
     private var viewSize: CGSize = .zero
     private(set) var isAttitudeDriven = false
@@ -35,6 +36,8 @@ final class SkyScene {
         guard !isBuilt else { return }
         isBuilt = true
         root.name = "sky"
+        field.name = "field"
+        root.addChild(field)
 
         let buckets = StarFieldBuilder.buckets(for: catalog.stars)
         for (index, bucket) in buckets.enumerated() where !bucket.isEmpty {
@@ -55,7 +58,7 @@ final class SkyScene {
                 mesh: mesh,
                 materials: [UnlitMaterial(color: uiColor(averageColor, brightness: brightness))]
             ))
-            root.addChild(entity)
+            field.addChild(entity)
         }
 
         nodes = catalog.stars
@@ -63,6 +66,14 @@ final class SkyScene {
 
     func attach(_ content: RealityViewCameraContent) {
         self.content = content
+    }
+
+    var deviceForwardWorld: SIMD3<Float> {
+        root.orientation.inverse.act(SIMD3<Float>(0, 0, -1))
+    }
+
+    func setField(orientation: simd_quatf) {
+        field.orientation = orientation
     }
 
     func setAttitude(_ orientation: simd_quatf) {
@@ -92,7 +103,7 @@ final class SkyScene {
 
     func pickAtCenter() -> Star? {
         guard let content, viewSize.width > 0 else { return nil }
-        let forward = root.orientation.inverse.act(SIMD3<Float>(0, 0, -1))
+        let forward = deviceForwardWorld
         let center = CGPoint(x: viewSize.width / 2, y: viewSize.height / 2)
 
         for star in SkyPicker.nearest(to: forward, in: nodes) {
