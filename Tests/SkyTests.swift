@@ -104,6 +104,20 @@ final class StarFieldBuilderTests: XCTestCase {
         XCTAssertTrue(merged.indices.dropFirst(a.indices.count).allSatisfy { $0 >= vertexCount })
     }
 
+    func testSelectableAndBackgroundSplitCoversEveryStar() {
+        let stars = [
+            Star(rightAscensionHours: 5.9, declinationDegrees: 7.4, magnitude: 0.45, colorIndex: 0, name: "Betelgeuse", constellation: "Ori"),
+            Star(rightAscensionHours: 5.6, declinationDegrees: -1.2, magnitude: 1.69, colorIndex: 0, name: "", constellation: "Ori"),
+            Star(rightAscensionHours: 3.0, declinationDegrees: 10, magnitude: 4.9, colorIndex: 0, name: "TooFaint", constellation: ""),
+        ]
+        let selectable = StarFieldBuilder.selectableBuckets(for: stars).flatMap { $0 }
+        let background = StarFieldBuilder.backgroundStars(for: stars)
+
+        XCTAssertEqual(selectable.count + background.count, stars.count)
+        XCTAssertTrue(selectable.allSatisfy(\.isSelectable))
+        XCTAssertTrue(background.allSatisfy { !$0.isSelectable })
+    }
+
     func testBucketsKeepEveryStar() {
         let stars = [
             Star(rightAscensionHours: 0, declinationDegrees: 0, magnitude: -1, colorIndex: 0, name: "A", constellation: ""),

@@ -39,7 +39,7 @@ final class SkyScene {
         field.name = "field"
         root.addChild(field)
 
-        let buckets = StarFieldBuilder.buckets(for: catalog.stars)
+        let buckets = StarFieldBuilder.selectableBuckets(for: catalog.stars)
         for (index, bucket) in buckets.enumerated() where !bucket.isEmpty {
             guard let mesh = try? StarFieldBuilder.mesh(
                 StarFieldBuilder.chunk(for: bucket),
@@ -57,6 +57,24 @@ final class SkyScene {
             entity.components.set(ModelComponent(
                 mesh: mesh,
                 materials: [UnlitMaterial(color: uiColor(averageColor, brightness: brightness))]
+            ))
+            field.addChild(entity)
+        }
+
+        let background = StarFieldBuilder.backgroundStars(for: catalog.stars)
+        if !background.isEmpty,
+           let mesh = try? StarFieldBuilder.mesh(
+               StarFieldBuilder.chunk(for: background, scale: 0.62),
+               name: "stars.background"
+           ) {
+            let averageColor = background
+                .map { StarField.color(forColorIndex: $0.colorIndex) }
+                .reduce(SIMD3<Float>(0, 0, 0), +) / Float(background.count)
+            let entity = Entity()
+            entity.name = "background"
+            entity.components.set(ModelComponent(
+                mesh: mesh,
+                materials: [UnlitMaterial(color: uiColor(averageColor, brightness: StarField.backgroundBrightness))]
             ))
             field.addChild(entity)
         }

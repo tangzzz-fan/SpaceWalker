@@ -110,12 +110,20 @@ enum StarFieldBuilder {
         return grouped
     }
 
-    static func chunk(for stars: [Star]) -> StarMeshData {
+    static func selectableBuckets(for stars: [Star]) -> [[Star]] {
+        buckets(for: stars.filter(\.isSelectable))
+    }
+
+    static func backgroundStars(for stars: [Star]) -> [Star] {
+        stars.filter { !$0.isSelectable }
+    }
+
+    static func chunk(for stars: [Star], scale: Float = 1) -> StarMeshData {
         merge(
             stars.map {
                 sphere(
                     center: StarField.position(for: $0),
-                    radius: StarField.cubeSize(for: $0.magnitude)
+                    radius: StarField.cubeSize(for: $0.magnitude) * scale
                 )
             }
         )

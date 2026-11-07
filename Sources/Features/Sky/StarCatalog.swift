@@ -73,6 +73,7 @@ enum StarField {
     static let sphereRadius: Float = 50
     static let magnitudeLimit: Double = 5.5
     static let selectableMagnitudeLimit: Double = 4.5
+    static let backgroundBrightness: Float = 0.38
     static let bucketEdges: [Double] = [-1.5, 0, 1, 2, 3, 4, 4.5]
 
     static func direction(

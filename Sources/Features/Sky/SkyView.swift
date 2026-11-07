@@ -141,7 +141,7 @@ struct SkyView: View {
               let longitude = observer.longitude,
               let sidereal = observer.currentSiderealDegrees()
         else {
-            return "\(catalog?.stars.count ?? 0) 颗恒星 · 赤道坐标 J2000"
+            return "\(catalog?.stars.count ?? 0) 颗恒星 · \(scene.selectableCount) 颗可选中"
         }
         return String(format: "%.1f°N %.1f°E · 恒星时 %.1f°", latitude, longitude, sidereal)
     }
