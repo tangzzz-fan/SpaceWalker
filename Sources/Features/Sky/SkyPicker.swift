@@ -46,10 +46,12 @@ struct DwellSelector: Equatable, Sendable {
     static let required: TimeInterval = 0.6
     static let decayRate: Double = 1.5
     static let maximumStep: TimeInterval = 0.1
+    static let rearmDelay: TimeInterval = 0.3
 
     private(set) var target: Star?
     private(set) var elapsed: TimeInterval = 0
     private var lastTimestamp: TimeInterval?
+    private var absentSince: TimeInterval?
     private var isArmed = true
 
     var progress: Double {
@@ -61,10 +63,17 @@ struct DwellSelector: Equatable, Sendable {
         lastTimestamp = timestamp
 
         guard isArmed else {
-            if candidate == nil {
+            guard candidate == nil else {
+                absentSince = nil
+                return nil
+            }
+            let since = absentSince ?? timestamp
+            absentSince = since
+            if timestamp - since >= Self.rearmDelay {
                 isArmed = true
                 target = nil
                 elapsed = 0
+                absentSince = nil
             }
             return nil
         }
@@ -90,6 +99,7 @@ struct DwellSelector: Equatable, Sendable {
     mutating func reset() {
         target = nil
         elapsed = 0
+        absentSince = nil
         lastTimestamp = nil
         isArmed = true
     }

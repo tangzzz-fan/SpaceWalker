@@ -283,11 +283,35 @@ final class DwellSelectorTests: XCTestCase {
         }
         XCTAssertNil(selector.update(candidate: sirius, at: 0.7))
 
-        _ = selector.update(candidate: nil, at: 0.8)
+        for step in 8...11 {
+            _ = selector.update(candidate: nil, at: Double(step) * 0.1)
+        }
         XCTAssertEqual(selector.progress, 0, accuracy: 0.0001)
 
         var refire: Star?
-        for step in 9...15 {
+        for step in 12...18 {
+            refire = selector.update(candidate: sirius, at: Double(step) * 0.1) ?? refire
+        }
+        XCTAssertEqual(refire, sirius)
+    }
+
+    func testBriefLossDoesNotRearm() {
+        var selector = DwellSelector()
+        for step in 0...6 {
+            _ = selector.update(candidate: sirius, at: Double(step) * 0.1)
+        }
+
+        _ = selector.update(candidate: nil, at: 0.7)
+        XCTAssertNil(selector.update(candidate: sirius, at: 0.8))
+        XCTAssertNil(selector.update(candidate: sirius, at: 0.9))
+
+        var refire: Star?
+        for step in 10...16 {
+            refire = selector.update(candidate: nil, at: Double(step) * 0.1) ?? refire
+        }
+        XCTAssertNil(refire)
+
+        for step in 17...23 {
             refire = selector.update(candidate: sirius, at: Double(step) * 0.1) ?? refire
         }
         XCTAssertEqual(refire, sirius)

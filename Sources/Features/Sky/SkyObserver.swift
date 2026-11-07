@@ -14,9 +14,19 @@ final class SkyObserver: NSObject {
         case unavailable
     }
 
+    private static let goodAccuracy: Double = 15
+    private static let fallbackDelay: TimeInterval = 10
+
     private let manager = CLLocationManager()
     private var calibratingHeading: Double?
+    private var headingIsTrueNorth = false
+    private var headingAccuracy: Double = -1
+    private var bestHeadingAccuracy: Double = .infinity
+    private var lockedWithMagneticNorth = false
+    private var lockedAccuracy: Double = -1
+    private var enabledAt: TimeInterval = 0
     private var isStarted = false
+    private var headingLogCount = 0
 
     private(set) var stage: Stage = .off
     private(set) var latitude: Double?
@@ -30,17 +40,28 @@ final class SkyObserver: NSObject {
 
     var statusText: String {
         switch stage {
-        case .off: "赤道坐标（未对齐今夜）"
-        case .requesting: "正在获取位置…"
-        case .ready: hasHeading ? "今夜此刻 · 时间与方位已对齐" : "今夜此刻 · 时间已对齐，方位未校准"
-        case .denied: "定位被拒绝 · 仍显示赤道坐标"
-        case .unavailable: "定位不可用 · 仍显示赤道坐标"
+        case .off: return "赤道坐标（未对齐今夜）"
+        case .requesting: return "正在获取位置…"
+        case .ready:
+            guard hasHeading else {
+                if bestHeadingAccuracy < .infinity {
+                    return String(format: "今夜此刻 · 时间已对齐，磁力计精度 %.0f° 不足以定方位（试试画 8 字或离开金属）", bestHeadingAccuracy)
+                }
+                return "今夜此刻 · 时间已对齐，方位未校准"
+            }
+            if lockedWithMagneticNorth {
+                return String(format: "今夜此刻 · 磁北对齐（±%.0f°），远离金属可转真北", lockedAccuracy)
+            }
+            return "今夜此刻 · 时间与方位已对齐"
+        case .denied: return "定位被拒绝 · 仍显示赤道坐标"
+        case .unavailable: return "定位不可用 · 仍显示赤道坐标"
         }
     }
 
     func enable() {
         guard stage == .off || stage == .denied else { return }
         stage = .requesting
+        enabledAt = ProcessInfo.processInfo.systemUptime
         manager.delegate = self
         manager.desiredAccuracy = kCLLocationAccuracyThreeKilometers
 
@@ -63,6 +84,8 @@ final class SkyObserver: NSObject {
         isStarted = false
         northOffsetDegrees = nil
         hasHeading = false
+        lockedWithMagneticNorth = false
+        bestHeadingAccuracy = .infinity
         calibratingHeading = nil
     }
 
@@ -75,14 +98,24 @@ final class SkyObserver: NSObject {
     }
 
     func calibrate(sceneAzimuth: Double) {
-        guard stage == .ready, northOffsetDegrees == nil, let heading = calibratingHeading else { return }
+        guard stage == .ready, let heading = calibratingHeading else { return }
+        let waited = ProcessInfo.processInfo.systemUptime - enabledAt
+        let firstLock = northOffsetDegrees == nil && (headingAccuracy <= Self.goodAccuracy || waited > Self.fallbackDelay)
+        let trueNorthUpgrade = northOffsetDegrees != nil && lockedWithMagneticNorth && headingIsTrueNorth
+        let accuracyUpgrade = northOffsetDegrees != nil && lockedAccuracy > 10 && headingAccuracy <= 10
+        guard firstLock || trueNorthUpgrade || accuracyUpgrade else { return }
+
         let offset = Astronomy.fieldRotationDegrees(trueHeading: heading, sceneAzimuth: sceneAzimuth)
         northOffsetDegrees = offset
+        lockedAccuracy = headingAccuracy
+        lockedWithMagneticNorth = !headingIsTrueNorth
         hasHeading = true
         SessionLog.append(
             String(
-                format: "sky.align heading=%.1f azimuth=%.1f offset=%.1f",
+                format: "sky.align heading=%.1f(%@) accuracy=%.1f azimuth=%.1f offset=%.1f",
                 heading,
+                headingIsTrueNorth ? "true" : "magnetic",
+                headingAccuracy,
                 sceneAzimuth,
                 offset
             )
@@ -103,10 +136,11 @@ final class SkyObserver: NSObject {
         guard !isStarted else { return }
         isStarted = true
         manager.requestLocation()
-        if CLLocationManager.headingAvailable() {
+        let headingAvailable = CLLocationManager.headingAvailable()
+        if headingAvailable {
             manager.startUpdatingHeading()
         }
-        SessionLog.append("sky.align started")
+        SessionLog.append("sky.align started headingAvailable=\(headingAvailable)")
     }
 
     fileprivate func consume(_ coordinate: CLLocationCoordinate2D) {
@@ -124,8 +158,23 @@ final class SkyObserver: NSObject {
     }
 
     fileprivate func consume(trueHeading: Double, magneticHeading: Double, accuracy: Double) {
+        if headingLogCount < 3 {
+            headingLogCount += 1
+            SessionLog.append(
+                String(format: "sky.align heading=%.1f mag=%.1f acc=%.1f", trueHeading, magneticHeading, accuracy)
+            )
+        }
+        bestHeadingAccuracy = min(bestHeadingAccuracy, max(accuracy, 0))
         guard accuracy >= 0, accuracy <= 25 else { return }
-        calibratingHeading = trueHeading >= 0 ? trueHeading : magneticHeading
+        headingAccuracy = accuracy
+
+        if trueHeading >= 0 {
+            calibratingHeading = trueHeading
+            headingIsTrueNorth = true
+        } else if calibratingHeading == nil || !headingIsTrueNorth {
+            calibratingHeading = magneticHeading
+            headingIsTrueNorth = false
+        }
     }
 }
 
