@@ -46,6 +46,23 @@ final class TiangongScene {
         cameraEntity.look(at: TiangongLayout.center, from: position, relativeTo: nil)
     }
 
+    /// 分离/装回。复位用绝对初值，不做相对增量——连续 10 轮拆装不能累积漂移。
+    func applySeparation(_ separated: Set<TiangongModuleID>, animated: Bool) {
+        for id in TiangongModuleID.allCases {
+            guard let node = moduleNodes[id] else { continue }
+            let target = separated.contains(id)
+                ? TiangongDisassembly.separatedPosition(id)
+                : TiangongLayout.restPosition(id)
+            guard animated else {
+                node.position = target
+                continue
+            }
+            var transform = node.transform
+            transform.translation = target
+            node.move(to: transform, relativeTo: node.parent, duration: 0.4, timingFunction: .easeInOut)
+        }
+    }
+
     func screenPoint(for id: TiangongModuleID) -> CGPoint? {
         guard let content, let node = moduleNodes[id] else { return nil }
         return content.project(point: node.position(relativeTo: nil), to: Self.space)

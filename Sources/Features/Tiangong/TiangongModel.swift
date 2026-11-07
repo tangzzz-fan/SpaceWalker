@@ -109,3 +109,27 @@ struct TiangongLayout {
         return (wingTip * 2, length)
     }
 }
+
+/// 拆解位移。沿各自装配轴向外，距离在展示坐标里量。
+/// 纯函数：场景只负责把结果搬到实体上，判定与复位都不依赖渲染。
+enum TiangongDisassembly {
+    static let offset: Float = 0.12
+
+    static func axis(_ id: TiangongModuleID) -> SIMD3<Float> {
+        switch id {
+        case .lab: SIMD3(0, 0, 1)
+        case .resource: SIMD3(0, 0, -1)
+        case .leftWing: SIMD3(-1, 0, 0)
+        case .rightWing: SIMD3(1, 0, 0)
+        case .shenzhou: SIMD3(0, 0, 0)
+        }
+    }
+
+    static func separatedPosition(_ id: TiangongModuleID) -> SIMD3<Float> {
+        TiangongLayout.restPosition(id) + axis(id) * offset
+    }
+
+    static func isDismantlable(_ id: TiangongModuleID) -> Bool {
+        TiangongModuleID.dismantlable.contains(id)
+    }
+}

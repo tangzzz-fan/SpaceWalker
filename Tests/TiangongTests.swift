@@ -96,3 +96,40 @@ final class TiangongRigTests: XCTestCase {
         XCTAssertEqual(simd_length(position), TiangongRig().distance, accuracy: 0.001)
     }
 }
+
+final class TiangongDisassemblyTests: XCTestCase {
+    /// 四个模块各沿自己的装配轴外移固定距离。
+    func testSeparatedPositionsMoveAlongOwnAxis() {
+        for id in TiangongModuleID.dismantlable {
+            let rest = TiangongLayout.restPosition(id)
+            let apart = TiangongDisassembly.separatedPosition(id)
+            let delta = apart - rest
+            XCTAssertEqual(simd_length(delta), TiangongDisassembly.offset, accuracy: 0.0001, id.rawValue)
+            XCTAssertEqual(simd_normalize(delta), TiangongDisassembly.axis(id), id.rawValue)
+        }
+    }
+
+    /// 轴两两不同：四个模块不能朝同一个方向飞出去。
+    func testAxesAreDistinct() {
+        let axes = TiangongModuleID.dismantlable.map { TiangongDisassembly.axis($0) }
+        for i in axes.indices {
+            for j in axes.indices where j > i {
+                XCTAssertNotEqual(axes[i], axes[j], "轴重复：\(i) 与 \(j)")
+            }
+        }
+    }
+
+    func testShenzhouIsNotDismantlable() {
+        XCTAssertFalse(TiangongDisassembly.isDismantlable(.shenzhou))
+        XCTAssertEqual(TiangongDisassembly.separatedPosition(.shenzhou), TiangongLayout.shenzhouCenter)
+    }
+
+    /// 复位必须回到绝对初值：连续拆装不能累积漂移。
+    func testRestPositionIsAbsolute() {
+        let first = TiangongLayout.restPosition(.lab)
+        for _ in 0..<10 {
+            _ = TiangongDisassembly.separatedPosition(.lab)
+        }
+        XCTAssertEqual(TiangongLayout.restPosition(.lab), first)
+    }
+}

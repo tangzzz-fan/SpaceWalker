@@ -1,6 +1,7 @@
 import Foundation
 import Observation
 import RealityKit
+import UIKit
 import SwiftUI
 
 @MainActor
@@ -15,14 +16,23 @@ final class TiangongSession {
     @ObservationIgnored private var lastMagnification: CGFloat = 1
 
     var selected: TiangongModuleID?
+    var separated: Set<TiangongModuleID> = []
 
     init() {
-        SessionLog.append("tiangong.session boot")
+        separated = LaunchMode.tiangongSeparated(environment: ProcessInfo.processInfo.environment)
+        SessionLog.append("tiangong.session boot separated=\(separated.count)")
+    }
+
+    func applyLaunchState() {
+        guard !separated.isEmpty else { return }
+        scene.applySeparation(separated, animated: false)
+        SessionLog.append("tiangong.disassembly restored=\(separated.count)")
     }
 
     func attach(_ content: RealityViewCameraContent) {
         scene.attach(content)
         scene.apply(rig: rig)
+        applyLaunchState()
         SessionLog.append("tiangong.attach modules=\(TiangongModuleID.allCases.count)")
         SessionLog.append("tiangong.budget triangles=\(scene.triangleEstimate)")
     }
@@ -71,9 +81,26 @@ final class TiangongSession {
         SessionLog.append("tiangong.select id=\(hit?.rawValue ?? "none")")
     }
 
+    func toggleDisassembly(_ id: TiangongModuleID) {
+        guard TiangongDisassembly.isDismantlable(id) else { return }
+        if separated.contains(id) {
+            separated.remove(id)
+        } else {
+            separated.insert(id)
+        }
+        scene.applySeparation(separated, animated: true)
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        SessionLog.append(
+            "tiangong.disassembly id=\(id.rawValue) separated=\(separated.contains(id) ? 1 : 0)"
+                + " total=\(separated.count)"
+        )
+    }
+
     func resetView() {
         rig = TiangongRig()
         selected = nil
+        separated.removeAll()
+        scene.applySeparation(separated, animated: true)
         scene.apply(rig: rig)
         SessionLog.append("tiangong.view reset")
     }

@@ -154,7 +154,15 @@ struct TiangongView: View {
             Text(module.detail)
                 .font(.caption2)
                 .foregroundStyle(.secondary)
-            Text("点空白处取消选择")
+            if TiangongDisassembly.isDismantlable(module) {
+                Button(session.separated.contains(module) ? "装回" : "分离") {
+                    session.toggleDisassembly(module)
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+                .padding(.top, 2)
+            }
+            Text("点空白处取消选择 · 神舟不参与拆装")
                 .font(.caption2)
                 .foregroundStyle(.tertiary)
         }
