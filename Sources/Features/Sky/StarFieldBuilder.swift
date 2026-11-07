@@ -111,6 +111,87 @@ enum StarFieldBuilder {
         return StarMeshData(positions: positions, normals: normals, indices: indices)
     }
 
+    static func convexHull(_ points: [SIMD2<Float>]) -> [Int] {
+        guard points.count >= 3 else { return Array(points.indices) }
+        let sorted = points.indices.sorted {
+            points[$0].x == points[$1].x ? points[$0].y < points[$1].y : points[$0].x < points[$1].x
+        }
+
+        func cross(_ o: Int, _ a: Int, _ b: Int) -> Float {
+            (points[a].x - points[o].x) * (points[b].y - points[o].y)
+                - (points[a].y - points[o].y) * (points[b].x - points[o].x)
+        }
+
+        var lower: [Int] = []
+        for index in sorted {
+            while lower.count >= 2, cross(lower[lower.count - 2], lower[lower.count - 1], index) <= 0 {
+                lower.removeLast()
+            }
+            lower.append(index)
+        }
+        var upper: [Int] = []
+        for index in sorted.reversed() {
+            while upper.count >= 2, cross(upper[upper.count - 2], upper[upper.count - 1], index) <= 0 {
+                upper.removeLast()
+            }
+            upper.append(index)
+        }
+        lower.removeLast()
+        upper.removeLast()
+        return lower + upper
+    }
+
+    static func hullRing(_ points: [SIMD3<Float>]) -> [SIMD3<Float>] {
+        guard points.count >= 3 else { return points }
+        var centroid = SIMD3<Float>(0, 0, 0)
+        for point in points {
+            let length = simd_length(point)
+            guard length > 0.0001 else { continue }
+            centroid += point / length
+        }
+        let length = simd_length(centroid)
+        guard length > 0.0001 else { return points }
+        let center = centroid / length
+        let reference = abs(center.y) < 0.9 ? SIMD3<Float>(0, 1, 0) : SIMD3<Float>(1, 0, 0)
+        let u = simd_normalize(simd_cross(reference, center))
+        let v = simd_cross(center, u)
+
+        let projected = points.map { SIMD2<Float>(simd_dot($0, u), simd_dot($0, v)) }
+        return convexHull(projected).map { points[$0] }
+    }
+
+    static func sphericalPolygon(points: [SIMD3<Float>], radius: Float) -> StarMeshData {
+        polygon(ring: hullRing(points), radius: radius)
+    }
+
+    static func polygon(ring: [SIMD3<Float>], radius: Float) -> StarMeshData {
+        guard ring.count >= 3 else { return StarMeshData(positions: [], normals: [], indices: []) }
+
+        var centroid = SIMD3<Float>(0, 0, 0)
+        for point in ring {
+            centroid += simd_normalize(point)
+        }
+        let center = simd_normalize(centroid) * radius
+        let vertices = ring.map { simd_normalize($0) * radius }
+
+        var positions: [SIMD3<Float>] = []
+        var normals: [SIMD3<Float>] = []
+        var indices: [UInt32] = []
+
+        for index in 0..<vertices.count {
+            let a = vertices[index]
+            let b = vertices[(index + 1) % vertices.count]
+            let base = UInt32(positions.count)
+            positions.append(contentsOf: [center, a, b])
+            normals.append(contentsOf: [
+                simd_normalize(center), simd_normalize(a), simd_normalize(b),
+            ])
+            indices.append(contentsOf: [base, base + 1, base + 2, base, base + 2, base + 1])
+        }
+
+        return StarMeshData(positions: positions, normals: normals, indices: indices)
+    }
+
     static func constellation(_ segments: [(SIMD3<Float>, SIMD3<Float>)], radius: Float) -> StarMeshData {
         merge(segments.map { tube(from: $0.0, to: $0.1, radius: radius) })
     }

@@ -331,6 +331,11 @@ struct SkyView: View {
                     .font(.caption2)
                     .foregroundStyle(.secondary)
             }
+            if let line = display.fengshenLine {
+                Text(line)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
             Text(String(format: "视星等 %.2f · 赤经 %.2fh · 赤纬 %.1f°", star.magnitude, star.rightAscensionHours, star.declinationDegrees))
                 .font(.caption)
                 .foregroundStyle(.secondary)

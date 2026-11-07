@@ -9,6 +9,7 @@ struct ConstellationLine: Equatable, Sendable {
 struct Constellation: Equatable, Sendable {
     var abbreviation: String
     var name: String
+    var outline: [String] = []
     var lines: [ConstellationLine]
 
     var starCount: Int {
@@ -18,12 +19,12 @@ struct Constellation: Equatable, Sendable {
 
 enum Constellations {
     static let all: [Constellation] = [
-        Constellation(abbreviation: "UMa", name: "大熊座", lines: line("Dubhe-Merak, Merak-Phecda, Phecda-Megrez, Megrez-Dubhe, Megrez-Alioth, Alioth-Mizar, Mizar-Alkaid, Dubhe-Muscida")),
+        Constellation(abbreviation: "UMa", name: "大熊座", outline: ["Alkaid", "Mizar", "Alioth", "Megrez", "Dubhe", "Muscida", "Tania Borealis", "Tania Australis", "Phecda"], lines: line("Dubhe-Merak, Merak-Phecda, Phecda-Megrez, Megrez-Dubhe, Megrez-Alioth, Alioth-Mizar, Mizar-Alkaid, Dubhe-Muscida")),
         Constellation(abbreviation: "UMi", name: "小熊座", lines: line("Polaris-Kochab, Kochab-Pherkad, Pherkad-Polaris")),
-        Constellation(abbreviation: "Ori", name: "猎户座", lines: line("Betelgeuse-Bellatrix, Bellatrix-Mintaka, Mintaka-Alnilam, Alnilam-Alnitak, Alnitak-Betelgeuse, Mintaka-Rigel, Alnitak-Saiph, Rigel-Saiph, Meissa-Betelgeuse, Meissa-Bellatrix")),
-        Constellation(abbreviation: "Cas", name: "仙后座", lines: line("Caph-Schedar, Schedar-Cih, Cih-Ruchbah, Ruchbah-Segin")),
-        Constellation(abbreviation: "Cyg", name: "天鹅座", lines: line("Deneb-Sadr, Sadr-Albireo, Aljanah-Sadr, Sadr-Fawaris")),
-        Constellation(abbreviation: "Lyr", name: "天琴座", lines: line("Vega-Sheliak, Sheliak-Sulafat, Sulafat-Vega")),
+        Constellation(abbreviation: "Ori", name: "猎户座", outline: ["Betelgeuse", "Bellatrix", "Mintaka", "Rigel", "Saiph", "Alnitak"], lines: line("Betelgeuse-Bellatrix, Bellatrix-Mintaka, Mintaka-Alnilam, Alnilam-Alnitak, Alnitak-Betelgeuse, Mintaka-Rigel, Alnitak-Saiph, Rigel-Saiph, Meissa-Betelgeuse, Meissa-Bellatrix")),
+        Constellation(abbreviation: "Cas", name: "仙后座", outline: ["Caph", "Schedar", "Cih", "Ruchbah", "Segin"], lines: line("Caph-Schedar, Schedar-Cih, Cih-Ruchbah, Ruchbah-Segin")),
+        Constellation(abbreviation: "Cyg", name: "天鹅座", outline: ["Deneb", "Aljanah", "Sadr", "Fawaris", "Albireo"], lines: line("Deneb-Sadr, Sadr-Albireo, Aljanah-Sadr, Sadr-Fawaris")),
+        Constellation(abbreviation: "Lyr", name: "天琴座", outline: ["Vega", "Sheliak", "Sulafat"], lines: line("Vega-Sheliak, Sheliak-Sulafat, Sulafat-Vega")),
         Constellation(abbreviation: "Aql", name: "天鹰座", lines: line("Tarazed-Altair, Altair-Alshain, Altair-Okab")),
         Constellation(abbreviation: "Sco", name: "天蝎座", lines: line("Fang-Dschubba, Dschubba-Acrab, Dschubba-Antares, Antares-Alniyat, Alniyat-Larawag, Larawag-Sargas, Sargas-Shaula, Shaula-Lesath")),
         Constellation(abbreviation: "Leo", name: "狮子座", lines: line("Regulus-Algieba, Algieba-Adhafera, Adhafera-Rasalas, Regulus-Chertan, Chertan-Denebola, Denebola-Zosma, Zosma-Algieba")),
@@ -33,7 +34,7 @@ enum Constellations {
         Constellation(abbreviation: "Aur", name: "御夫座", lines: line("Capella-Menkalinan, Menkalinan-Mahasim, Mahasim-Hassaleh, Hassaleh-Capella, Capella-Almaaz, Hassaleh-Haedus")),
         Constellation(abbreviation: "CMa", name: "大犬座", lines: line("Mirzam-Sirius, Sirius-Adhara, Adhara-Wezen, Wezen-Aludra, Wezen-Furud")),
         Constellation(abbreviation: "CMi", name: "小犬座", lines: line("Procyon-Gomeisa")),
-        Constellation(abbreviation: "Cru", name: "南十字座", lines: line("Acrux-Gacrux, Mimosa-Imai")),
+        Constellation(abbreviation: "Cru", name: "南十字座", outline: ["Gacrux", "Mimosa", "Acrux", "Imai"], lines: line("Acrux-Gacrux, Mimosa-Imai")),
         Constellation(abbreviation: "Peg", name: "飞马座", lines: line("Markab-Scheat, Scheat-Alpheratz, Alpheratz-Algenib, Algenib-Markab, Markab-Homam, Homam-Enif")),
         Constellation(abbreviation: "And", name: "仙女座", lines: line("Alpheratz-Mirach, Mirach-Almach, Almach-Nembus")),
         Constellation(abbreviation: "Per", name: "英仙座", lines: line("Mirfak-Algol, Mirfak-Miram, Mirfak-Atik, Atik-Misam")),

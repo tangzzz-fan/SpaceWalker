@@ -93,22 +93,88 @@ final class SkyScene {
         }
         let segments = Constellations.segments(positions: positions)
         guard !segments.isEmpty,
-              let mesh = try? StarFieldBuilder.mesh(
+              let sticks = try? StarFieldBuilder.mesh(
                   StarFieldBuilder.constellation(segments, radius: Self.constellationRadius),
                   name: "constellations"
               )
         else { return }
 
-        let entity = Entity()
-        entity.name = "constellations"
-        entity.components.set(ModelComponent(
-            mesh: mesh,
+        let group = Entity()
+        group.name = "constellationGroup"
+        field.addChild(group)
+
+        let stickNode = Entity()
+        stickNode.name = "constellation.lines"
+        stickNode.components.set(ModelComponent(
+            mesh: sticks,
             materials: [UnlitMaterial(color: uiColor(SIMD3(0.62, 0.72, 0.92), brightness: 0.46))]
         ))
-        field.addChild(entity)
-        entity.isEnabled = constellationsRequested
-        constellationNode = entity
+        group.addChild(stickNode)
+
+        if let silhouette = makeSilhouette(positions: positions) {
+            group.addChild(silhouette)
+        }
+
+        group.isEnabled = constellationsRequested
+        constellationNode = group
         constellationCount = segments.count
+    }
+
+    private func makeSilhouette(positions: [String: SIMD3<Float>]) -> Entity? {
+        var fillMesh = StarMeshData(positions: [], normals: [], indices: [])
+        var outlineSegments: [(SIMD3<Float>, SIMD3<Float>)] = []
+
+        for constellation in Constellations.all {
+            let names = Array(Set(constellation.lines.flatMap { [$0.first, $0.second] }))
+            let points = names.compactMap { positions[$0] }
+            guard points.count >= 3 else { continue }
+
+            let drawn: [SIMD3<Float>]
+            if constellation.outline.count >= 3,
+               constellation.outline.allSatisfy({ positions[$0] != nil }) {
+                drawn = constellation.outline.compactMap { positions[$0] }
+            } else {
+                drawn = StarFieldBuilder.hullRing(points)
+            }
+            guard drawn.count >= 3 else { continue }
+
+            fillMesh = StarFieldBuilder.merge([
+                fillMesh,
+                StarFieldBuilder.polygon(ring: drawn, radius: Self.constellationFillRadius),
+            ])
+
+            let ring = drawn.map { simd_normalize($0) * Self.constellationOutlineRadius }
+            for index in 0..<ring.count {
+                outlineSegments.append((ring[index], ring[(index + 1) % ring.count]))
+            }
+        }
+
+        guard !fillMesh.positions.isEmpty, !outlineSegments.isEmpty else { return nil }
+
+        let group = Entity()
+        group.name = "constellation.silhouette"
+
+        if let fill = try? StarFieldBuilder.mesh(fillMesh, name: "constellation.fill") {
+            let node = Entity()
+            node.name = "constellation.fill"
+            node.components.set(ModelComponent(
+                mesh: fill,
+                materials: [UnlitMaterial(color: uiColor(SIMD3(0.042, 0.062, 0.115), brightness: 1))]
+            ))
+            group.addChild(node)
+        }
+
+        let outlineMesh = StarFieldBuilder.constellation(outlineSegments, radius: 0.011)
+        if let outline = try? StarFieldBuilder.mesh(outlineMesh, name: "constellation.outline") {
+            let node = Entity()
+            node.name = "constellation.outline"
+            node.components.set(ModelComponent(
+                mesh: outline,
+                materials: [UnlitMaterial(color: uiColor(SIMD3(0.40, 0.52, 0.75), brightness: 0.72))]
+            ))
+            group.addChild(node)
+        }
+        return group
     }
 
     func setConstellationsVisible(_ visible: Bool) {
@@ -117,6 +183,8 @@ final class SkyScene {
     }
 
     static let constellationRadius: Float = 0.032
+    static let constellationFillRadius: Float = 51.4
+    static let constellationOutlineRadius: Float = 50.6
 
     func attach(_ content: RealityViewCameraContent) {
         self.content = content

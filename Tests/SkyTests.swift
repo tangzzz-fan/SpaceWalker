@@ -764,6 +764,82 @@ final class CompanionTests: XCTestCase {
     }
 }
 
+final class FengshenTests: XCTestCase {
+    func testTwentyEightMansionsAreAllPresent() {
+        XCTAssertEqual(FengshenInfo.table.count, 28)
+        for symbol in TwentyEightMansions.groups {
+            for mansion in symbol.mansions {
+                XCTAssertNotNil(FengshenInfo.table[mansion], "\(mansion) 宿缺少封神名号")
+            }
+        }
+    }
+
+    func testEightMansionsBelongToWaterOrFireDepartment() {
+        let assigned = FengshenInfo.table.values.filter { $0.department != nil }
+        XCTAssertEqual(assigned.count, 8)
+        let fire = assigned.filter { $0.department == "火部" }.map(\.mansion).sorted()
+        let water = assigned.filter { $0.department == "水部" }.map(\.mansion).sorted()
+        XCTAssertEqual(fire, ["室", "尾", "翼", "觜"])
+        XCTAssertEqual(water, ["参", "壁", "箕", "轸"])
+    }
+
+    func testMansionLookupFromFullName() {
+        XCTAssertEqual(FengshenInfo.entry(forMansion: "参宿")?.lord, "参水猿")
+        XCTAssertEqual(FengshenInfo.entry(forMansion: "参宿")?.person, "孙祥")
+        XCTAssertNil(FengshenInfo.entry(forMansion: "五车"))
+    }
+
+    func testStarCardLine() {
+        let orion = Star(
+            rightAscensionHours: 5.92, declinationDegrees: 7.4, magnitude: 0.45,
+            colorIndex: 1.5, name: "Betelgeuse", constellation: "Ori"
+        )
+        XCTAssertEqual(StarDisplay.make(for: orion).fengshenLine, "封神 参水猿 · 孙祥")
+
+        let dubhe = Star(
+            rightAscensionHours: 11.06, declinationDegrees: 61.75, magnitude: 1.81,
+            colorIndex: 1.1, name: "Dubhe", constellation: "UMa"
+        )
+        XCTAssertEqual(StarDisplay.make(for: dubhe).fengshenLine, "封神 北斗七星君")
+    }
+}
+
+final class ConstellationOutlineTests: XCTestCase {
+    func testOutlinesReferenceRealStars() throws {
+        let catalog = try XCTUnwrap(StarCatalog.loadFromBundle(.main))
+        let names = Set(catalog.stars.map(\.name))
+        for constellation in Constellations.all where !constellation.outline.isEmpty {
+            let missing = constellation.outline.filter { !names.contains($0) }
+            XCTAssertTrue(missing.isEmpty, "\(constellation.name) 轮廓引用了不存在的星：\(missing)")
+            XCTAssertGreaterThanOrEqual(constellation.outline.count, 3)
+        }
+    }
+
+    func testPolygonRingProducesFan() {
+        let ring = [
+            SIMD3<Float>(0, 0, -50),
+            SIMD3<Float>(1, 0, -50),
+            SIMD3<Float>(1, 1, -50),
+        ]
+        let mesh = StarFieldBuilder.polygon(ring: ring, radius: 51)
+        XCTAssertEqual(mesh.positions.count, 9)
+        XCTAssertEqual(mesh.indices.count, 18)
+        for position in mesh.positions {
+            XCTAssertEqual(simd_length(position), 51, accuracy: 0.001)
+        }
+    }
+
+    func testConvexHullDropsInteriorPoints() {
+        let points = [
+            SIMD2<Float>(0, 0), SIMD2<Float>(1, 0), SIMD2<Float>(1, 1),
+            SIMD2<Float>(0, 1), SIMD2<Float>(0.5, 0.5),
+        ]
+        let hull = StarFieldBuilder.convexHull(points)
+        XCTAssertEqual(hull.count, 4)
+        XCTAssertFalse(hull.contains(4))
+    }
+}
+
 final class AppRouteTests: XCTestCase {
     func testRouteSwitchIsReduced() {
         var state = AppState()

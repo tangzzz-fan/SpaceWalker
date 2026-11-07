@@ -39,6 +39,9 @@ struct ConstellationInfoView: View {
                         section("西方来头", text: "这个星座在本版本还没有收录释义，仅显示星表统计。")
                         section("中国星官", text: "暂无对应星官说明。")
                     }
+                    if !fengshenEntries.isEmpty {
+                        fengshenSection
+                    }
                     if !chineseStars.isEmpty {
                         chineseStarList
                     }
@@ -123,6 +126,47 @@ struct ConstellationInfoView: View {
             Text(text)
                 .font(.callout)
                 .lineSpacing(4)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    private var fengshenEntries: [FengshenMansion] {
+        var seen = Set<String>()
+        var entries: [FengshenMansion] = []
+        for hit in chineseStars {
+            guard let mansion = StarDisplay.make(for: hit.star).asterism?.mansion,
+                  let entry = FengshenInfo.entry(forMansion: mansion),
+                  seen.insert(entry.mansion).inserted
+            else { continue }
+            entries.append(entry)
+        }
+        return entries
+    }
+
+    private var fengshenSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("封神")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            ForEach(fengshenEntries, id: \.mansion) { entry in
+                HStack(alignment: .firstTextBaseline, spacing: 6) {
+                    Text(entry.lord)
+                        .font(.callout)
+                    Text(entry.person)
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                    if let department = entry.department {
+                        Text(department)
+                            .font(.caption2)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 1)
+                            .background(.quaternary, in: Capsule())
+                    }
+                }
+            }
+            Text(FengshenInfo.sourceNote)
+                .font(.caption2)
+                .foregroundStyle(.tertiary)
                 .fixedSize(horizontal: false, vertical: true)
         }
     }

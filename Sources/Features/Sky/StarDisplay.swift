@@ -104,6 +104,17 @@ struct StarDisplay: Equatable, Sendable {
         return "星官 \(asterism.name)"
     }
 
+    var fengshenLine: String? {
+        guard let asterism else { return nil }
+        if let mansion = asterism.mansion, let entry = FengshenInfo.entry(forMansion: mansion) {
+            return "封神 \(entry.lord) · \(entry.person)"
+        }
+        if asterism.name == "北斗" {
+            return "封神 北斗七星君"
+        }
+        return nil
+    }
+
     var mansionLine: String? {
         guard let asterism, let mansion = asterism.mansion else { return nil }
         let symbol = asterism.symbol ?? ""
