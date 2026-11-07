@@ -1009,6 +1009,8 @@ final class SkyGroupTests: XCTestCase {
 }
 
 final class TimeScrubTests: XCTestCase {
+    private let reference = Date(timeIntervalSince1970: 1_768_000_000)
+
     func testSiderealAdvancesFifteenDegreesPerHour() {
         let base = Date(timeIntervalSince1970: 1_768_000_000)
         let first = Astronomy.localSiderealDegrees(
@@ -1033,6 +1035,95 @@ final class TimeScrubTests: XCTestCase {
             longitude: 120.6
         )
         XCTAssertEqual(Astronomy.normalized(later - first), 180.5, accuracy: 0.5)
+    }
+
+    func testClockFollowsRealTimeWhenAtNow() {
+        let clock = SkyClock(base: reference)
+        let probe = reference.addingTimeInterval(7200)
+        XCTAssertEqual(clock.instant(now: probe), probe)
+        XCTAssertTrue(clock.isNow)
+    }
+
+    func testClockFreezesInstantOnceOffsetIsSet() {
+        var clock = SkyClock(base: reference)
+        let draggedAt = reference.addingTimeInterval(100)
+        clock.setOffset(hours: 3, at: draggedAt)
+        let early = clock.instant(now: reference)
+        let late = clock.instant(now: reference.addingTimeInterval(600))
+        XCTAssertEqual(early, late)
+        XCTAssertEqual(early, draggedAt.addingTimeInterval(3 * 3600))
+    }
+
+    func testClockKeepsBaseWhileStillFollowingTime() {
+        var clock = SkyClock(base: reference)
+        clock.setOffset(hours: 0.0001)
+        XCTAssertEqual(clock.base, reference)
+        XCTAssertTrue(clock.isNow)
+    }
+
+    func testClockClampsOffsetToWholeDay() {
+        var clock = SkyClock(base: reference)
+        clock.setOffset(hours: 40)
+        XCTAssertEqual(clock.offsetHours, 24, accuracy: 0.0001)
+        clock.setOffset(hours: -40)
+        XCTAssertEqual(clock.offsetHours, -24, accuracy: 0.0001)
+    }
+
+    func testClockResetReturnsToNow() {
+        var clock = SkyClock(base: reference, offsetHours: -6)
+        clock.reset(to: reference)
+        XCTAssertTrue(clock.isNow)
+        XCTAssertEqual(clock.instant(now: reference), reference)
+    }
+
+    func testClockTreatsSubThirtySecondsAsNow() {
+        var clock = SkyClock(base: reference)
+        clock.setOffset(hours: 1.0 / 240)
+        XCTAssertTrue(clock.isNow)
+    }
+
+    func testFieldRotationMatchesOneHourOfSidereal() {
+        let before = Astronomy.equatorialToHorizontalRotation(siderealDegrees: 100, latitude: 31.25)
+        let after = Astronomy.equatorialToHorizontalRotation(siderealDegrees: 115.041, latitude: 31.25)
+        let delta = before.inverse * after
+        let degrees = abs(Double(delta.angle) * 180 / .pi)
+        XCTAssertEqual(degrees, 15.041, accuracy: 0.01)
+    }
+
+    func testSameOffsetYieldsSameInstant() {
+        let clock = SkyClock(base: reference, offsetHours: 3)
+        let first = clock.instant(now: reference)
+        let second = clock.instant(now: reference.addingTimeInterval(600))
+        XCTAssertEqual(first, second)
+    }
+
+    func testMinuteStepsProduceConstantSiderealAdvance() {
+        var clock = SkyClock(base: reference)
+        let longitude = 120.6
+        var previous: Double?
+        var deltas: [Double] = []
+
+        for minute in stride(from: -720, through: 720, by: 1) {
+            clock.setOffset(hours: Double(minute) / 60, at: reference)
+            let julian = Astronomy.julianDay(clock.instant(now: reference))
+            let sidereal = Astronomy.localSiderealDegrees(julianDay: julian, longitude: longitude)
+            if let previous {
+                deltas.append(Astronomy.normalized(sidereal - previous))
+            }
+            previous = sidereal
+        }
+
+        XCTAssertEqual(deltas.count, 1440)
+        XCTAssertEqual(deltas.min() ?? 0, 0.2507, accuracy: 0.002)
+        XCTAssertEqual(deltas.max() ?? 0, 0.2507, accuracy: 0.002)
+    }
+
+    func testSliderBoundsStayInsideOneDay() {
+        var clock = SkyClock(base: reference)
+        clock.setOffset(hours: 12, at: reference)
+        XCTAssertEqual(clock.offsetHours, 12)
+        clock.setOffset(hours: -12, at: reference)
+        XCTAssertEqual(clock.offsetHours, -12)
     }
 }
 

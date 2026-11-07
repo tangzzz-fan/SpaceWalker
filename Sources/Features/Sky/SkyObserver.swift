@@ -35,7 +35,9 @@ final class SkyObserver: NSObject {
     private(set) var longitude: Double?
     private(set) var northOffsetDegrees: Double?
     private(set) var hasHeading = false
-    private(set) var timeOffsetHours: Double = 0
+    private(set) var clock = SkyClock()
+
+    var timeOffsetHours: Double { clock.offsetHours }
 
     var isOn: Bool {
         stage != .off
@@ -106,11 +108,24 @@ final class SkyObserver: NSObject {
     }
 
     func shiftedNow() -> Date {
-        Date().addingTimeInterval(timeOffsetHours * 3600)
+        clock.instant()
     }
 
     func setTimeOffset(hours: Double) {
-        timeOffsetHours = min(max(hours, -24), 24)
+        clock.setOffset(hours: hours)
+    }
+
+    func applySimulatedLocation(latitude: Double, longitude: Double) {
+        self.latitude = latitude
+        self.longitude = longitude
+        stage = .ready
+        SessionLog.append(
+            String(format: "sky.align simulated location=%.3f,%.3f", latitude, longitude)
+        )
+    }
+
+    func resetClock() {
+        clock.reset()
     }
 
     func calibrateAgainst(starAzimuth: Double, sceneAzimuth: Double, label: String) {
@@ -132,14 +147,15 @@ final class SkyObserver: NSObject {
         )
     }
 
-    func calibrate(sceneAzimuth: Double) {
-        guard !lockedManually else { return }
-        guard stage == .ready, let heading = calibratingHeading else { return }
+    @discardableResult
+    func calibrate(sceneAzimuth: Double) -> Bool {
+        guard !lockedManually else { return false }
+        guard stage == .ready, let heading = calibratingHeading else { return false }
         let waited = ProcessInfo.processInfo.systemUptime - enabledAt
         let firstLock = northOffsetDegrees == nil && (headingAccuracy <= Self.goodAccuracy || waited > Self.fallbackDelay)
         let trueNorthUpgrade = northOffsetDegrees != nil && lockedWithMagneticNorth && headingIsTrueNorth
         let accuracyUpgrade = northOffsetDegrees != nil && lockedAccuracy > 10 && headingAccuracy <= 10
-        guard firstLock || trueNorthUpgrade || accuracyUpgrade else { return }
+        guard firstLock || trueNorthUpgrade || accuracyUpgrade else { return false }
 
         let offset = Astronomy.fieldRotationDegrees(trueHeading: heading, sceneAzimuth: sceneAzimuth)
         northOffsetDegrees = offset
@@ -156,6 +172,7 @@ final class SkyObserver: NSObject {
                 offset
             )
         )
+        return true
     }
 
     func fieldOrientation() -> simd_quatf? {

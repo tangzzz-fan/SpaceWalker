@@ -15,7 +15,6 @@ struct SkyView: View {
     @State private var selectedGroup: SkyGroup?
     @State private var groups: [SkyGroup] = []
     @State private var tonight: [TonightPick] = []
-    @State private var timeOffset: Double = 0
     @State private var motionActive = false
     @State private var showsCredits = false
     @State private var showsConstellations = true
@@ -28,8 +27,8 @@ struct SkyView: View {
     @State private var dwell = DwellSelector()
     @State private var hud = DwellHUD()
     @State private var observer = SkyObserver()
-    @State private var alignmentStamp: TimeInterval = 0
     @State private var diagnosticsStamp: TimeInterval = 0
+    @State private var tonightStamp: TimeInterval = 0
 
     var body: some View {
         ZStack {
@@ -78,8 +77,7 @@ struct SkyView: View {
             scene.setConstellationsVisible(visible)
         }
         .onChange(of: observer.stage) { _, _ in
-            alignmentStamp = 0
-            applyAlignment()
+            refreshField()
             refreshTonight()
         }
         .onDisappear {
@@ -209,42 +207,59 @@ struct SkyView: View {
             let stars = catalog?.stars ?? []
             return "\(stars.count) 颗恒星 · \(stars.filter(\.isSelectable).count) 颗可选中 · \(Constellations.all.count) 个星座"
         }
-        return String(format: "%.1f°N %.1f°E · 恒星时 %.1f°", latitude, longitude, sidereal)
+        let base = String(format: "%.1f°N %.1f°E · 恒星时 %.1f°", latitude, longitude, sidereal)
+        return observer.clock.isNow ? base : "\(base) · \(timeOffsetLabel)"
     }
 
     private var timeScrubber: some View {
         HStack(spacing: 8) {
             Image(systemName: "clock.arrow.circlepath")
                 .font(.caption2)
-            Slider(value: $timeOffset, in: -12...12, step: 0.5)
-                .controlSize(.mini)
-                .frame(width: 140)
+            Slider(value: timeOffsetBinding, in: -12...12) { editing in
+                guard !editing else { return }
+                tonightStamp = 0
+                refreshTonight()
+            }
+            .controlSize(.mini)
+            .frame(width: 140)
             Text(timeOffsetLabel)
                 .font(.caption2.monospacedDigit())
-                .frame(width: 46, alignment: .leading)
+                .frame(width: 52, alignment: .leading)
             Button {
-                timeOffset = 0
+                observer.resetClock()
+                refreshField()
+                refreshTonight()
             } label: {
                 Image(systemName: "arrow.counterclockwise")
                     .font(.caption2)
             }
             .buttonStyle(.plain)
-            .opacity(timeOffset == 0 ? 0.3 : 1)
+            .opacity(observer.clock.isNow ? 0.3 : 1)
             .accessibilityLabel("时间回到此刻")
         }
         .padding(.top, 2)
-        .onChange(of: timeOffset) { _, value in
-            observer.setTimeOffset(hours: value)
-            applyAlignment()
-            refreshTonight()
-        }
+    }
+
+    private var timeOffsetBinding: Binding<Double> {
+        Binding(
+            get: { observer.timeOffsetHours },
+            set: { hours in
+                observer.setTimeOffset(hours: hours)
+                refreshField()
+                refreshTonight()
+            }
+        )
     }
 
     private var timeOffsetLabel: String {
-        if abs(timeOffset) < 0.01 {
+        let hours = observer.timeOffsetHours
+        if observer.clock.isNow {
             return "此刻"
         }
-        return String(format: "%+.1f h", timeOffset)
+        let minutes = Int((hours * 60).rounded())
+        let sign = minutes < 0 ? "-" : "+"
+        let magnitude = abs(minutes)
+        return String(format: "%@%d:%02d", sign, magnitude / 60, magnitude % 60)
     }
 
     private var hintBar: some View {
@@ -356,6 +371,9 @@ struct SkyView: View {
             tonight = []
             return
         }
+        let now = ProcessInfo.processInfo.systemUptime
+        guard now - tonightStamp > 0.4 else { return }
+        tonightStamp = now
         tonight = SkySeason.rank(
             groups: groups,
             stars: catalog?.stars ?? [],
@@ -591,10 +609,7 @@ struct SkyView: View {
             sceneAzimuth: Astronomy.sceneAzimuth(scene.viewDirectionInField),
             label: "正北"
         )
-        alignmentStamp = ProcessInfo.processInfo.systemUptime
-        if let orientation = observer.fieldOrientation() {
-            scene.setField(orientation: orientation)
-        }
+        refreshField()
     }
 
     private func calibrate(using star: Star, azimuth: Double) {
@@ -603,10 +618,7 @@ struct SkyView: View {
             sceneAzimuth: Astronomy.sceneAzimuth(scene.viewDirectionInField),
             label: star.name
         )
-        alignmentStamp = ProcessInfo.processInfo.systemUptime
-        if let orientation = observer.fieldOrientation() {
-            scene.setField(orientation: orientation)
-        }
+        refreshField()
     }
 
     private var creditsSheet: some View {
@@ -647,8 +659,14 @@ struct SkyView: View {
             )
         }
         startMotion()
-        if LaunchMode.autoAlignEnabled(environment: ProcessInfo.processInfo.environment), !observer.isOn {
+        if let location = LaunchMode.simulatedLocation(environment: ProcessInfo.processInfo.environment) {
+            observer.applySimulatedLocation(latitude: location.latitude, longitude: location.longitude)
+        } else if LaunchMode.autoAlignEnabled(environment: ProcessInfo.processInfo.environment), !observer.isOn {
             observer.enable()
+        }
+        if let hours = LaunchMode.timeOffsetHours(environment: ProcessInfo.processInfo.environment) {
+            observer.setTimeOffset(hours: hours)
+            refreshField()
         }
         if LaunchMode.finderPreviewEnabled(environment: ProcessInfo.processInfo.environment) {
             showsFinder = true
@@ -700,8 +718,9 @@ struct SkyView: View {
         guard !attitude.isAvailable else { return }
         attitude.start { orientation in
             scene.setAttitude(orientation)
-            observer.calibrate(sceneAzimuth: Astronomy.sceneAzimuth(scene.viewDirectionInField))
-            applyAlignment()
+            if observer.calibrate(sceneAzimuth: Astronomy.sceneAzimuth(scene.viewDirectionInField)) {
+                refreshField()
+            }
             stepDwell()
         }
         motionActive = attitude.isAvailable
@@ -710,21 +729,19 @@ struct SkyView: View {
     private func toggleAlignment() {
         if observer.isOn {
             observer.disable()
-            scene.setField(orientation: simd_quatf(ix: 0, iy: 0, iz: 0, r: 1))
-            alignmentStamp = 0
             SessionLog.append("sky.align off")
         } else {
             observer.enable()
-            alignmentStamp = 0
         }
+        refreshField()
+        refreshTonight()
     }
 
-    private func applyAlignment() {
-        guard observer.isOn else { return }
-        let now = ProcessInfo.processInfo.systemUptime
-        guard now - alignmentStamp > 1 else { return }
-        alignmentStamp = now
-        guard let orientation = observer.fieldOrientation() else { return }
+    private func refreshField() {
+        guard let orientation = observer.fieldOrientation() else {
+            scene.setField(orientation: simd_quatf(ix: 0, iy: 0, iz: 0, r: 1))
+            return
+        }
         scene.setField(orientation: orientation)
     }
 

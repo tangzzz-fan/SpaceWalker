@@ -35,6 +35,22 @@ enum LaunchMode {
         environment["SPACEWALKER_ALIGN"] == "1"
     }
 
+    static func timeOffsetHours(environment: [String: String]) -> Double? {
+        guard let raw = environment["SPACEWALKER_TIMEOFFSET"], let value = Double(raw) else { return nil }
+        return min(max(value, -24), 24)
+    }
+
+    static func simulatedLocation(environment: [String: String]) -> (latitude: Double, longitude: Double)? {
+        guard let latRaw = environment["SPACEWALKER_LAT"],
+              let lonRaw = environment["SPACEWALKER_LON"],
+              let latitude = Double(latRaw),
+              let longitude = Double(lonRaw),
+              abs(latitude) <= 90,
+              abs(longitude) <= 180
+        else { return nil }
+        return (latitude, longitude)
+    }
+
     static func finderPreviewEnabled(environment: [String: String]) -> Bool {
         environment["SPACEWALKER_FINDER"] == "1"
     }
