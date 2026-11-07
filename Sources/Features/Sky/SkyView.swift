@@ -26,11 +26,7 @@ struct SkyView: View {
     @State private var showsOutlines = false
     @State private var showsPatterns = false
     @State private var identifiedConstellation: Constellation?
-    @State private var constellationHold = ConstellationHold()
-    @State private var constellationDismissed: String?
     @State private var identifiedPattern: SkyPattern?
-    @State private var patternHold = ConstellationHold()
-    @State private var patternDismissed: String?
     @State private var fengshenFocus: AsterismFocus?
     @State private var showsFinder = false
     @State private var guide: Star?
@@ -38,7 +34,7 @@ struct SkyView: View {
     @State private var currentRegion: SkyRegion?
     @State private var infoRegion: ConstellationRegion?
     @State private var regionStamp: TimeInterval = 0
-    @State private var dwell = DwellSelector()
+    @State private var attention = AttentionArbiter()
     @State private var hud = DwellHUD()
     @State private var observer = SkyObserver()
     @State private var perf = SkyPerformanceProbe()
@@ -95,7 +91,7 @@ struct SkyView: View {
         .onChange(of: showsPatterns) { _, visible in
             scene.setPatternsVisible(visible)
             if !visible {
-                resetPatternTracking()
+                identifiedPattern = nil
             }
         }
         .onChange(of: selectedGroup) { _, group in
@@ -217,7 +213,7 @@ struct SkyView: View {
                     let hit = scene.pick(at: value.location)
                     selected = hit
                     selectedGroup = nil
-                    dwell.reset()
+                    attention.resetStar()
                     hud.show(0)
                     SessionLog.append("sky.select name=\(hit?.name ?? "none") mag=\(hit?.magnitude ?? 0)")
                 }
@@ -643,7 +639,7 @@ struct SkyView: View {
         guideVector = scene.guideVector(to: star)
         selected = nil
         selectedGroup = nil
-        dwell.reset()
+        attention.resetStar()
         hud.show(0)
         SessionLog.append("sky.guide start=\(star.name)")
     }
@@ -680,7 +676,7 @@ struct SkyView: View {
         selected = nil
         guide = nil
         guideVector = nil
-        dwell.reset()
+        attention.resetStar()
         hud.show(0)
         SessionLog.append("sky.group focus=\(group.id) members=\(group.memberCount)")
     }
@@ -733,7 +729,7 @@ struct SkyView: View {
         .overlay(alignment: .topTrailing) {
             Button {
                 identifiedConstellation = nil
-                constellationDismissed = constellation.abbreviation
+                attention.dismiss(.constellation(constellation.abbreviation))
             } label: {
                 Image(systemName: "xmark.circle.fill")
                     .foregroundStyle(.secondary)
@@ -771,7 +767,7 @@ struct SkyView: View {
         .overlay(alignment: .topTrailing) {
             Button {
                 identifiedPattern = nil
-                patternDismissed = pattern.id
+                attention.dismiss(.pattern(pattern.id))
             } label: {
                 Image(systemName: "xmark.circle.fill")
                     .foregroundStyle(.secondary)
@@ -844,7 +840,7 @@ struct SkyView: View {
                     Button {
                         selected = member
                         selectedGroup = nil
-                        dwell.reset()
+                        attention.resetStar()
                         hud.show(0)
                     } label: {
                         Text(StarDisplay.make(for: member).title)
@@ -953,7 +949,7 @@ struct SkyView: View {
                     ForEach(nearby, id: \.name) { item in
                         Button {
                             selected = item
-                            dwell.reset()
+                            attention.resetStar()
                             hud.show(0)
                             SessionLog.append("sky.nearby pick=\(item.name)")
                         } label: {
@@ -1180,7 +1176,6 @@ struct SkyView: View {
                 try? await Task.sleep(for: .milliseconds(50))
             }
             identifiedConstellation = constellation
-            constellationHold = ConstellationHold(key: abbreviation, since: ProcessInfo.processInfo.systemUptime)
             scene.highlightConstellation(abbreviation)
             SessionLog.append("sky.constellation preview=\(abbreviation)")
         }
@@ -1271,70 +1266,6 @@ struct SkyView: View {
         )
     }
 
-    /// 点环落在某星座轮廓内时开始计时，满 0.6 秒确认并弹标识卡。
-    /// 返回 nil 表示当前不在任何星座轮廓内。
-    private func constellationProgress(at now: TimeInterval) -> Double? {
-        guard let constellation = scene.constellationAtCenter() else {
-            resetConstellationTracking()
-            return nil
-        }
-        if constellationHold.key != constellation.abbreviation {
-            constellationHold = ConstellationHold(key: constellation.abbreviation, since: now)
-            scene.highlightConstellation(constellation.abbreviation)
-            identifiedConstellation = nil
-        }
-        let held = now - constellationHold.since
-        let progress = min(max(held / ConstellationHold.required, 0), 1)
-        if progress >= 1,
-           identifiedConstellation?.abbreviation != constellation.abbreviation,
-           constellationDismissed != constellation.abbreviation {
-            identifiedConstellation = constellation
-            UIImpactFeedbackGenerator(style: .soft).impactOccurred()
-            SessionLog.append("sky.constellation dwell=\(constellation.abbreviation)")
-        }
-        return progress
-    }
-
-    private func resetConstellationTracking() {
-        guard constellationHold.key != nil || identifiedConstellation != nil else { return }
-        constellationHold = ConstellationHold()
-        identifiedConstellation = nil
-        constellationDismissed = nil
-        scene.highlightConstellation(nil)
-    }
-
-    /// 点环落在闭合星群内部时开始计时。星群比星座大得多，0.6 秒的停留门槛
-    /// 是为了挡掉「扫过去」而不是「看着它」的情况。
-    private func patternProgress(at now: TimeInterval) -> Double? {
-        guard let pattern = scene.patternAtCenter() else {
-            resetPatternTracking()
-            return nil
-        }
-        if patternHold.key != pattern.id {
-            patternHold = ConstellationHold(key: pattern.id, since: now)
-            scene.highlightPattern(pattern.id)
-            identifiedPattern = nil
-        }
-        let held = now - patternHold.since
-        let progress = min(max(held / ConstellationHold.required, 0), 1)
-        if progress >= 1,
-           identifiedPattern?.id != pattern.id,
-           patternDismissed != pattern.id {
-            identifiedPattern = pattern
-            UIImpactFeedbackGenerator(style: .soft).impactOccurred()
-            SessionLog.append("sky.pattern dwell=\(pattern.id)")
-        }
-        return progress
-    }
-
-    private func resetPatternTracking() {
-        guard patternHold.key != nil || identifiedPattern != nil else { return }
-        patternHold = ConstellationHold()
-        identifiedPattern = nil
-        patternDismissed = nil
-        scene.highlightPattern(nil)
-    }
-
     private func stepDwell() {
         guard scene.isReady else { return }
         let frameNow = ProcessInfo.processInfo.systemUptime
@@ -1363,43 +1294,69 @@ struct SkyView: View {
             SessionLog.append("sky.guide arrived=\(target.name)")
             return
         }
+
         let now = ProcessInfo.processInfo.systemUptime
-        let candidate = scene.pickAtCenter()
-        if candidate == nil, now - diagnosticsStamp > 1.5,
+        let candidates = scene.candidates(along: scene.viewDirectionInField)
+        if candidates.star == nil, now - diagnosticsStamp > 1.5,
            LaunchMode.pickProbeEnabled(environment: ProcessInfo.processInfo.environment) {
             diagnosticsStamp = now
             SessionLog.append(scene.pickDiagnostics())
         }
-        let hit = dwell.update(candidate: candidate, at: now)
-        if candidate == nil {
-            // 优先级：星体 > 星座轮廓 > 星群。指着猎户座就说猎户座，
-            // 只有落在没有轮廓的天区里，星群才有资格说话。
-            if let progress = constellationProgress(at: now) {
-                resetPatternTracking()
-                hud.show(progress)
-                return
-            }
-            if let progress = patternProgress(at: now) {
-                hud.show(progress)
-                return
-            }
-        } else {
-            resetConstellationTracking()
-            resetPatternTracking()
-        }
-        hud.show(dwell.progress)
-        guard let hit else { return }
-        selected = hit
-        selectedGroup = nil
-        UIImpactFeedbackGenerator(style: .light).impactOccurred()
-        SessionLog.append(
-            String(
-                format: "sky.dwell name=%@ mag=%.2f offset=%.1f",
-                hit.name,
-                hit.magnitude,
-                scene.aimOffsetDegrees(of: hit)
+
+        let step = attention.step(
+            now: now,
+            candidates: AttentionArbiter.Candidates(
+                star: candidates.star,
+                constellation: candidates.constellation?.abbreviation,
+                pattern: showsPatterns ? candidates.pattern?.id : nil
             )
         )
+        react(to: step, candidates: candidates)
+        hud.show(step.progress)
+    }
+
+    private func react(to step: AttentionArbiter.Step, candidates: SkyScene.Candidates) {
+        for effect in step.effects {
+            switch effect {
+            case .highlight(let target):
+                switch target {
+                case .constellation(let key):
+                    scene.highlightConstellation(key)
+                case .pattern(let id):
+                    scene.highlightPattern(id)
+                case .star, .none:
+                    scene.highlightConstellation(nil)
+                    scene.highlightPattern(nil)
+                    identifiedConstellation = nil
+                    identifiedPattern = nil
+                }
+            case .confirmed(let target):
+                switch target {
+                case .star(let star):
+                    selected = star
+                    selectedGroup = nil
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                    SessionLog.append(
+                        String(
+                            format: "sky.dwell name=%@ mag=%.2f offset=%.1f",
+                            star.name,
+                            star.magnitude,
+                            scene.aimOffsetDegrees(of: star)
+                        )
+                    )
+                case .constellation(let key):
+                    selected = nil
+                    identifiedConstellation = candidates.constellation
+                    UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+                    SessionLog.append("sky.constellation dwell=\(key)")
+                case .pattern(let id):
+                    selected = nil
+                    identifiedPattern = candidates.pattern
+                    UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+                    SessionLog.append("sky.pattern dwell=\(id)")
+                }
+            }
+        }
     }
 
     private func runPickProbe() async {
@@ -1435,10 +1392,4 @@ private struct DwellRing: View {
 
 struct AsterismFocus: Identifiable, Equatable {
     var id: String
-}
-
-struct ConstellationHold {
-    static let required: TimeInterval = 0.6
-    var key: String?
-    var since: TimeInterval = 0
 }
