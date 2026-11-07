@@ -10,7 +10,10 @@
 | `Sources/Resources/asterisms.json`（301 星官 / 814 段连线） | [Stellarium sky cultures · chinese](https://github.com/Stellarium/stellarium-skycultures/tree/master/chinese) | **CC BY-SA**（该文化目录的 `description.md` 单独声明；仓库根为 AGPL，不适用） | 必须署名；修改后的同一数据须以相同许可分发 |
 | 恒星专名 | [IAU WGSN](https://www.iau.org/public/themes/naming_stars/) | 公有领域（事实性名称） | 无 |
 | HIP 编号桥接（一次性，不入库） | [d3-celestial](https://github.com/ofrohn/d3-celestial) `data/stars.6.json` | BSD-3-Clause | 无（仅用于给现有星表反查 HIP，未分发该文件） |
+| 星座骨架连线（88 座，720 段，见 `Sources/Features/Sky/ConstellationLines.swift`） | [d3-celestial](https://github.com/ofrohn/d3-celestial) `data/constellations.lines.json` | **BSD-3-Clause** | 保留版权与免责声明；不得用作者名义为本项目背书 |
 | 星座缩写与边界概念 | IAU 88 星座 | 事实性内容 | 无 |
+
+`ConstellationLines.swift` 由 `tools/build-constellation-lines.py` 生成：读 d3-celestial 的 GeoJSON 折线（顶点为 RA/Dec 度数），按 0.02° 反查本地星表，转成星名或 `#HIP`。410 个顶点里 409 个在 0.02° 内命中；英仙座有一个顶点离最近星 1.38°，该座整座退回手工连线。**图形与恒星用同一份 J2000 坐标，因此不会随岁差相对恒星错位。**
 
 `stars.json` 由原始 `hygdata_v41.csv`（约 32MB）过滤生成：剔除太阳、只保留视星等 ≤ 5.5 的恒星，字段 `ra/dec/mag/ci/name/con/hip`。`hip` 由 `tools/build-catalogs.py` 借 d3-celestial 的 6 等星表按坐标反查补齐。
 
@@ -26,6 +29,11 @@
 |---|---|---|
 | `Sources/Resources/galaxy-equirect.jpg` | NASA/Goddard Space Flight Center Scientific Visualization Studio，*Deep Star Maps 2020*（[SVS 4851](https://svs.gsfc.nasa.gov/4851)） | 公有领域（NASA 内容一般不受版权保护） |
 | 文档截图 `docs/images/*.png` | 本项目模拟器截图 | MIT |
+| `Sources/Resources/constellation-art/*.png`（85 座星座插画） | [Stellarium](https://github.com/Stellarium/stellarium) `skycultures/modern/illustrations`，Johan Meuris 绘 | **Free Art License 1.3** | 必须署名作者与许可（界面内已标「星座图 Stellarium / Johan Meuris · Free Art License」）；图片原样分发、未改动像素，故仅需附带许可；若改写图片，改后版本须以 FAL 发布 |
+
+星座插画取自 Stellarium 现代星空文化，原作者 Johan Meuris。取用时只做了重命名（`sagittarius.png` → `art-Sgr.png`）以便按缩写查找，像素未改。界面里用 `luminanceToAlpha` 把黑底转成透明、线条着色，属于运行时渲染，不产生衍生作品。
+
+**注意**：FAL 是 copyleft。若将来要闭源分发，可以整体替换这 85 张图，不影响代码的 MIT 许可；图片与代码是两个独立作品，聚合分发不传染。
 
 处理方式：原始 `starmap_2020_4k.exr`（OpenEXR 半浮点线性 HDR，34MB）→ CoreImage 曝光 +0.35EV、对比 1.18、饱和 1.15 → sRGB JPEG q84。
 
@@ -44,9 +52,7 @@
 
 | 来源 | 内容 | 许可 | 结论 |
 |---|---|---|---|
-| Stellarium `constellationsart` | 星座美术图（Johan Meuris） | Free Art License（copyleft） | 不用于闭源分发 |
 | Stellarium `constellationship.fab` | 星座连线 | GPLv2+ | 未使用，连线为自建 |
-| d3-celestial | 星座连线 | BSD-3-Clause | 未使用，连线为自建 |
 | Hevelius / Bode 星图 | 星座版画 | 公有领域 | 仅作造型参考，未直接取用位图 |
 
 ## 依赖

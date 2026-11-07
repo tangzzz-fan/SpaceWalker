@@ -242,6 +242,15 @@ struct StarFinderView: View {
 
     private func constellationSection(_ group: StarFinder.ConstellationGroup) -> some View {
         Group {
+            if let note = ConstellationShapeNote.note(for: group.abbreviation) {
+                Section("怎么认") {
+                    Text(note)
+                        .font(.callout)
+                        .lineSpacing(3)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(.vertical, 2)
+                }
+            }
             if let fact = ConstellationInfo.fact(for: group.abbreviation) {
                 Section("来头") {
                     VStack(alignment: .leading, spacing: 8) {

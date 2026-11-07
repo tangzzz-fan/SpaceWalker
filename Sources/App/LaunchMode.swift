@@ -129,6 +129,12 @@ enum LaunchMode {
         environment["SPACEWALKER_AIM"]
     }
 
+    /// 直接弹出某个星座的识别卡（写缩写，如 Sgr）。准星落点常有星，星卡会
+    /// 抢在前面；验收卡片排版时需要一条不经准星的通道。
+    static func constellationPreview(environment: [String: String]) -> String? {
+        environment["SPACEWALKER_CONSTELLATION"]
+    }
+
     static func groupPreview(environment: [String: String]) -> String? {
         environment["SPACEWALKER_GROUP"]
     }

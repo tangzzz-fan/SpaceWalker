@@ -10,7 +10,7 @@ struct Constellation: Equatable, Sendable {
     var abbreviation: String
     var name: String
     var outline: [String] = []
-    var lines: [ConstellationLine]
+    var lines: [ConstellationLine] = []
     /// 多环轮廓，用于本身分成几块的结构（如双子的两个人、金牛的脸与昴星团）。
     /// 非空时优先于 `outline`。
     var outlines: [[String]] = []
@@ -21,7 +21,7 @@ struct Constellation: Equatable, Sendable {
 }
 
 enum Constellations {
-    static let all: [Constellation] = [
+    static let primary: [Constellation] = [
         Constellation(abbreviation: "UMa", name: "大熊座", outline: ["Alkaid", "Mizar", "Alioth", "Megrez", "Dubhe", "Muscida", "Tania Borealis", "Tania Australis", "Phecda"], lines: line("Dubhe-Merak, Merak-Phecda, Phecda-Megrez, Megrez-Dubhe, Megrez-Alioth, Alioth-Mizar, Mizar-Alkaid, Dubhe-Muscida")),
         Constellation(abbreviation: "UMi", name: "小熊座", outline: ["Polaris", "Yildun", "Kochab", "Pherkad"], lines: line("Polaris-Kochab, Kochab-Pherkad, Pherkad-Polaris")),
         Constellation(abbreviation: "Ori", name: "猎户座", outline: ["Betelgeuse", "Bellatrix", "Mintaka", "Rigel", "Saiph", "Alnitak"], lines: line("Betelgeuse-Bellatrix, Bellatrix-Mintaka, Mintaka-Alnilam, Alnilam-Alnitak, Alnitak-Betelgeuse, Mintaka-Rigel, Alnitak-Saiph, Rigel-Saiph, Meissa-Betelgeuse, Meissa-Bellatrix")),
@@ -55,6 +55,17 @@ enum Constellations {
         Constellation(abbreviation: "Cep", name: "仙王座", lines: line("Alderamin-Alfirk, Alfirk-Errai, Errai-Alderamin")),
     ]
 
+    /// 88 座全集。连线优先取 `detailedLines`（生成文件，d3-celestial 的 IAU 骨架），
+    /// 缺的退回手工连线——英仙座有个顶点落在星表外 1.38°，只有它走手工。
+    /// 手工那 31 座原来各自写 3–10 段，人马座只画出茶壶的壶身，换上官方骨架才立得住。
+    static let all: [Constellation] = (primary + extended).map { constellation in
+        var copy = constellation
+        if let detailed = detailedLines[constellation.abbreviation] {
+            copy.lines = detailed
+        }
+        return copy
+    }
+
     static func line(_ raw: String) -> [ConstellationLine] {
         raw.split(separator: ",").compactMap { piece in
             let parts = piece.split(separator: "-").map { $0.trimmingCharacters(in: .whitespaces) }
@@ -67,12 +78,15 @@ enum Constellations {
         all.reduce(0) { $0 + $1.lines.count }
     }
 
-    static var referencedNames: Set<String> {
+    static var referencedKeys: Set<String> {
         Set(all.flatMap { $0.lines.flatMap { [$0.first, $0.second] } })
     }
 
-    static func segments(positions: [String: SIMD3<Float>]) -> [(SIMD3<Float>, SIMD3<Float>)] {
-        all.flatMap { constellation in
+    static func segments(
+        positions: [String: SIMD3<Float>],
+        in constellations: [Constellation] = all
+    ) -> [(SIMD3<Float>, SIMD3<Float>)] {
+        constellations.flatMap { constellation in
             constellation.lines.compactMap { line in
                 guard let a = positions[line.first], let b = positions[line.second] else { return nil }
                 return (a, b)

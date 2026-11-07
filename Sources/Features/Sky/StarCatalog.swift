@@ -15,6 +15,15 @@ struct Star: Equatable, Sendable {
         !name.isEmpty
     }
 
+    /// 星座连线用的稳定标识：有专名用专名，否则退到 HIP。
+    /// 星表 2996 颗里 2532 颗没有专名，天兔座 26 颗只有 Arneb、Nihal 有名字，
+    /// 只靠专名连不出 88 星座的骨架。
+    var key: String {
+        if !name.isEmpty { return name }
+        guard let hipparcos else { return "" }
+        return "#\(hipparcos)"
+    }
+
     var isSelectable: Bool {
         isNamed && !isCompanion && magnitude <= StarField.selectableMagnitudeLimit
     }

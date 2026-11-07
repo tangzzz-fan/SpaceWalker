@@ -492,10 +492,11 @@ final class AstronomyTests: XCTestCase {
 final class ConstellationTests: XCTestCase {
     func testEveryLineReferencesRealCatalogStar() throws {
         let catalog = try XCTUnwrap(StarCatalog.loadFromBundle(.main), "星表资源缺失")
-        let names = Set(catalog.stars.map(\.name).filter { !$0.isEmpty })
-        let missing = Constellations.referencedNames.subtracting(names)
+        // 连线既可能写专名，也可能写 #HIP（2532 颗星没有专名）。
+        let keys = Set(catalog.stars.map(\.key).filter { !$0.isEmpty })
+        let missing = Constellations.referencedKeys.subtracting(keys)
 
-        XCTAssertTrue(missing.isEmpty, "星座连线引用了星表里不存在的星名：\(missing.sorted())")
+        XCTAssertTrue(missing.isEmpty, "星座连线引用了星表里不存在的星：\(missing.sorted().prefix(8))")
     }
 
     func testEveryLineIsWellFormed() {
@@ -950,8 +951,8 @@ final class ConstellationShapeTests: XCTestCase {
     func testEveryDrawnConstellationProducesAShape() throws {
         let map = try positions()
         var shaped = 0
-        for constellation in Constellations.all {
-            let rings = SkyScene.rings(for: constellation, positions: map)
+        for constellation in Constellations.primary {
+            let rings = SkyScene.fillRings(for: constellation, positions: map)
             guard !rings.isEmpty else { continue }
             let shape = ConstellationFigureBuilder.shape(
                 key: constellation.abbreviation,
@@ -962,8 +963,10 @@ final class ConstellationShapeTests: XCTestCase {
             XCTAssertLessThan(unwrapped.radiusDegrees, 90, constellation.name)
             shaped += 1
         }
-        // 小犬座只有 Procyon 与 Gomeisa 两颗亮星，凑不出面，其余 30 个都能画。
-        XCTAssertEqual(shaped, 30)
+        // 31 座里 13 座写了轮廓环、2 座有美术图形，合计 15 座画填充；
+        // 其余 16 座（天蝎、狮子等）原本靠凸包兜底，凸包会把钩子和镰刀填成一块饼，
+        // 现在只画骨架，不再假装自己有轮廓。
+        XCTAssertEqual(shaped, 15)
     }
 
     @MainActor
@@ -971,8 +974,8 @@ final class ConstellationShapeTests: XCTestCase {
         let map = try positions()
         var centered = 0
         var total = 0
-        for constellation in Constellations.all {
-            let rings = SkyScene.rings(for: constellation, positions: map)
+        for constellation in Constellations.primary {
+            let rings = SkyScene.fillRings(for: constellation, positions: map)
             guard let shape = ConstellationFigureBuilder.shape(
                 key: constellation.abbreviation,
                 rings: rings
@@ -988,15 +991,15 @@ final class ConstellationShapeTests: XCTestCase {
         }
         // 凹形（仙后 W、天鹅十字）与多环（双子、金牛）的几何中心本就落在轮廓之外，
         // 这里只要求绝大多数命中，防止包含判定整体失效。
-        XCTAssertEqual(total, 30)
-        XCTAssertGreaterThanOrEqual(centered, 20, "命中比例过低，判定可能失效")
+        XCTAssertEqual(total, 15)
+        XCTAssertGreaterThanOrEqual(centered, 10, "命中比例过低，判定可能失效")
     }
 
     @MainActor
     func testMultiRingShapesAreSeparated() throws {
         let map = try positions()
-        let gemini = try XCTUnwrap(Constellations.all.first { $0.abbreviation == "Gem" })
-        let rings = SkyScene.rings(for: gemini, positions: map)
+        let gemini = try XCTUnwrap(Constellations.primary.first { $0.abbreviation == "Gem" })
+        let rings = SkyScene.fillRings(for: gemini, positions: map)
         XCTAssertEqual(rings.count, 2)
         for ring in rings {
             XCTAssertGreaterThanOrEqual(ring.count, 3)
@@ -1437,8 +1440,9 @@ final class TonightTourTests: XCTestCase {
         XCTAssertTrue(TonightTour.placement(pick(title: "A", altitude: 15)).hasPrefix("刚爬上东"))
     }
 
-    func testEveryDrawnConstellationHasATip() {
-        for constellation in Constellations.all {
+    func testEveryPrimaryConstellationHasATip() {
+        // 导览提示是照着 31 座手工星座写的；南天暗座不参与今夜导览。
+        for constellation in Constellations.primary {
             XCTAssertNotNil(SkyTips.tips[constellation.name], constellation.name)
         }
     }
@@ -1763,5 +1767,114 @@ final class SkyPerformanceProbeTests: XCTestCase {
         #endif
         XCTAssertTrue(LaunchMode.fpsHUDEnabled(environment: ["SPACEWALKER_FPS": "1"]))
         XCTAssertFalse(LaunchMode.fpsHUDEnabled(environment: [:]))
+    }
+}
+
+final class ConstellationCoverageTests: XCTestCase {
+    private func positions() throws -> [String: SIMD3<Float>] {
+        let catalog = try XCTUnwrap(StarCatalog.loadFromBundle(.main))
+        var result: [String: SIMD3<Float>] = [:]
+        for star in catalog.stars where !star.key.isEmpty && result[star.key] == nil {
+            result[star.key] = StarField.position(for: star)
+        }
+        return result
+    }
+
+    private func center(_ constellation: Constellation, in map: [String: SIMD3<Float>]) -> SIMD3<Float>? {
+        let keys = Set(constellation.lines.flatMap { [$0.first, $0.second] })
+        let points = keys.compactMap { map[$0] }
+        guard !points.isEmpty else { return nil }
+        let sum = points.reduce(SIMD3<Float>(0, 0, 0)) { $0 + simd_normalize($1) }
+        guard simd_length(sum) > 0.001 else { return nil }
+        return simd_normalize(sum)
+    }
+
+    private func degrees(_ a: SIMD3<Float>, _ b: SIMD3<Float>) -> Double {
+        acos(Double(min(max(simd_dot(a, b), -1), 1))) * 180 / .pi
+    }
+
+    func testCoversAllEightyEightConstellations() {
+        XCTAssertEqual(Constellations.primary.count, 31)
+        XCTAssertEqual(Constellations.extended.count, 57)
+        XCTAssertEqual(Constellations.all.count, 88)
+        XCTAssertEqual(Set(Constellations.all.map(\.abbreviation)).count, 88)
+    }
+
+    func testEveryConstellationResolves() throws {
+        let map = try positions()
+        for constellation in Constellations.all {
+            XCTAssertFalse(constellation.lines.isEmpty, "\(constellation.name) 没有连线")
+            let segments = Constellations.segments(positions: map, in: [constellation])
+            XCTAssertEqual(
+                segments.count,
+                constellation.lines.count,
+                "\(constellation.name) 有端点落在星表外，画出来会断线"
+            )
+        }
+    }
+
+    func testOfficialSkeletonIsDenserThanTheHandDrawnOne() throws {
+        // 手工那 31 座平均 4.5 段，换官方骨架后平均 11 段以上：
+        // 人马座从「壶身六边形」变成带弓的射手，全靠这层数据。
+        let primary = Constellations.primary
+        let detailed = primary.compactMap { Constellations.detailedLines[$0.abbreviation] }
+        let average = Double(detailed.map(\.count).reduce(0, +)) / Double(detailed.count)
+        XCTAssertGreaterThan(average, 9)
+
+        let sagittarius = try XCTUnwrap(Constellations.all.first { $0.abbreviation == "Sgr" })
+        XCTAssertGreaterThanOrEqual(sagittarius.lines.count, 20, "人马座该有茶壶 + 弓，不止壶身")
+    }
+
+    @MainActor
+    func testEveryConstellationButTheTwoStarDogCanBeIdentified() throws {
+        let map = try positions()
+        var identified = 0
+        for constellation in Constellations.all {
+            let shape = ConstellationFigureBuilder.shape(
+                key: constellation.abbreviation,
+                rings: SkyScene.hitRings(for: constellation, positions: map)
+            )
+            guard let shape else {
+                // 两点成不了面：小犬座（南河三 + 南河二）、猎犬座（常陈一 + 猎犬座 β）。
+                XCTAssertTrue(
+                    ["CMi", "CVn"].contains(constellation.abbreviation),
+                    "\(constellation.name) 没有判定区域"
+                )
+                continue
+            }
+            XCTAssertLessThan(shape.radiusDegrees, 90, "\(constellation.name) 的判定区域过大")
+            identified += 1
+        }
+        XCTAssertEqual(identified, 86)
+    }
+
+    func testLepusIsAdjacentToCanisMajor() throws {
+        let map = try positions()
+        let lepus = try XCTUnwrap(Constellations.all.first { $0.abbreviation == "Lep" })
+        let canis = try XCTUnwrap(Constellations.all.first { $0.abbreviation == "CMa" })
+        XCTAssertEqual(lepus.name, "天兔座")
+        XCTAssertGreaterThanOrEqual(lepus.lines.count, 8, "天兔座不该只有零星几段")
+
+        // 大犬座卡片里写「紧追天兔」，两座在天上必须真的是邻居：
+        // 超出 25° 就说明数据串座了，用户按这句话找过去会落空。
+        let a = try XCTUnwrap(center(lepus, in: map))
+        let b = try XCTUnwrap(center(canis, in: map))
+        XCTAssertLessThan(degrees(a, b), 25, "天兔座与大犬座不该相隔这么远")
+    }
+}
+
+final class ConstellationShapeNoteTests: XCTestCase {
+    func testEveryPrimaryConstellationSaysHowToRecognizeIt() {
+        for constellation in Constellations.primary {
+            let note = ConstellationShapeNote.note(for: constellation.abbreviation)
+            XCTAssertNotNil(note, "\(constellation.name) 缺「怎么认」")
+            guard let note else { continue }
+            XCTAssertGreaterThan(note.count, 8, constellation.name)
+            XCTAssertLessThan(note.count, 60, "\(constellation.name) 的说明太长，卡片放不下")
+        }
+    }
+
+    func testUnknownConstellationHasNoNote() {
+        XCTAssertNil(ConstellationShapeNote.note(for: "ZZZ"))
     }
 }

@@ -31,7 +31,20 @@ struct ConstellationInfoView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
                     header
+                    if ConstellationArt.imageName(for: region.abbreviation) != nil {
+                        VStack(alignment: .leading, spacing: 6) {
+                            ConstellationArtFigure(abbreviation: region.abbreviation)
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 210)
+                            Text(ConstellationArt.credit)
+                                .font(.caption2)
+                                .foregroundStyle(.tertiary)
+                        }
+                    }
                     stats
+                    if let note = ConstellationShapeNote.note(for: region.abbreviation) {
+                        section("怎么认", text: note)
+                    }
                     if let fact {
                         section("西方来头", text: fact.westernLore)
                         section("中国星官", text: fact.chineseLore)

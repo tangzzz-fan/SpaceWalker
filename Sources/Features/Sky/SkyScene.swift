@@ -112,38 +112,68 @@ final class SkyScene {
 
     private func buildConstellations(from stars: [Star]) {
         var positions: [String: SIMD3<Float>] = [:]
-        for star in stars where star.isNamed && positions[star.name] == nil {
-            positions[star.name] = StarField.position(for: star)
+        for star in stars where !star.key.isEmpty && positions[star.key] == nil {
+            positions[star.key] = StarField.position(for: star)
         }
-        let segments = Constellations.segments(positions: positions)
-        guard !segments.isEmpty,
-              let sticks = try? StarFieldBuilder.mesh(
-                  StarFieldBuilder.constellation(segments, radius: Self.constellationRadius),
-                  name: "constellations"
-              )
-        else { return }
+        // 连线一律从 all 取：它已经把 detailedLines 注入进去了。
+        // 直接读 primary 会拿到手工那 3–10 段，人马座就只剩壶身。
+        let primaryKeys = Set(Constellations.primary.map(\.abbreviation))
+        let primarySegments = Constellations.segments(
+            positions: positions,
+            in: Constellations.all.filter { primaryKeys.contains($0.abbreviation) }
+        )
+        let extendedSegments = Constellations.segments(
+            positions: positions,
+            in: Constellations.all.filter { !primaryKeys.contains($0.abbreviation) }
+        )
+        guard !primarySegments.isEmpty else { return }
 
         let group = Entity()
         group.name = "constellationGroup"
         field.addChild(group)
 
-        let stickNode = Entity()
-        stickNode.name = "constellation.lines"
-        stickNode.components.set(ModelComponent(
-            mesh: sticks,
-            materials: [UnlitMaterial(color: uiColor(SIMD3(0.62, 0.72, 0.92), brightness: 0.46))]
-        ))
-        group.addChild(stickNode)
+        if let sticks = try? StarFieldBuilder.mesh(
+            StarFieldBuilder.constellation(primarySegments, radius: Self.constellationRadius),
+            name: "constellations"
+        ) {
+            let stickNode = Entity()
+            stickNode.name = "constellation.lines"
+            stickNode.components.set(ModelComponent(
+                mesh: sticks,
+                materials: [UnlitMaterial(color: uiColor(SIMD3(0.62, 0.72, 0.92), brightness: 0.46))]
+            ))
+            group.addChild(stickNode)
+        }
+
+        // 补全的 57 座只画骨架，亮度压到手工座的三分之一：走到那儿看得见
+        // 「这里有个星座」，但不会把默认视野铺满。半径也小一档，避免叠线。
+        if let faint = try? StarFieldBuilder.mesh(
+            StarFieldBuilder.constellation(
+                extendedSegments,
+                radius: Self.constellationRadius * 0.9
+            ),
+            name: "constellations.minor"
+        ) {
+            let stickNode = Entity()
+            stickNode.name = "constellation.lines.minor"
+            stickNode.components.set(ModelComponent(
+                mesh: faint,
+                materials: [UnlitMaterial(color: uiColor(SIMD3(0.62, 0.72, 0.92), brightness: 0.2))]
+            ))
+            group.addChild(stickNode)
+        }
 
         buildSilhouettes(positions: positions)
 
         group.isEnabled = constellationsRequested
         constellationNode = group
-        constellationCount = segments.count
+        constellationCount = primarySegments.count + extendedSegments.count
     }
 
-    /// 每个星座画出的闭合环：优先手工星点轮廓，其次美术图形，最后凸包兜底。
-    static func rings(
+    /// 画填充用的闭合环：只认手工轮廓与美术图形。
+    /// 没有显式轮廓的星座不画填充——凸包会把凹处填平，人马座的茶壶会变成一块饼，
+    /// 形状一丢，人就认不出像什么了。骨架线本身已经够读。
+    static func fillRings(
         for constellation: Constellation,
         positions: [String: SIMD3<Float>]
     ) -> [[SIMD3<Float>]] {
@@ -158,6 +188,17 @@ final class SkyScene {
            constellation.outline.allSatisfy({ positions[$0] != nil }) {
             return [constellation.outline.compactMap { positions[$0] }]
         }
+        return []
+    }
+
+    /// 判定用的闭合环：手工轮廓优先，缺了就退回成员星凸包。
+    /// 凸包粗糙但一定闭合，用来回答「你正对着哪个星座」，不参与绘制。
+    static func hitRings(
+        for constellation: Constellation,
+        positions: [String: SIMD3<Float>]
+    ) -> [[SIMD3<Float>]] {
+        let drawn = fillRings(for: constellation, positions: positions)
+        if !drawn.isEmpty { return drawn }
         let names = Array(Set(constellation.lines.flatMap { [$0.first, $0.second] }))
         let points = names.compactMap { positions[$0] }
         guard points.count >= 3 else { return [] }
@@ -170,14 +211,14 @@ final class SkyScene {
         var shapes: [OutlineShape] = []
 
         for constellation in Constellations.all {
-            let drawn = Self.rings(for: constellation, positions: positions)
-            guard !drawn.isEmpty else { continue }
+            // 判定环覆盖 88 座（凸包兜底），绘制环只覆盖手工画过轮廓的那批。
             if let shape = ConstellationFigureBuilder.shape(
                 key: constellation.abbreviation,
-                rings: drawn
+                rings: Self.hitRings(for: constellation, positions: positions)
             ) {
                 shapes.append(shape)
             }
+            let drawn = Self.fillRings(for: constellation, positions: positions)
             for ring in drawn where ring.count >= 3 {
                 fillMesh = StarFieldBuilder.merge([
                     fillMesh,
@@ -250,7 +291,9 @@ final class SkyScene {
         constellation(at: viewDirectionInField)
     }
 
-    /// 临时点亮一个星座的轮廓：即使总开关关着，也让用户看见自己指着的那块。
+    /// 临时点亮一个星座：即使总开关关着，也让用户看见自己指着的那几条线。
+    /// 亮的是骨架本身，不是外轮廓——用户问「为什么是它」，
+    /// 答案应该落在「这几颗星连成这个形状」上，而不是一个把它们包起来的多边形。
     func highlightConstellation(_ abbreviation: String?) {
         guard abbreviation != constellationHighlightID else { return }
         constellationHighlightID = abbreviation
@@ -262,17 +305,14 @@ final class SkyScene {
 
         let positions = constellationPositions
         guard !positions.isEmpty else { return }
-        let drawn = Self.rings(for: constellation, positions: positions)
-        var segments: [(SIMD3<Float>, SIMD3<Float>)] = []
-        for ring in drawn where ring.count >= 3 {
-            let vertices = ring.map { simd_normalize($0) * Self.constellationHighlightRadius }
-            for index in 0..<vertices.count {
-                segments.append((vertices[index], vertices[(index + 1) % vertices.count]))
-            }
+        let segments = constellation.lines.compactMap { line -> (SIMD3<Float>, SIMD3<Float>)? in
+            guard let a = positions[line.first], let b = positions[line.second] else { return nil }
+            let radius = Self.constellationHighlightRadius
+            return (simd_normalize(a) * radius, simd_normalize(b) * radius)
         }
         guard !segments.isEmpty,
               let mesh = try? StarFieldBuilder.mesh(
-                  StarFieldBuilder.constellation(segments, radius: 0.026),
+                  StarFieldBuilder.constellation(segments, radius: 0.046),
                   name: "constellation.focus"
               )
         else { return }
@@ -527,7 +567,8 @@ final class SkyScene {
     static let constellationRadius: Float = 0.032
     static let constellationFillRadius: Float = 51.4
     static let constellationOutlineRadius: Float = 50.6
-    static let constellationHighlightRadius: Float = 50.4
+    /// 高亮层要落在星座线（半径 50）的内侧才不会被原线挡住。
+    static let constellationHighlightRadius: Float = 49.6
 
     func attach(_ content: RealityViewCameraContent) {
         self.content = content

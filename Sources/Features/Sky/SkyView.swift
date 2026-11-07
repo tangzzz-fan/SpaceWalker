@@ -504,41 +504,45 @@ struct SkyView: View {
     }
 
     private func constellationBadge(_ constellation: Constellation) -> some View {
-        let fact = ConstellationInfo.fact(for: constellation.abbreviation)
         let latin = ConstellationInfo.latinNames[constellation.abbreviation] ?? constellation.abbreviation
-        return VStack(alignment: .leading, spacing: 5) {
-            HStack(alignment: .firstTextBaseline, spacing: 6) {
-                Image(systemName: "circle.dashed")
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-                Text(constellation.name)
-                    .font(.headline)
-                Text(latin)
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-                Spacer(minLength: 6)
-                Button {
-                    infoRegion = ConstellationInfo.region(
-                        for: constellation.abbreviation,
-                        in: catalog?.stars ?? []
-                    )
-                } label: {
-                    Image(systemName: "book.closed")
-                        .font(.caption)
+        return HStack(alignment: .top, spacing: 12) {
+            ConstellationArtView(abbreviation: constellation.abbreviation, size: 96)
+            VStack(alignment: .leading, spacing: 5) {
+                HStack(alignment: .firstTextBaseline, spacing: 6) {
+                    Image(systemName: "circle.dashed")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                    Text(constellation.name)
+                        .font(.headline)
+                    Text(latin)
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                    Spacer(minLength: 6)
+                    Button {
+                        infoRegion = ConstellationInfo.region(
+                            for: constellation.abbreviation,
+                            in: catalog?.stars ?? []
+                        )
+                    } label: {
+                        Image(systemName: "book.closed")
+                            .font(.caption)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("查看星座来头")
                 }
-                .buttonStyle(.plain)
-                .accessibilityLabel("查看星座来头")
-            }
-            if let fact {
-                Text(fact.westernLore)
+                // 识别卡只回答两件事：这是谁、凭什么。神话留给「查看来头」，
+                // 挤在这里会把「怎么认」压成两行省略号。
+                if let note = ConstellationShapeNote.note(for: constellation.abbreviation) {
+                    Text(note)
+                        .font(.caption)
+                        .foregroundStyle(.primary)
+                        .lineLimit(4)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                Text("\(constellation.starCount) 颗连线星 · 落在骨架范围内 0.6 秒识别")
                     .font(.caption2)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(2)
-                    .fixedSize(horizontal: false, vertical: true)
+                    .foregroundStyle(.tertiary)
             }
-            Text("\(constellation.starCount) 颗连线星 · 落在轮廓内 0.6 秒识别")
-                .font(.caption2)
-                .foregroundStyle(.tertiary)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(14)
@@ -956,7 +960,16 @@ struct SkyView: View {
         }
         if let abbreviation = LaunchMode.aimTarget(environment: ProcessInfo.processInfo.environment),
            let stars = catalog?.stars {
-            let members = stars.filter { $0.constellation == abbreviation }
+            // 用骨架星求中心，不用该星座的全部成员：仙后座有几十颗暗成员，
+            // 平均下来会偏出 W 一大截，截图里形状就不居中了。
+            let keys = Set(
+                Constellations.all
+                    .first { $0.abbreviation == abbreviation }?
+                    .lines.flatMap { [$0.first, $0.second] } ?? []
+            )
+            let members = keys.isEmpty
+                ? stars.filter { $0.constellation == abbreviation }
+                : stars.filter { keys.contains($0.key) }
             if !members.isEmpty {
                 var sum = SIMD3<Float>(0, 0, 0)
                 for star in members {
@@ -968,6 +981,13 @@ struct SkyView: View {
                 scene.aim(at: sum)
                 SessionLog.append("sky.aim target=\(abbreviation) stars=\(members.count)")
             }
+        }
+        if let abbreviation = LaunchMode.constellationPreview(environment: ProcessInfo.processInfo.environment),
+           let constellation = Constellations.all.first(where: { $0.abbreviation == abbreviation }) {
+            identifiedConstellation = constellation
+            constellationHold = ConstellationHold(key: abbreviation, since: ProcessInfo.processInfo.systemUptime)
+            scene.highlightConstellation(abbreviation)
+            SessionLog.append("sky.constellation preview=\(abbreviation)")
         }
         if let name = LaunchMode.starPreview(environment: ProcessInfo.processInfo.environment),
            let star = catalog?.stars.first(where: { $0.name == name }) {
