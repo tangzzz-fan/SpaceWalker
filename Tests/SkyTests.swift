@@ -1956,8 +1956,7 @@ final class SkyAimTests: XCTestCase {
     }
 
     func testAimRoundTripsWithDrag() {
-        // 定位后接着拖动，不能弹回旧角度：返回的 rig 必须就是当前朝向，
-        // 否则 releaseAim 之后 apply(rig:) 会把画面拽回起点。
+        // 定位后接着拖动，不能弹回旧角度：返回的 rig 必须就是当前朝向。
         let scene = SkyScene()
         let direction = target()
         let rig = try? XCTUnwrap(scene.aim(at: direction))
@@ -1965,9 +1964,25 @@ final class SkyAimTests: XCTestCase {
         guard let rig else { return }
         XCTAssertEqual(rig.orientation, scene.root.orientation)
 
-        scene.releaseAim()
+        scene.setSource(.manual)
         scene.apply(rig: rig)
         XCTAssertEqual(SkyPicker.offsetDegrees(scene.viewDirectionInField, direction), 0, accuracy: 0.01)
+    }
+
+    /// 定位必须把输入源切回手动，否则姿态被锁、拖动被禁，画面会冻死。
+    func testAimSwitchesSourceToManual() {
+        let scene = SkyScene()
+        scene.setSource(.attitude)
+        _ = scene.aim(at: target())
+        XCTAssertEqual(scene.source, .manual)
+    }
+
+    func testAttitudeSourceIgnoresManualRig() {
+        let scene = SkyScene()
+        guard let rig = scene.aim(at: target()) else { return XCTFail("aim 失败") }
+        scene.setSource(.attitude)
+        scene.apply(rig: SkyRig(yaw: rig.yaw + 0.6, pitch: rig.pitch))
+        XCTAssertEqual(scene.root.orientation, rig.orientation, "跟随姿态时手动的 rig 不该覆盖")
     }
 
     func testAimRejectsZeroLength() {

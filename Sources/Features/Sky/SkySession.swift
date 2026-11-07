@@ -41,9 +41,15 @@ final class SkySession {
     var tonightStamp: TimeInterval = 0
 
     var isMotionActive: Bool { attitude.isAvailable }
+    var canFollowAttitude: Bool { attitude.isAvailable }
+
+    /// 用户意图：跟随姿态，还是自己拖。设备没有陀螺仪时只能手动。
+    var followsAttitude = true
+    var isManual: Bool { !followsAttitude || !attitude.isAvailable }
 
     func startMotion(_ onUpdate: @escaping @MainActor () -> Void) {
         guard !attitude.isAvailable else { return }
+        scene.setSource(followsAttitude ? .attitude : .manual)
         attitude.start { [weak self] orientation in
             guard let self else { return }
             scene.setAttitude(orientation)
@@ -84,24 +90,31 @@ final class SkySession {
         zoomBase = scene.fieldOfView
     }
 
+    /// 定位后必须交还控制权：否则姿态被锁、拖动又被禁，画面就冻死了。
     func aim(at direction: SIMD3<Float>) {
         guard let aimed = scene.aim(at: direction) else { return }
         rig = aimed
+        setFollowsAttitude(false)
+    }
+
+    func setFollowsAttitude(_ value: Bool) {
+        followsAttitude = value
+        scene.setSource(isManual ? .manual : .attitude)
+        SessionLog.append("sky.mode follow=\(value ? 1 : 0) manual=\(isManual ? 1 : 0)")
     }
 
     func resetOrientation() {
-        scene.releaseAim()
         rig = SkyRig()
+        setFollowsAttitude(false)
     }
 
     func drag(to translation: CGSize) {
         // 姿态驱动或捏合时两根手指也有位移，不挡掉就会「缩放顺带把天空推走」。
-        guard !attitude.isAvailable, !isPinching else {
+        guard isManual, !isPinching else {
             lastDrag = translation
             return
         }
         if lastDrag == .zero { rigBeforePinch = rig }
-        scene.releaseAim()
         rig.drag(
             deltaX: Float(translation.width - lastDrag.width),
             deltaY: Float(translation.height - lastDrag.height)

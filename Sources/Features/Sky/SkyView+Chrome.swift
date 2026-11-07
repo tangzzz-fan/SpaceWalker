@@ -119,7 +119,7 @@ extension SkyView {
     }
 
     var compactSubtitle: String {
-        if !session.isMotionActive {
+        if session.isManual {
             return "拖动旋转"
         }
         guard session.observer.stage == .ready,
@@ -169,7 +169,7 @@ extension SkyView {
             Text(skySubtitle)
                 .font(.caption)
                 .foregroundStyle(.secondary)
-            Text(session.isMotionActive ? "姿态跟随 · 转动手机环顾" : "拖动旋转（无陀螺仪时的降级）")
+            Text(session.isManual ? "手动 · 拖动旋转" : "姿态跟随 · 转动手机环顾")
                 .font(.caption2)
                 .foregroundStyle(.secondary)
             Text(session.observer.statusText)
@@ -281,7 +281,7 @@ extension SkyView {
 
     var hintBar: some View {
         HStack(spacing: 8) {
-            if !session.isMotionActive {
+            if session.isManual {
                 Button {
                     session.resetOrientation()
                 } label: {
@@ -289,6 +289,17 @@ extension SkyView {
                         .frame(width: 28, height: 28)
                 }
                 .accessibilityLabel("重置视角")
+            }
+
+            // 姿态可用才给这个开关：没有陀螺仪的机器只有手动一条路。
+            if session.canFollowAttitude {
+                Button {
+                    session.setFollowsAttitude(!session.followsAttitude)
+                } label: {
+                    Image(systemName: session.followsAttitude ? "hand.draw" : "gyroscope")
+                        .frame(width: 28, height: 28)
+                }
+                .accessibilityLabel(session.followsAttitude ? "切到手动拖动" : "切到姿态跟随")
             }
 
             Spacer()

@@ -211,24 +211,21 @@ extension SkyScene {
             pitch: min(max(pitch, SkyRig.pitchRange.lowerBound), SkyRig.pitchRange.upperBound)
         )
         root.orientation = rig.orientation
-        aimLocked = true
+        source = .manual
         return rig
     }
 
-    func releaseAim() {
-        aimLocked = false
+    func setSource(_ source: InputSource) {
+        self.source = source
     }
 
     func setAttitude(_ orientation: simd_quatf) {
-        isAttitudeDriven = true
-        // 真机上姿态回调是 67Hz 直写，会在一帧内把 aim 覆盖掉。
-        // 039 修过 apply(rig:) 的同款问题，这里漏了同一个守卫。
-        guard !aimLocked else { return }
+        guard source == .attitude else { return }
         root.orientation = orientation
     }
 
     func apply(rig: SkyRig) {
-        guard !isAttitudeDriven, !aimLocked else { return }
+        guard source == .manual else { return }
         root.orientation = rig.orientation
     }
 }

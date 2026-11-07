@@ -5,6 +5,11 @@ import SwiftUI
 
 @MainActor
 final class SkyScene {
+    enum InputSource {
+        case manual
+        case attitude
+    }
+
     static let coordinateSpaceName = "sky"
     static let space = NamedCoordinateSpace.named(coordinateSpaceName)
 
@@ -42,10 +47,11 @@ final class SkyScene {
     var patternHighlightID: String?
     var patternSegmentCount = 0
     var patternsRequested = false
-    var aimLocked = false
     var isBuilt = false
     var viewSize: CGSize = .zero
-    var isAttitudeDriven = false
+    /// 谁在驱动朝向。两把锁（aimLocked / isAttitudeDriven）会互相堵死：
+    /// 定位后锁住姿态，而姿态可用时又禁掉拖动，画面就冻住了。
+    var source: InputSource = .manual
 
     var starCount: Int {
         nodes.count
