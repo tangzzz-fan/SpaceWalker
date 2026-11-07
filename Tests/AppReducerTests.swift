@@ -1,5 +1,4 @@
 import XCTest
-import simd
 
 @testable import SpaceWalker
 
@@ -13,76 +12,19 @@ final class AppReducerTests: XCTestCase {
         return state
     }
 
-    func testSelectShowsInfoCard() {
-        let state = reduce([.prototype(.select)])
-        XCTAssertTrue(state.prototype.isSelected)
-        XCTAssertTrue(state.prototype.infoCardVisible)
-    }
-
-    func testDeselectHidesInfoCard() {
-        let state = reduce([.prototype(.select), .prototype(.deselect)])
-        XCTAssertFalse(state.prototype.isSelected)
-        XCTAssertFalse(state.prototype.infoCardVisible)
-    }
-
-    func testMoveClampsToRadius() {
-        let state = reduce([.prototype(.move(to: SIMD3(10, 2, 0)))])
-        XCTAssertEqual(state.prototype.planetPosition.y, 0)
-        XCTAssertEqual(
-            simd_length(SIMD2(state.prototype.planetPosition.x, state.prototype.planetPosition.z)),
-            PrototypeLogic.maxRadius,
-            accuracy: 0.0001
-        )
-    }
-
-    func testScaleClamps() {
-        XCTAssertEqual(
-            reduce([.prototype(.setScale(99))]).prototype.planetScale,
-            PrototypeLogic.maxScale
-        )
-        XCTAssertEqual(
-            reduce([.prototype(.setScale(0.01))]).prototype.planetScale,
-            PrototypeLogic.minScale
-        )
-    }
-
     func testFlagsLoadedUpdatesState() {
-        let state = reduce([.flagsLoaded(FeatureFlags(prototypeEnabled: false))])
-        XCTAssertFalse(state.flags.prototypeEnabled)
+        let state = reduce([.flagsLoaded(FeatureFlags(cultureEnabled: false, deepEnabled: true))])
+        XCTAssertFalse(state.flags.cultureEnabled)
+        XCTAssertTrue(state.flags.deepEnabled)
     }
 
-    func testSessionPhaseChangedUpdatesState() {
-        let state = reduce([.session(.phaseChanged(.running))])
-        XCTAssertEqual(state.session.phase, .running)
+    func testRouteChanges() {
+        XCTAssertEqual(reduce([.route(.sky)]).route, .sky)
+        XCTAssertEqual(reduce([.route(.solarSystem)]).route, .solarSystem)
     }
 
-    func testSessionReportedUsableKeepsPhase() {
-        let outcome = SessionPlan.outcome(
-            for: SessionPlan.m0,
-            unavailability: SessionUnavailability(anchors: [.camera])
-        )
-        let state = reduce([.session(.phaseChanged(.running)), .session(.reported(outcome))])
-        XCTAssertEqual(state.session.phase, .running)
-        XCTAssertEqual(state.session.unavailability.anchors, [.camera])
-    }
-
-    func testSessionReportedUnusableFails() {
-        let outcome = SessionPlan.outcome(
-            for: SessionPlan.m0,
-            unavailability: SessionUnavailability(cameraAuthorized: false)
-        )
-        let state = reduce([.session(.phaseChanged(.running)), .session(.reported(outcome))])
-        XCTAssertEqual(state.session.phase, .failed)
-    }
-
-    func testResetKeepsPlacedPhase() {
-        let state = reduce([
-            .prototype(.anchored),
-            .prototype(.select),
-            .prototype(.reset),
-        ])
-        XCTAssertEqual(state.prototype.phase, .placed)
-        XCTAssertFalse(state.prototype.isSelected)
-        XCTAssertEqual(state.prototype.planetScale, 1)
+    func testAppStartedKeepsRoute() {
+        let state = reduce([.appStarted], from: AppState(route: .sky))
+        XCTAssertEqual(state.route, .sky)
     }
 }

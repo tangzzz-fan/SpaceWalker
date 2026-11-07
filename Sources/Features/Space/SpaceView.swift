@@ -14,7 +14,6 @@ struct SpaceView: View {
     @State private var environment: RealityViewEnvironment?
     @State private var rig = OrbitRig()
     @State private var canvasSize: CGSize = .zero
-    @State private var showsNativeAR = false
     @State private var showsCredits = false
     @State private var ticker = Timer.publish(every: 1.0 / 30.0, on: .main, in: .common).autoconnect()
     @State private var lastTick = ProcessInfo.processInfo.systemUptime
@@ -70,12 +69,8 @@ struct SpaceView: View {
         .task {
             await loadEnvironment()
             applyDebugPreselection()
-            await runAutoARIfNeeded()
         }
         .onReceive(ticker) { _ in tick() }
-        .fullScreenCover(isPresented: $showsNativeAR) {
-            SessionView()
-        }
         .sheet(isPresented: $showsCredits) {
             creditsSheet
         }
@@ -277,14 +272,6 @@ struct SpaceView: View {
                     .frame(width: 28, height: 28)
             }
             .accessibilityLabel("素材来源")
-
-            Button {
-                showsNativeAR = true
-            } label: {
-                Image(systemName: "camera.viewfinder")
-                    .frame(width: 28, height: 28)
-            }
-            .accessibilityLabel("放进房间")
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 10)
@@ -374,10 +361,6 @@ struct SpaceView: View {
         let delta = min(max(now - lastTick, 0), 0.2)
         lastTick = now
 
-        if showsNativeAR {
-            return
-        }
-
         if !store.state.space.isPaused {
             store.dispatch(.space(.advance(seconds: delta)))
         }
@@ -397,27 +380,6 @@ struct SpaceView: View {
             runPickProbe(now: now)
         }
         #endif
-    }
-
-    @MainActor
-    private func runAutoARIfNeeded() async {
-        #if DEBUG
-        let enabled = LaunchMode.autoAREnabled(environment: ProcessInfo.processInfo.environment)
-        #else
-        let enabled = false
-        #endif
-        guard enabled else { return }
-
-        try? await Task.sleep(for: .seconds(4))
-        let before = store.state.space.days
-        SessionLog.append(String(format: "space.ar.auto enter daysBefore=%.1f", before))
-        showsNativeAR = true
-
-        try? await Task.sleep(for: .seconds(8))
-        showsNativeAR = false
-        try? await Task.sleep(for: .seconds(2))
-        let after = store.state.space.days
-        SessionLog.append(String(format: "space.ar.auto exit daysBefore=%.1f daysAfter=%.1f", before, after))
     }
 
     #if DEBUG

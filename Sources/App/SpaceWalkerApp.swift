@@ -12,8 +12,7 @@ struct SpaceWalkerApp: App {
         SessionLog.reset(context: SessionLog.deviceContext())
 
         let resolver = FeatureFlagResolver()
-        let features = LaunchMode.enabledFeatures(environment: ProcessInfo.processInfo.environment)
-        resolver.register(provider: LocalProvider(enabledFeatures: features))
+        resolver.register(provider: LocalProvider(enabledFeatures: []))
 
         _store = State(
             initialValue: Store(

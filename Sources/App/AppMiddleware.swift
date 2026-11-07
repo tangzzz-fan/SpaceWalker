@@ -23,7 +23,6 @@ func makeFlagsMiddleware(resolver: FeatureFlagResolver) -> Middleware<AppState, 
             await MainActor.run { SessionLog.append(line) }
             return .flagsLoaded(
                 FeatureFlags(
-                    prototypeEnabled: resolved(.prototype, snapshot),
                     cultureEnabled: resolved(.contentCulture, snapshot),
                     deepEnabled: resolved(.contentDeep, snapshot)
                 )

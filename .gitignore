@@ -36,3 +36,4 @@ build-sim/
 
 # UI 测试构建输出
 build-ui/
+build-**/
