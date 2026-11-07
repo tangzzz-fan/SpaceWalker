@@ -11,7 +11,7 @@ struct SkyView: View {
     @State private var attitude = DeviceAttitude()
     @State private var lastDrag: CGSize = .zero
     @State private var selected: Star?
-    @State private var ticker = Timer.publish(every: 1.0 / 30.0, on: .main, in: .common).autoconnect()
+    @State private var motionActive = false
     @State private var showsCredits = false
 
     var body: some View {
@@ -44,7 +44,6 @@ struct SkyView: View {
         }
         .preferredColorScheme(.dark)
         .task { await load() }
-        .onReceive(ticker) { _ in applyAttitude() }
         .onDisappear { attitude.stop() }
         .sheet(isPresented: $showsCredits) { creditsSheet }
     }
@@ -65,6 +64,7 @@ struct SkyView: View {
         .gesture(
             DragGesture(minimumDistance: 4)
                 .onChanged { value in
+                    guard !motionActive else { return }
                     rig.drag(
                         deltaX: Float(value.translation.width - lastDrag.width),
                         deltaY: Float(value.translation.height - lastDrag.height)
@@ -102,7 +102,7 @@ struct SkyView: View {
             Text("\(catalog?.stars.count ?? 0) 颗恒星 · 赤道坐标 J2000")
                 .font(.caption)
                 .foregroundStyle(.secondary)
-            Text(attitude.isAvailable ? "姿态跟随已开启" : "拖动旋转（模拟器无陀螺仪）")
+            Text(motionActive ? "姿态跟随 · 转动手机环顾" : "拖动旋转（无陀螺仪时的降级）")
                 .font(.caption2)
                 .foregroundStyle(.secondary)
         }
@@ -113,13 +113,15 @@ struct SkyView: View {
 
     private var hintBar: some View {
         HStack(spacing: 12) {
-            Button {
-                rig = SkyRig()
-            } label: {
-                Image(systemName: "arrow.counterclockwise")
-                    .frame(width: 28, height: 28)
+            if !motionActive {
+                Button {
+                    rig = SkyRig()
+                } label: {
+                    Image(systemName: "arrow.counterclockwise")
+                        .frame(width: 28, height: 28)
+                }
+                .accessibilityLabel("重置视角")
             }
-            .accessibilityLabel("重置视角")
 
             Spacer()
 
@@ -199,24 +201,27 @@ struct SkyView: View {
 
     @MainActor
     private func load() async {
-        guard catalog == nil else { return }
-        let started = ProcessInfo.processInfo.systemUptime
-        let loaded = StarCatalog.loadFromBundle()
-        catalog = loaded
-        SessionLog.append(
-            String(
-                format: "sky.catalog stars=%d elapsedMs=%.0f",
-                loaded?.stars.count ?? 0,
-                (ProcessInfo.processInfo.systemUptime - started) * 1000
+        if catalog == nil {
+            let started = ProcessInfo.processInfo.systemUptime
+            let loaded = StarCatalog.loadFromBundle()
+            catalog = loaded
+            SessionLog.append(
+                String(
+                    format: "sky.catalog stars=%d elapsedMs=%.0f",
+                    loaded?.stars.count ?? 0,
+                    (ProcessInfo.processInfo.systemUptime - started) * 1000
+                )
             )
-        )
-        if LaunchMode.skyMotionEnabled(environment: ProcessInfo.processInfo.environment) {
-            attitude.start()
         }
+        startMotion()
     }
 
-    private func applyAttitude() {
-        guard let forward = attitude.currentForward() else { return }
-        rig.aim(at: forward)
+    private func startMotion() {
+        guard LaunchMode.skyMotionEnabled(environment: ProcessInfo.processInfo.environment) else { return }
+        guard !attitude.isAvailable else { return }
+        attitude.start { orientation in
+            scene.setAttitude(orientation)
+        }
+        motionActive = attitude.isAvailable
     }
 }

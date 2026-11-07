@@ -16,18 +16,43 @@ struct SkyRig: Equatable, Sendable {
 
     mutating func drag(deltaX: Float, deltaY: Float) {
         yaw -= deltaX * Self.dragSensitivity
-        pitch = min(max(pitch + deltaY * Self.dragSensitivity, Self.pitchRange.lowerBound), Self.pitchRange.upperBound)
+        pitch = Self.clamp(pitch - deltaY * Self.dragSensitivity)
     }
 
-    mutating func aim(at forward: SIMD3<Float>) {
-        let normalized = simd_length(forward) > 0.0001 ? simd_normalize(forward) : SIMD3<Float>(0, 0, -1)
-        yaw = atan2(normalized.x, -normalized.z)
-        pitch = min(max(asin(min(max(normalized.y, -1), 1)), Self.pitchRange.lowerBound), Self.pitchRange.upperBound)
+    private static func clamp(_ value: Float) -> Float {
+        min(max(value, pitchRange.lowerBound), pitchRange.upperBound)
     }
 }
 
 enum AttitudeMath {
-    static func forward(from matrix: simd_float3x3) -> SIMD3<Float> {
-        matrix * SIMD3<Float>(0, 0, -1)
+    enum Convention: String, Sendable {
+        case deviceToReference = "device->reference"
+        case referenceToDevice = "reference->device"
+    }
+
+    struct Solution: Sendable {
+        var sceneOrientation: simd_quatf
+        var deviceForward: SIMD3<Float>
+        var convention: Convention
+        var gravityError: SIMD2<Float>
+    }
+
+    static let worldGravity = SIMD3<Float>(0, -1, 0)
+    static let referenceToWorld = simd_quatf(angle: -.pi / 2, axis: SIMD3<Float>(1, 0, 0))
+
+    static func solve(attitude: simd_quatf, gravity: SIMD3<Float>) -> Solution {
+        let asDeviceToReference = referenceToWorld * attitude
+        let asReferenceToDevice = referenceToWorld * attitude.inverse
+        let errorA = simd_length(asDeviceToReference.act(gravity) - worldGravity)
+        let errorB = simd_length(asReferenceToDevice.act(gravity) - worldGravity)
+        let usesDeviceToReference = errorA <= errorB
+        let world = usesDeviceToReference ? asDeviceToReference : asReferenceToDevice
+
+        return Solution(
+            sceneOrientation: world.inverse,
+            deviceForward: world.act(SIMD3<Float>(0, 0, -1)),
+            convention: usesDeviceToReference ? .deviceToReference : .referenceToDevice,
+            gravityError: SIMD2<Float>(errorA, errorB)
+        )
     }
 }

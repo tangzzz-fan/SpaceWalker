@@ -13,6 +13,7 @@ final class SkyScene {
     private var content: RealityViewCameraContent?
     private var nodes: [Star] = []
     private var isBuilt = false
+    private(set) var isAttitudeDriven = false
 
     var starCount: Int {
         nodes.count
@@ -52,7 +53,13 @@ final class SkyScene {
         self.content = content
     }
 
+    func setAttitude(_ orientation: simd_quatf) {
+        isAttitudeDriven = true
+        root.orientation = orientation
+    }
+
     func apply(rig: SkyRig) {
+        guard !isAttitudeDriven else { return }
         root.orientation = rig.orientation
     }
 
@@ -61,7 +68,7 @@ final class SkyScene {
         var best: (star: Star, distance: CGFloat)?
 
         for star in nodes {
-            let world = StarField.position(for: star)
+            let world = root.convert(position: StarField.position(for: star), to: nil)
             guard let projected = content.project(point: world, to: Self.space) else { continue }
             let distance = hypot(projected.x - point.x, projected.y - point.y)
             guard distance <= Self.pickThreshold else { continue }

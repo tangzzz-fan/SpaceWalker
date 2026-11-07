@@ -108,30 +108,79 @@ final class StarFieldBuilderTests: XCTestCase {
 }
 
 final class SkyRigTests: XCTestCase {
-    func testAimForwardWithoutRotation() {
-        var rig = SkyRig()
-        rig.aim(at: SIMD3(0, 0, -1))
-        XCTAssertEqual(rig.yaw, 0, accuracy: 0.0001)
-        XCTAssertEqual(rig.pitch, 0, accuracy: 0.0001)
-    }
-
-    func testAimClampsPitch() {
-        var rig = SkyRig()
-        rig.aim(at: SIMD3(0, 5, -0.001))
-        XCTAssertEqual(rig.pitch, SkyRig.pitchRange.upperBound, accuracy: 0.0001)
-    }
-
     func testDragClampsPitchAndChangesYaw() {
         var rig = SkyRig()
         rig.drag(deltaX: 100, deltaY: 10_000)
-        XCTAssertEqual(rig.pitch, SkyRig.pitchRange.upperBound, accuracy: 0.0001)
+        XCTAssertEqual(rig.pitch, SkyRig.pitchRange.lowerBound, accuracy: 0.0001)
         XCTAssertNotEqual(rig.yaw, 0)
+    }
+
+    func testDragDownLiftsView() {
+        var rig = SkyRig()
+        rig.drag(deltaX: 0, deltaY: 120)
+        let centered = rig.orientation.inverse.act(SIMD3<Float>(0, 0, -1))
+        XCTAssertGreaterThan(centered.y, 0)
     }
 
     func testOrientationIsUnitQuaternion() {
         var rig = SkyRig()
         rig.drag(deltaX: 40, deltaY: 20)
         XCTAssertEqual(simd_length(rig.orientation.vector), 1, accuracy: 0.0005)
+    }
+}
+
+final class AttitudeMathTests: XCTestCase {
+    func testFlatDeviceLooksAtNadir() {
+        let solution = AttitudeMath.solve(attitude: simd_quatf(ix: 0, iy: 0, iz: 0, r: 1), gravity: SIMD3(0, 0, -1))
+        XCTAssertEqual(solution.convention, .deviceToReference)
+        XCTAssertEqual(solution.deviceForward.y, -1, accuracy: 0.001)
+        XCTAssertEqual(solution.sceneOrientation.act(solution.deviceForward).z, -1, accuracy: 0.001)
+    }
+
+    func testUprightDeviceKeepsForwardAtScreenCenter() {
+        let attitude = simd_quatf(angle: .pi / 2, axis: SIMD3(1, 0, 0))
+        let solution = AttitudeMath.solve(attitude: attitude, gravity: SIMD3(0, -1, 0))
+        XCTAssertEqual(solution.convention, .deviceToReference)
+        XCTAssertEqual(solution.deviceForward.z, -1, accuracy: 0.001)
+        XCTAssertEqual(solution.deviceForward.y, 0, accuracy: 0.001)
+    }
+
+    func testSceneOrientationInvertsDeviceRotation() {
+        let world = simd_quatf(angle: -0.5, axis: SIMD3(0, 1, 0)) * simd_quatf(angle: 0.3, axis: SIMD3(1, 0, 0))
+        let attitude = AttitudeMath.referenceToWorld.inverse * world
+        let gravity = world.inverse.act(SIMD3<Float>(0, -1, 0))
+        let solution = AttitudeMath.solve(attitude: attitude, gravity: gravity)
+
+        XCTAssertEqual(solution.convention, .deviceToReference)
+        XCTAssertEqual(
+            simd_length(solution.sceneOrientation.act(solution.deviceForward) - SIMD3<Float>(0, 0, -1)),
+            0,
+            accuracy: 0.001
+        )
+        XCTAssertEqual(abs(simd_dot(solution.sceneOrientation.vector, world.inverse.vector)), 1, accuracy: 0.001)
+    }
+
+    func testTurnRightMovesStarsLeft() {
+        let world = simd_quatf(angle: -.pi / 6, axis: SIMD3(0, 1, 0))
+        let attitude = AttitudeMath.referenceToWorld.inverse * world
+        let gravity = world.inverse.act(SIMD3<Float>(0, -1, 0))
+        let solution = AttitudeMath.solve(attitude: attitude, gravity: gravity)
+        let centeredStar = solution.sceneOrientation.act(SIMD3<Float>(0, 0, -1))
+
+        XCTAssertLessThan(centeredStar.x, 0)
+    }
+
+    func testSolveAcceptsEitherQuaternionConvention() {
+        let world = simd_quatf(angle: 0.8, axis: SIMD3(0, 1, 0))
+        let attitude = AttitudeMath.referenceToWorld.inverse * world
+        let gravity = world.inverse.act(SIMD3<Float>(0, -1, 0))
+
+        let direct = AttitudeMath.solve(attitude: attitude, gravity: gravity)
+        let inverted = AttitudeMath.solve(attitude: attitude.inverse, gravity: gravity)
+
+        XCTAssertEqual(direct.convention, .deviceToReference)
+        XCTAssertEqual(inverted.convention, .referenceToDevice)
+        XCTAssertEqual(abs(simd_dot(direct.sceneOrientation.vector, inverted.sceneOrientation.vector)), 1, accuracy: 0.001)
     }
 }
 
