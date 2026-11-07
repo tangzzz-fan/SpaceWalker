@@ -2354,6 +2354,12 @@
    "mansion": null,
    "alsoServes": null,
    "note": null,
+   "shuihu": {
+    "rank": 1,
+    "star": "天魁星",
+    "nickname": "呼保义",
+    "person": "宋江"
+   },
    "id": "fs.214"
   },
   {
@@ -2365,6 +2371,12 @@
    "mansion": null,
    "alsoServes": null,
    "note": null,
+   "shuihu": {
+    "rank": 2,
+    "star": "天罡星",
+    "nickname": "玉麒麟",
+    "person": "卢俊义"
+   },
    "id": "fs.215"
   },
   {
@@ -2376,6 +2388,12 @@
    "mansion": null,
    "alsoServes": null,
    "note": null,
+   "shuihu": {
+    "rank": 3,
+    "star": "天机星",
+    "nickname": "智多星",
+    "person": "吴用"
+   },
    "id": "fs.216"
   },
   {
@@ -2387,6 +2405,12 @@
    "mansion": null,
    "alsoServes": null,
    "note": null,
+   "shuihu": {
+    "rank": 4,
+    "star": "天闲星",
+    "nickname": "入云龙",
+    "person": "公孙胜"
+   },
    "id": "fs.217"
   },
   {
@@ -2398,6 +2422,12 @@
    "mansion": null,
    "alsoServes": null,
    "note": null,
+   "shuihu": {
+    "rank": 5,
+    "star": "天勇星",
+    "nickname": "大刀",
+    "person": "关胜"
+   },
    "id": "fs.218"
   },
   {
@@ -2409,6 +2439,12 @@
    "mansion": null,
    "alsoServes": null,
    "note": null,
+   "shuihu": {
+    "rank": 6,
+    "star": "天雄星",
+    "nickname": "豹子头",
+    "person": "林冲"
+   },
    "id": "fs.219"
   },
   {
@@ -2420,6 +2456,12 @@
    "mansion": null,
    "alsoServes": null,
    "note": null,
+   "shuihu": {
+    "rank": 7,
+    "star": "天猛星",
+    "nickname": "霹雳火",
+    "person": "秦明"
+   },
    "id": "fs.220"
   },
   {
@@ -2431,6 +2473,12 @@
    "mansion": null,
    "alsoServes": null,
    "note": null,
+   "shuihu": {
+    "rank": 8,
+    "star": "天威星",
+    "nickname": "双鞭",
+    "person": "呼延灼"
+   },
    "id": "fs.221"
   },
   {
@@ -2442,6 +2490,12 @@
    "mansion": null,
    "alsoServes": null,
    "note": null,
+   "shuihu": {
+    "rank": 9,
+    "star": "天英星",
+    "nickname": "小李广",
+    "person": "花荣"
+   },
    "id": "fs.222"
   },
   {
@@ -2453,6 +2507,12 @@
    "mansion": null,
    "alsoServes": null,
    "note": null,
+   "shuihu": {
+    "rank": 10,
+    "star": "天贵星",
+    "nickname": "小旋风",
+    "person": "柴进"
+   },
    "id": "fs.223"
   },
   {
@@ -2464,6 +2524,12 @@
    "mansion": null,
    "alsoServes": null,
    "note": null,
+   "shuihu": {
+    "rank": 11,
+    "star": "天富星",
+    "nickname": "扑天雕",
+    "person": "李应"
+   },
    "id": "fs.224"
   },
   {
@@ -2475,6 +2541,12 @@
    "mansion": null,
    "alsoServes": null,
    "note": null,
+   "shuihu": {
+    "rank": 12,
+    "star": "天满星",
+    "nickname": "美髯公",
+    "person": "朱仝"
+   },
    "id": "fs.225"
   },
   {
@@ -2486,6 +2558,12 @@
    "mansion": null,
    "alsoServes": null,
    "note": null,
+   "shuihu": {
+    "rank": 13,
+    "star": "天孤星",
+    "nickname": "花和尚",
+    "person": "鲁智深"
+   },
    "id": "fs.226"
   },
   {
@@ -2497,6 +2575,12 @@
    "mansion": null,
    "alsoServes": null,
    "note": null,
+   "shuihu": {
+    "rank": 14,
+    "star": "天伤星",
+    "nickname": "行者",
+    "person": "武松"
+   },
    "id": "fs.227"
   },
   {
@@ -2508,6 +2592,12 @@
    "mansion": null,
    "alsoServes": null,
    "note": null,
+   "shuihu": {
+    "rank": 15,
+    "star": "天立星",
+    "nickname": "双枪将",
+    "person": "董平"
+   },
    "id": "fs.228"
   },
   {
@@ -2519,6 +2609,12 @@
    "mansion": null,
    "alsoServes": null,
    "note": null,
+   "shuihu": {
+    "rank": 16,
+    "star": "天捷星",
+    "nickname": "没羽箭",
+    "person": "张清"
+   },
    "id": "fs.229"
   },
   {
@@ -2530,6 +2626,12 @@
    "mansion": null,
    "alsoServes": null,
    "note": null,
+   "shuihu": {
+    "rank": 17,
+    "star": "天暗星",
+    "nickname": "青面兽",
+    "person": "杨志"
+   },
    "id": "fs.230"
   },
   {
@@ -2541,6 +2643,12 @@
    "mansion": null,
    "alsoServes": null,
    "note": null,
+   "shuihu": {
+    "rank": 18,
+    "star": "天祐星",
+    "nickname": "金枪手",
+    "person": "徐宁"
+   },
    "id": "fs.231"
   },
   {
@@ -2552,6 +2660,12 @@
    "mansion": null,
    "alsoServes": null,
    "note": null,
+   "shuihu": {
+    "rank": 19,
+    "star": "天空星",
+    "nickname": "急先锋",
+    "person": "索超"
+   },
    "id": "fs.232"
   },
   {
@@ -2563,6 +2677,12 @@
    "mansion": null,
    "alsoServes": null,
    "note": null,
+   "shuihu": {
+    "rank": 20,
+    "star": "天速星",
+    "nickname": "神行太保",
+    "person": "戴宗"
+   },
    "id": "fs.233"
   },
   {
@@ -2574,6 +2694,12 @@
    "mansion": null,
    "alsoServes": null,
    "note": null,
+   "shuihu": {
+    "rank": 21,
+    "star": "天异星",
+    "nickname": "赤发鬼",
+    "person": "刘唐"
+   },
    "id": "fs.234"
   },
   {
@@ -2585,6 +2711,12 @@
    "mansion": null,
    "alsoServes": null,
    "note": null,
+   "shuihu": {
+    "rank": 22,
+    "star": "天杀星",
+    "nickname": "黑旋风",
+    "person": "李逵"
+   },
    "id": "fs.235"
   },
   {
@@ -2596,6 +2728,12 @@
    "mansion": null,
    "alsoServes": null,
    "note": null,
+   "shuihu": {
+    "rank": 23,
+    "star": "天微星",
+    "nickname": "九纹龙",
+    "person": "史进"
+   },
    "id": "fs.236"
   },
   {
@@ -2607,6 +2745,12 @@
    "mansion": null,
    "alsoServes": null,
    "note": null,
+   "shuihu": {
+    "rank": 24,
+    "star": "天究星",
+    "nickname": "没遮拦",
+    "person": "穆弘"
+   },
    "id": "fs.237"
   },
   {
@@ -2618,6 +2762,12 @@
    "mansion": null,
    "alsoServes": null,
    "note": null,
+   "shuihu": {
+    "rank": 25,
+    "star": "天退星",
+    "nickname": "插翅虎",
+    "person": "雷横"
+   },
    "id": "fs.238"
   },
   {
@@ -2629,6 +2779,12 @@
    "mansion": null,
    "alsoServes": null,
    "note": null,
+   "shuihu": {
+    "rank": 26,
+    "star": "天寿星",
+    "nickname": "混江龙",
+    "person": "李俊"
+   },
    "id": "fs.239"
   },
   {
@@ -2640,6 +2796,12 @@
    "mansion": null,
    "alsoServes": null,
    "note": null,
+   "shuihu": {
+    "rank": 27,
+    "star": "天剑星",
+    "nickname": "立地太岁",
+    "person": "阮小二"
+   },
    "id": "fs.240"
   },
   {
@@ -2651,6 +2813,12 @@
    "mansion": null,
    "alsoServes": null,
    "note": null,
+   "shuihu": {
+    "rank": 28,
+    "star": "天平星",
+    "nickname": "船火儿",
+    "person": "张横"
+   },
    "id": "fs.241"
   },
   {
@@ -2662,6 +2830,12 @@
    "mansion": null,
    "alsoServes": null,
    "note": null,
+   "shuihu": {
+    "rank": 29,
+    "star": "天罪星",
+    "nickname": "短命二郎",
+    "person": "阮小五"
+   },
    "id": "fs.242"
   },
   {
@@ -2673,6 +2847,12 @@
    "mansion": null,
    "alsoServes": null,
    "note": null,
+   "shuihu": {
+    "rank": 30,
+    "star": "天损星",
+    "nickname": "浪里白条",
+    "person": "张顺"
+   },
    "id": "fs.243"
   },
   {
@@ -2684,6 +2864,12 @@
    "mansion": null,
    "alsoServes": null,
    "note": null,
+   "shuihu": {
+    "rank": 31,
+    "star": "天败星",
+    "nickname": "活阎罗",
+    "person": "阮小七"
+   },
    "id": "fs.244"
   },
   {
@@ -2695,6 +2881,12 @@
    "mansion": null,
    "alsoServes": null,
    "note": null,
+   "shuihu": {
+    "rank": 32,
+    "star": "天牢星",
+    "nickname": "病关索",
+    "person": "杨雄"
+   },
    "id": "fs.245"
   },
   {
@@ -2706,6 +2898,12 @@
    "mansion": null,
    "alsoServes": null,
    "note": null,
+   "shuihu": {
+    "rank": 33,
+    "star": "天慧星",
+    "nickname": "拚命三郎",
+    "person": "石秀"
+   },
    "id": "fs.246"
   },
   {
@@ -2717,6 +2915,12 @@
    "mansion": null,
    "alsoServes": null,
    "note": null,
+   "shuihu": {
+    "rank": 34,
+    "star": "天暴星",
+    "nickname": "两头蛇",
+    "person": "解珍"
+   },
    "id": "fs.247"
   },
   {
@@ -2728,6 +2932,12 @@
    "mansion": null,
    "alsoServes": null,
    "note": null,
+   "shuihu": {
+    "rank": 35,
+    "star": "天哭星",
+    "nickname": "双尾蝎",
+    "person": "解宝"
+   },
    "id": "fs.248"
   },
   {
@@ -2739,6 +2949,12 @@
    "mansion": null,
    "alsoServes": null,
    "note": null,
+   "shuihu": {
+    "rank": 36,
+    "star": "天巧星",
+    "nickname": "浪子",
+    "person": "燕青"
+   },
    "id": "fs.249"
   },
   {
@@ -2750,6 +2966,12 @@
    "mansion": null,
    "alsoServes": null,
    "note": null,
+   "shuihu": {
+    "rank": 37,
+    "star": "地魁星",
+    "nickname": "神机军师",
+    "person": "朱武"
+   },
    "id": "fs.250"
   },
   {
@@ -2761,6 +2983,12 @@
    "mansion": null,
    "alsoServes": null,
    "note": null,
+   "shuihu": {
+    "rank": 38,
+    "star": "地煞星",
+    "nickname": "镇三山",
+    "person": "黄信"
+   },
    "id": "fs.251"
   },
   {
@@ -2772,6 +3000,12 @@
    "mansion": null,
    "alsoServes": null,
    "note": null,
+   "shuihu": {
+    "rank": 39,
+    "star": "地勇星",
+    "nickname": "病尉迟",
+    "person": "孙立"
+   },
    "id": "fs.252"
   },
   {
@@ -2783,6 +3017,12 @@
    "mansion": null,
    "alsoServes": null,
    "note": null,
+   "shuihu": {
+    "rank": 40,
+    "star": "地杰星",
+    "nickname": "丑郡马",
+    "person": "宣赞"
+   },
    "id": "fs.253"
   },
   {
@@ -2794,6 +3034,12 @@
    "mansion": null,
    "alsoServes": null,
    "note": null,
+   "shuihu": {
+    "rank": 41,
+    "star": "地雄星",
+    "nickname": "井木犴",
+    "person": "郝思文"
+   },
    "id": "fs.254"
   },
   {
@@ -2805,6 +3051,12 @@
    "mansion": null,
    "alsoServes": null,
    "note": null,
+   "shuihu": {
+    "rank": 42,
+    "star": "地威星",
+    "nickname": "百胜将",
+    "person": "韩滔"
+   },
    "id": "fs.255"
   },
   {
@@ -2816,6 +3068,12 @@
    "mansion": null,
    "alsoServes": null,
    "note": null,
+   "shuihu": {
+    "rank": 43,
+    "star": "地英星",
+    "nickname": "天目将",
+    "person": "彭玘"
+   },
    "id": "fs.256"
   },
   {
@@ -2827,6 +3085,12 @@
    "mansion": null,
    "alsoServes": null,
    "note": null,
+   "shuihu": {
+    "rank": 44,
+    "star": "地奇星",
+    "nickname": "圣水将",
+    "person": "单廷珪"
+   },
    "id": "fs.257"
   },
   {
@@ -2838,6 +3102,12 @@
    "mansion": null,
    "alsoServes": null,
    "note": null,
+   "shuihu": {
+    "rank": 45,
+    "star": "地猛星",
+    "nickname": "神火将",
+    "person": "魏定国"
+   },
    "id": "fs.258"
   },
   {
@@ -2849,6 +3119,12 @@
    "mansion": null,
    "alsoServes": null,
    "note": null,
+   "shuihu": {
+    "rank": 46,
+    "star": "地文星",
+    "nickname": "圣手书生",
+    "person": "萧让"
+   },
    "id": "fs.259"
   },
   {
@@ -2860,6 +3136,12 @@
    "mansion": null,
    "alsoServes": null,
    "note": null,
+   "shuihu": {
+    "rank": 47,
+    "star": "地正星",
+    "nickname": "铁面孔目",
+    "person": "裴宣"
+   },
    "id": "fs.260"
   },
   {
@@ -2871,6 +3153,12 @@
    "mansion": null,
    "alsoServes": null,
    "note": null,
+   "shuihu": {
+    "rank": 48,
+    "star": "地辟星",
+    "nickname": "摩云金翅",
+    "person": "欧鹏"
+   },
    "id": "fs.261"
   },
   {
@@ -2882,6 +3170,12 @@
    "mansion": null,
    "alsoServes": null,
    "note": null,
+   "shuihu": {
+    "rank": 49,
+    "star": "地阖星",
+    "nickname": "火眼狻猊",
+    "person": "邓飞"
+   },
    "id": "fs.262"
   },
   {
@@ -2893,6 +3187,12 @@
    "mansion": null,
    "alsoServes": null,
    "note": null,
+   "shuihu": {
+    "rank": 50,
+    "star": "地强星",
+    "nickname": "锦毛虎",
+    "person": "燕顺"
+   },
    "id": "fs.263"
   },
   {
@@ -2904,6 +3204,12 @@
    "mansion": null,
    "alsoServes": null,
    "note": null,
+   "shuihu": {
+    "rank": 51,
+    "star": "地暗星",
+    "nickname": "锦豹子",
+    "person": "杨林"
+   },
    "id": "fs.264"
   },
   {
@@ -2915,6 +3221,12 @@
    "mansion": null,
    "alsoServes": null,
    "note": null,
+   "shuihu": {
+    "rank": 52,
+    "star": "地轴星",
+    "nickname": "轰天雷",
+    "person": "凌振"
+   },
    "id": "fs.265"
   },
   {
@@ -2926,6 +3238,12 @@
    "mansion": null,
    "alsoServes": null,
    "note": null,
+   "shuihu": {
+    "rank": 53,
+    "star": "地会星",
+    "nickname": "神算子",
+    "person": "蒋敬"
+   },
    "id": "fs.266"
   },
   {
@@ -2937,6 +3255,12 @@
    "mansion": null,
    "alsoServes": null,
    "note": null,
+   "shuihu": {
+    "rank": 54,
+    "star": "地佐星",
+    "nickname": "小温侯",
+    "person": "吕方"
+   },
    "id": "fs.267"
   },
   {
@@ -2948,6 +3272,12 @@
    "mansion": null,
    "alsoServes": null,
    "note": null,
+   "shuihu": {
+    "rank": 55,
+    "star": "地佑星",
+    "nickname": "赛仁贵",
+    "person": "郭盛"
+   },
    "id": "fs.268"
   },
   {
@@ -2959,6 +3289,12 @@
    "mansion": null,
    "alsoServes": null,
    "note": null,
+   "shuihu": {
+    "rank": 56,
+    "star": "地灵星",
+    "nickname": "神医",
+    "person": "安道全"
+   },
    "id": "fs.269"
   },
   {
@@ -2970,6 +3306,12 @@
    "mansion": null,
    "alsoServes": null,
    "note": null,
+   "shuihu": {
+    "rank": 57,
+    "star": "地兽星",
+    "nickname": "紫髯伯",
+    "person": "皇甫端"
+   },
    "id": "fs.270"
   },
   {
@@ -2981,6 +3323,12 @@
    "mansion": null,
    "alsoServes": null,
    "note": null,
+   "shuihu": {
+    "rank": 58,
+    "star": "地微星",
+    "nickname": "矮脚虎",
+    "person": "王英"
+   },
    "id": "fs.271"
   },
   {
@@ -2992,6 +3340,12 @@
    "mansion": null,
    "alsoServes": null,
    "note": null,
+   "shuihu": {
+    "rank": 59,
+    "star": "地慧星",
+    "nickname": "一丈青",
+    "person": "扈三娘"
+   },
    "id": "fs.272"
   },
   {
@@ -3003,6 +3357,12 @@
    "mansion": null,
    "alsoServes": null,
    "note": null,
+   "shuihu": {
+    "rank": 60,
+    "star": "地暴星",
+    "nickname": "丧门神",
+    "person": "鲍旭"
+   },
    "id": "fs.273"
   },
   {
@@ -3014,6 +3374,12 @@
    "mansion": null,
    "alsoServes": null,
    "note": null,
+   "shuihu": {
+    "rank": 61,
+    "star": "地然星",
+    "nickname": "混世魔王",
+    "person": "樊瑞"
+   },
    "id": "fs.274"
   },
   {
@@ -3025,6 +3391,12 @@
    "mansion": null,
    "alsoServes": null,
    "note": null,
+   "shuihu": {
+    "rank": 62,
+    "star": "地猖星",
+    "nickname": "毛头星",
+    "person": "孔明"
+   },
    "id": "fs.275"
   },
   {
@@ -3036,6 +3408,12 @@
    "mansion": null,
    "alsoServes": null,
    "note": null,
+   "shuihu": {
+    "rank": 63,
+    "star": "地狂星",
+    "nickname": "独火星",
+    "person": "孔亮"
+   },
    "id": "fs.276"
   },
   {
@@ -3047,6 +3425,12 @@
    "mansion": null,
    "alsoServes": null,
    "note": null,
+   "shuihu": {
+    "rank": 64,
+    "star": "地飞星",
+    "nickname": "八臂哪吒",
+    "person": "项充"
+   },
    "id": "fs.277"
   },
   {
@@ -3058,6 +3442,12 @@
    "mansion": null,
    "alsoServes": null,
    "note": null,
+   "shuihu": {
+    "rank": 65,
+    "star": "地走星",
+    "nickname": "飞天大圣",
+    "person": "李衮"
+   },
    "id": "fs.278"
   },
   {
@@ -3069,6 +3459,12 @@
    "mansion": null,
    "alsoServes": null,
    "note": null,
+   "shuihu": {
+    "rank": 66,
+    "star": "地巧星",
+    "nickname": "玉臂匠",
+    "person": "金大坚"
+   },
    "id": "fs.279"
   },
   {
@@ -3080,6 +3476,12 @@
    "mansion": null,
    "alsoServes": null,
    "note": null,
+   "shuihu": {
+    "rank": 67,
+    "star": "地明星",
+    "nickname": "铁笛仙",
+    "person": "马麟"
+   },
    "id": "fs.280"
   },
   {
@@ -3091,6 +3493,12 @@
    "mansion": null,
    "alsoServes": null,
    "note": null,
+   "shuihu": {
+    "rank": 68,
+    "star": "地进星",
+    "nickname": "出洞蛟",
+    "person": "童威"
+   },
    "id": "fs.281"
   },
   {
@@ -3102,6 +3510,12 @@
    "mansion": null,
    "alsoServes": null,
    "note": null,
+   "shuihu": {
+    "rank": 69,
+    "star": "地退星",
+    "nickname": "翻江蜃",
+    "person": "童猛"
+   },
    "id": "fs.282"
   },
   {
@@ -3113,6 +3527,12 @@
    "mansion": null,
    "alsoServes": null,
    "note": null,
+   "shuihu": {
+    "rank": 70,
+    "star": "地满星",
+    "nickname": "玉幡竿",
+    "person": "孟康"
+   },
    "id": "fs.283"
   },
   {
@@ -3124,6 +3544,12 @@
    "mansion": null,
    "alsoServes": null,
    "note": null,
+   "shuihu": {
+    "rank": 71,
+    "star": "地遂星",
+    "nickname": "通臂猿",
+    "person": "侯健"
+   },
    "id": "fs.284"
   },
   {
@@ -3135,6 +3561,12 @@
    "mansion": null,
    "alsoServes": null,
    "note": null,
+   "shuihu": {
+    "rank": 72,
+    "star": "地周星",
+    "nickname": "跳涧虎",
+    "person": "陈达"
+   },
    "id": "fs.285"
   },
   {
@@ -3146,6 +3578,12 @@
    "mansion": null,
    "alsoServes": null,
    "note": null,
+   "shuihu": {
+    "rank": 73,
+    "star": "地隐星",
+    "nickname": "白花蛇",
+    "person": "杨春"
+   },
    "id": "fs.286"
   },
   {
@@ -3157,6 +3595,12 @@
    "mansion": null,
    "alsoServes": null,
    "note": null,
+   "shuihu": {
+    "rank": 74,
+    "star": "地异星",
+    "nickname": "白面郎君",
+    "person": "郑天寿"
+   },
    "id": "fs.287"
   },
   {
@@ -3168,6 +3612,12 @@
    "mansion": null,
    "alsoServes": null,
    "note": null,
+   "shuihu": {
+    "rank": 75,
+    "star": "地理星",
+    "nickname": "九尾龟",
+    "person": "陶宗旺"
+   },
    "id": "fs.288"
   },
   {
@@ -3179,6 +3629,12 @@
    "mansion": null,
    "alsoServes": null,
    "note": null,
+   "shuihu": {
+    "rank": 76,
+    "star": "地俊星",
+    "nickname": "铁扇子",
+    "person": "宋清"
+   },
    "id": "fs.289"
   },
   {
@@ -3190,6 +3646,12 @@
    "mansion": null,
    "alsoServes": null,
    "note": null,
+   "shuihu": {
+    "rank": 77,
+    "star": "地乐星",
+    "nickname": "铁叫子",
+    "person": "乐和"
+   },
    "id": "fs.290"
   },
   {
@@ -3201,6 +3663,12 @@
    "mansion": null,
    "alsoServes": null,
    "note": null,
+   "shuihu": {
+    "rank": 78,
+    "star": "地捷星",
+    "nickname": "花项虎",
+    "person": "龚旺"
+   },
    "id": "fs.291"
   },
   {
@@ -3212,6 +3680,12 @@
    "mansion": null,
    "alsoServes": null,
    "note": null,
+   "shuihu": {
+    "rank": 79,
+    "star": "地速星",
+    "nickname": "中箭虎",
+    "person": "丁得孙"
+   },
    "id": "fs.292"
   },
   {
@@ -3223,6 +3697,12 @@
    "mansion": null,
    "alsoServes": null,
    "note": null,
+   "shuihu": {
+    "rank": 80,
+    "star": "地镇星",
+    "nickname": "小遮拦",
+    "person": "穆春"
+   },
    "id": "fs.293"
   },
   {
@@ -3234,6 +3714,12 @@
    "mansion": null,
    "alsoServes": null,
    "note": null,
+   "shuihu": {
+    "rank": 81,
+    "star": "地羁星",
+    "nickname": "操刀鬼",
+    "person": "曹正"
+   },
    "id": "fs.294"
   },
   {
@@ -3245,6 +3731,12 @@
    "mansion": null,
    "alsoServes": null,
    "note": null,
+   "shuihu": {
+    "rank": 82,
+    "star": "地魔星",
+    "nickname": "云里金刚",
+    "person": "宋万"
+   },
    "id": "fs.295"
   },
   {
@@ -3256,6 +3748,12 @@
    "mansion": null,
    "alsoServes": null,
    "note": null,
+   "shuihu": {
+    "rank": 83,
+    "star": "地妖星",
+    "nickname": "摸着天",
+    "person": "杜迁"
+   },
    "id": "fs.296"
   },
   {
@@ -3267,6 +3765,12 @@
    "mansion": null,
    "alsoServes": null,
    "note": null,
+   "shuihu": {
+    "rank": 84,
+    "star": "地幽星",
+    "nickname": "病大虫",
+    "person": "薛永"
+   },
    "id": "fs.297"
   },
   {
@@ -3278,6 +3782,12 @@
    "mansion": null,
    "alsoServes": null,
    "note": null,
+   "shuihu": {
+    "rank": 85,
+    "star": "地伏星",
+    "nickname": "金眼彪",
+    "person": "施恩"
+   },
    "id": "fs.298"
   },
   {
@@ -3289,6 +3799,12 @@
    "mansion": null,
    "alsoServes": null,
    "note": null,
+   "shuihu": {
+    "rank": 86,
+    "star": "地僻星",
+    "nickname": "打虎将",
+    "person": "李忠"
+   },
    "id": "fs.299"
   },
   {
@@ -3300,6 +3816,12 @@
    "mansion": null,
    "alsoServes": null,
    "note": null,
+   "shuihu": {
+    "rank": 87,
+    "star": "地空星",
+    "nickname": "小霸王",
+    "person": "周通"
+   },
    "id": "fs.300"
   },
   {
@@ -3311,6 +3833,12 @@
    "mansion": null,
    "alsoServes": null,
    "note": null,
+   "shuihu": {
+    "rank": 88,
+    "star": "地孤星",
+    "nickname": "金钱豹子",
+    "person": "汤隆"
+   },
    "id": "fs.301"
   },
   {
@@ -3322,6 +3850,12 @@
    "mansion": null,
    "alsoServes": null,
    "note": null,
+   "shuihu": {
+    "rank": 89,
+    "star": "地全星",
+    "nickname": "鬼脸儿",
+    "person": "杜兴"
+   },
    "id": "fs.302"
   },
   {
@@ -3333,6 +3867,12 @@
    "mansion": null,
    "alsoServes": null,
    "note": null,
+   "shuihu": {
+    "rank": 90,
+    "star": "地短星",
+    "nickname": "出林龙",
+    "person": "邹渊"
+   },
    "id": "fs.303"
   },
   {
@@ -3344,6 +3884,12 @@
    "mansion": null,
    "alsoServes": null,
    "note": null,
+   "shuihu": {
+    "rank": 91,
+    "star": "地角星",
+    "nickname": "独角龙",
+    "person": "邹润"
+   },
    "id": "fs.304"
   },
   {
@@ -3355,6 +3901,12 @@
    "mansion": null,
    "alsoServes": null,
    "note": null,
+   "shuihu": {
+    "rank": 92,
+    "star": "地囚星",
+    "nickname": "旱地忽律",
+    "person": "朱贵"
+   },
    "id": "fs.305"
   },
   {
@@ -3366,6 +3918,12 @@
    "mansion": null,
    "alsoServes": null,
    "note": null,
+   "shuihu": {
+    "rank": 93,
+    "star": "地藏星",
+    "nickname": "笑面虎",
+    "person": "朱富"
+   },
    "id": "fs.306"
   },
   {
@@ -3377,6 +3935,12 @@
    "mansion": null,
    "alsoServes": null,
    "note": null,
+   "shuihu": {
+    "rank": 94,
+    "star": "地平星",
+    "nickname": "铁臂膊",
+    "person": "蔡福"
+   },
    "id": "fs.307"
   },
   {
@@ -3388,6 +3952,12 @@
    "mansion": null,
    "alsoServes": null,
    "note": null,
+   "shuihu": {
+    "rank": 95,
+    "star": "地损星",
+    "nickname": "一枝花",
+    "person": "蔡庆"
+   },
    "id": "fs.308"
   },
   {
@@ -3399,6 +3969,12 @@
    "mansion": null,
    "alsoServes": null,
    "note": null,
+   "shuihu": {
+    "rank": 96,
+    "star": "地奴星",
+    "nickname": "催命判官",
+    "person": "李立"
+   },
    "id": "fs.309"
   },
   {
@@ -3410,6 +3986,12 @@
    "mansion": null,
    "alsoServes": null,
    "note": null,
+   "shuihu": {
+    "rank": 97,
+    "star": "地察星",
+    "nickname": "青眼虎",
+    "person": "李云"
+   },
    "id": "fs.310"
   },
   {
@@ -3421,6 +4003,12 @@
    "mansion": null,
    "alsoServes": null,
    "note": null,
+   "shuihu": {
+    "rank": 98,
+    "star": "地恶星",
+    "nickname": "没面目",
+    "person": "焦挺"
+   },
    "id": "fs.311"
   },
   {
@@ -3432,6 +4020,12 @@
    "mansion": null,
    "alsoServes": null,
    "note": null,
+   "shuihu": {
+    "rank": 99,
+    "star": "地丑星",
+    "nickname": "石将军",
+    "person": "石勇"
+   },
    "id": "fs.312"
   },
   {
@@ -3443,6 +4037,12 @@
    "mansion": null,
    "alsoServes": null,
    "note": null,
+   "shuihu": {
+    "rank": 100,
+    "star": "地数星",
+    "nickname": "小尉迟",
+    "person": "孙新"
+   },
    "id": "fs.313"
   },
   {
@@ -3454,6 +4054,12 @@
    "mansion": null,
    "alsoServes": null,
    "note": null,
+   "shuihu": {
+    "rank": 101,
+    "star": "地阴星",
+    "nickname": "母大虫",
+    "person": "顾大嫂"
+   },
    "id": "fs.314"
   },
   {
@@ -3465,6 +4071,12 @@
    "mansion": null,
    "alsoServes": null,
    "note": null,
+   "shuihu": {
+    "rank": 102,
+    "star": "地刑星",
+    "nickname": "菜园子",
+    "person": "张青"
+   },
    "id": "fs.315"
   },
   {
@@ -3476,6 +4088,12 @@
    "mansion": null,
    "alsoServes": null,
    "note": null,
+   "shuihu": {
+    "rank": 103,
+    "star": "地壮星",
+    "nickname": "母夜叉",
+    "person": "孙二娘"
+   },
    "id": "fs.316"
   },
   {
@@ -3487,6 +4105,12 @@
    "mansion": null,
    "alsoServes": null,
    "note": null,
+   "shuihu": {
+    "rank": 104,
+    "star": "地劣星",
+    "nickname": "活闪婆",
+    "person": "王定六"
+   },
    "id": "fs.317"
   },
   {
@@ -3498,6 +4122,12 @@
    "mansion": null,
    "alsoServes": null,
    "note": null,
+   "shuihu": {
+    "rank": 105,
+    "star": "地健星",
+    "nickname": "险道神",
+    "person": "郁保四"
+   },
    "id": "fs.318"
   },
   {
@@ -3509,6 +4139,12 @@
    "mansion": null,
    "alsoServes": null,
    "note": null,
+   "shuihu": {
+    "rank": 106,
+    "star": "地耗星",
+    "nickname": "白日鼠",
+    "person": "白胜"
+   },
    "id": "fs.319"
   },
   {
@@ -3520,6 +4156,12 @@
    "mansion": null,
    "alsoServes": null,
    "note": null,
+   "shuihu": {
+    "rank": 107,
+    "star": "地贼星",
+    "nickname": "鼓上蚤",
+    "person": "时迁"
+   },
    "id": "fs.320"
   },
   {
@@ -3531,6 +4173,12 @@
    "mansion": null,
    "alsoServes": null,
    "note": null,
+   "shuihu": {
+    "rank": 108,
+    "star": "地狗星",
+    "nickname": "金毛犬",
+    "person": "段景住"
+   },
    "id": "fs.321"
   },
   {

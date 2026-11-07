@@ -8,16 +8,38 @@ struct FengshenBoardView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var query: String
     @State private var path: [String]
+    @State private var highlight: Set<String>
     @State private var onlyLocatable = false
 
     init(
+        focusAsterism: String? = nil,
         initialDepartment: String? = nil,
         initialQuery: String = "",
         onLocate: @escaping (String) -> Void
     ) {
         self.onLocate = onLocate
         _query = State(initialValue: initialQuery)
-        _path = State(initialValue: initialDepartment.map { [$0] } ?? [])
+        _path = State(initialValue: Self.initialPath(
+            focusAsterism: focusAsterism,
+            department: initialDepartment
+        ))
+        _highlight = State(initialValue: Set(
+            focusAsterism.map { asterism in
+                FengshenInfo.lords(forAsterism: asterism).map(\.id)
+            } ?? []
+        ))
+    }
+
+    static let shuihuRoute = "@shuihu"
+
+    private static func initialPath(focusAsterism: String?, department: String?) -> [String] {
+        if let department {
+            return [department]
+        }
+        guard let focusAsterism,
+              let first = FengshenInfo.lords(forAsterism: focusAsterism).first
+        else { return [] }
+        return [first.department]
     }
 
     private var locatableCount: Int {
@@ -54,6 +76,24 @@ struct FengshenBoardView: View {
                 }
 
                 if query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    Section {
+                        NavigationLink(value: Self.shuihuRoute) {
+                            HStack(alignment: .firstTextBaseline, spacing: 10) {
+                                VStack(alignment: .leading, spacing: 3) {
+                                    Text("一百单八将")
+                                        .font(.body)
+                                    Text("天罡地煞与梁山座次逐位对照")
+                                        .font(.caption2)
+                                        .foregroundStyle(.secondary)
+                                }
+                                Spacer(minLength: 6)
+                                Text("\(FengshenInfo.shuihuRoster.count)")
+                                    .font(.caption.monospacedDigit())
+                                    .foregroundStyle(.secondary)
+                            }
+                            .padding(.vertical, 2)
+                        }
+                    }
                     directory
                 } else if matches.isEmpty {
                     Section {
@@ -64,7 +104,12 @@ struct FengshenBoardView: View {
                 } else {
                     Section("命中 \(matches.count) 位") {
                         ForEach(matches) { lord in
-                            FengshenRow(lord: lord, showsAffiliation: true, onLocate: onLocate)
+                            FengshenRow(
+                                lord: lord,
+                                showsAffiliation: true,
+                                highlighted: highlight.contains(lord.id),
+                                onLocate: onLocate
+                            )
                         }
                     }
                 }
@@ -82,12 +127,17 @@ struct FengshenBoardView: View {
                 placement: .navigationBarDrawer(displayMode: .always),
                 prompt: "名号 / 人物 / 部"
             )
-            .navigationDestination(for: String.self) { department in
-                FengshenDepartmentView(
-                    department: department,
-                    onlyLocatable: onlyLocatable,
-                    onLocate: onLocate
-                )
+            .navigationDestination(for: String.self) { destination in
+                if destination == Self.shuihuRoute {
+                    ShuihuRosterView()
+                } else {
+                    FengshenDepartmentView(
+                        department: destination,
+                        onlyLocatable: onlyLocatable,
+                        highlight: highlight,
+                        onLocate: onLocate
+                    )
+                }
             }
         }
     }
@@ -129,6 +179,7 @@ struct FengshenBoardView: View {
 struct FengshenDepartmentView: View {
     var department: String
     var onlyLocatable: Bool
+    var highlight: Set<String> = []
     var onLocate: (String) -> Void
 
     private var lords: [FengshenLord] {
@@ -142,34 +193,49 @@ struct FengshenDepartmentView: View {
     }
 
     var body: some View {
-        List {
-            if let note = FengshenInfo.departmentNotes[department] {
-                Section {
-                    Text(note)
-                        .font(.callout)
-                        .lineSpacing(3)
-                        .foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
+        ScrollViewReader { proxy in
+            List {
+                if let note = FengshenInfo.departmentNotes[department] {
+                    Section {
+                        Text(note)
+                            .font(.callout)
+                            .lineSpacing(3)
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
                 }
-            }
-            ForEach(groups, id: \.self) { group in
-                let members = lords.filter { $0.group == group }
-                Section("\(group) · \(members.count) 位") {
-                    ForEach(members) { lord in
-                        FengshenRow(lord: lord, showsAffiliation: false, onLocate: onLocate)
+                ForEach(groups, id: \.self) { group in
+                    let members = lords.filter { $0.group == group }
+                    Section("\(group) · \(members.count) 位") {
+                        ForEach(members) { lord in
+                            FengshenRow(
+                                lord: lord,
+                                showsAffiliation: false,
+                                highlighted: highlight.contains(lord.id),
+                                onLocate: onLocate
+                            )
+                            .id(lord.id)
+                        }
                     }
                 }
             }
+            .listStyle(.insetGrouped)
+            .navigationTitle(department)
+            .navigationBarTitleDisplayMode(.inline)
+            .onAppear {
+                guard let first = highlight.first else { return }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
+                    withAnimation { proxy.scrollTo(first, anchor: .center) }
+                }
+            }
         }
-        .listStyle(.insetGrouped)
-        .navigationTitle(department)
-        .navigationBarTitleDisplayMode(.inline)
     }
 }
 
 private struct FengshenRow: View {
     var lord: FengshenLord
     var showsAffiliation: Bool
+    var highlighted: Bool = false
     var onLocate: (String) -> Void
 
     var body: some View {
@@ -214,6 +280,18 @@ private struct FengshenRow: View {
                             .lineLimit(1)
                     }
                 }
+                if let shuihu = lord.shuihu {
+                    HStack(spacing: 5) {
+                        Text("水浒")
+                            .font(.system(size: 9, weight: .semibold))
+                            .padding(.horizontal, 4)
+                            .padding(.vertical, 1)
+                            .background(.orange.opacity(0.22), in: Capsule())
+                        Text("\(shuihu.rank) · \(shuihu.nickname) \(shuihu.person)")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
+                }
             }
             Spacer(minLength: 6)
             if let asterism {
@@ -228,6 +306,91 @@ private struct FengshenRow: View {
             }
         }
         .padding(.vertical, 2)
+        .padding(.horizontal, highlighted ? 6 : 0)
+        .background(
+            highlighted ? Color.accentColor.opacity(0.14) : .clear,
+            in: RoundedRectangle(cornerRadius: 8)
+        )
         .contentShape(Rectangle())
+    }
+}
+
+/// 一百单八将：梁山座次 ↔ 封神榜星君逐位对照。
+struct ShuihuRosterView: View {
+    private var tiangang: [FengshenLord] {
+        FengshenInfo.shuihuRoster.filter { $0.group == "天罡三十六" }
+    }
+
+    private var disha: [FengshenLord] {
+        FengshenInfo.shuihuRoster.filter { $0.group == "地煞七十二" }
+    }
+
+    var body: some View {
+        List {
+            Section {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(
+                        "梁山一百单八将的星号，取自《封神演义》第九十九回姜子牙所封的随斗部天罡三十六与地煞七十二。"
+                        + "两书逐位对应，座次即封神榜上的次序。"
+                    )
+                    .font(.callout)
+                    .lineSpacing(3)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                    Text("星名异写七处")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Text("天玄→天立 · 天健→天捷 · 天煞→天杀 · 地辅→地轴 · 地祐→地佑 · 地默→地然 · 地魂→地丑")
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .padding(.vertical, 2)
+            }
+
+            section("天罡三十六", lords: tiangang)
+            section("地煞七十二", lords: disha)
+        }
+        .listStyle(.insetGrouped)
+        .navigationTitle("一百单八将")
+        .navigationBarTitleDisplayMode(.inline)
+    }
+
+    private func section(_ title: String, lords: [FengshenLord]) -> some View {
+        Section("\(title) · \(lords.count) 位") {
+            ForEach(lords) { lord in
+                if let shuihu = lord.shuihu {
+                    row(lord, shuihu: shuihu)
+                }
+            }
+        }
+    }
+
+    private func row(_ lord: FengshenLord, shuihu: ShuihuPeer) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 10) {
+            Text("\(shuihu.rank)")
+                .font(.caption.monospacedDigit())
+                .foregroundStyle(.secondary)
+                .frame(width: 24, alignment: .trailing)
+            VStack(alignment: .leading, spacing: 3) {
+                HStack(spacing: 6) {
+                    Text(shuihu.star)
+                        .font(.subheadline)
+                    Text(shuihu.nickname)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Text(shuihu.person)
+                        .font(.subheadline)
+                }
+                Text(lord.title == shuihu.star
+                     ? "封神 \(lord.title) \(lord.person)"
+                     : "封神作 \(lord.title) · \(lord.person)")
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+            }
+            Spacer(minLength: 6)
+        }
+        .padding(.vertical, 2)
     }
 }

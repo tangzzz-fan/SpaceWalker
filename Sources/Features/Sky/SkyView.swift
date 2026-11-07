@@ -19,6 +19,7 @@ struct SkyView: View {
     @State private var showsCredits = false
     @State private var showsConstellations = true
     @State private var showsAsterisms = false
+    @State private var fengshenFocus: AsterismFocus?
     @State private var showsFinder = false
     @State private var guide: Star?
     @State private var guideVector: GuideVector?
@@ -95,6 +96,14 @@ struct SkyView: View {
         .sheet(item: $infoRegion) { region in
             ConstellationInfoView(region: region, stars: catalog?.stars ?? []) { star in
                 startGuide(to: star)
+            }
+        }
+        .sheet(item: $fengshenFocus) { target in
+            FengshenBoardView(focusAsterism: target.id) { asterism in
+                fengshenFocus = nil
+                if let group = SkyGroupIndex.group(forAsterism: asterism, in: groups) {
+                    focus(group: group)
+                }
             }
         }
         .sheet(isPresented: $showsFinder) {
@@ -447,9 +456,21 @@ struct SkyView: View {
                     .background(.white.opacity(0.12), in: Capsule())
             }
             if let line = group.fengshenLine {
-                Text(line)
-                    .font(.caption2)
+                Button {
+                    fengshenFocus = AsterismFocus(id: group.title)
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: "scroll")
+                            .font(.system(size: 9))
+                        Text(line)
+                            .font(.caption2)
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 8))
+                    }
                     .foregroundStyle(.secondary)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("在封神星榜中查看 \(line)")
             }
             if let brightest {
                 Text(String(format: "最亮 %@ · 视星等 %.2f", StarDisplay.make(for: brightest).title, brightest.magnitude))
@@ -554,10 +575,22 @@ struct SkyView: View {
                     .font(.caption2)
                     .foregroundStyle(.secondary)
             }
-            if let line = display.fengshenLine {
-                Text(line)
-                    .font(.caption2)
+            if let line = display.fengshenLine, let asterism = display.asterism?.name {
+                Button {
+                    fengshenFocus = AsterismFocus(id: asterism)
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: "scroll")
+                            .font(.system(size: 9))
+                        Text(line)
+                            .font(.caption2)
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 8))
+                    }
                     .foregroundStyle(.secondary)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("在封神星榜中查看 \(line)")
             }
             Text(String(format: "视星等 %.2f · 赤经 %.2fh · 赤纬 %.1f°", star.magnitude, star.rightAscensionHours, star.declinationDegrees))
                 .font(.caption)
@@ -870,4 +903,8 @@ private struct DwellRing: View {
             .frame(width: 41, height: 41)
             .opacity(hud.progress > 0.01 ? 0.95 : 0)
     }
+}
+
+struct AsterismFocus: Identifiable, Equatable {
+    var id: String
 }

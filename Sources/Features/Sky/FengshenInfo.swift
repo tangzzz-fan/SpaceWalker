@@ -11,6 +11,7 @@ struct FengshenLord: Identifiable, Equatable, Sendable, Decodable {
     var mansion: String?
     var alsoServes: String?
     var note: String?
+    var shuihu: ShuihuPeer?
 
     /// 在星图上有对应星官，可直接定位。
     var isLocatable: Bool {
@@ -27,6 +28,22 @@ struct FengshenLord: Identifiable, Equatable, Sendable, Decodable {
             parts.append("兼\(alsoServes)")
         }
         return parts.joined(separator: " · ")
+    }
+}
+
+/// 《水浒传》一百单八将中与某位星君同位者。
+///
+/// 随斗部天罡三十六、地煞七十二与梁山座次逐位对应。两书星名有七处写法不同
+/// （天玄/天立、天健/天捷、天煞/天杀、地辅/地轴、地祐/地佑、地默/地然、地魂/地丑），
+/// 此处以《水浒传》写法展示，封神原名仍在 `title` 中。
+struct ShuihuPeer: Equatable, Sendable, Decodable {
+    var rank: Int
+    var star: String
+    var nickname: String
+    var person: String
+
+    var line: String {
+        "\(rank) · \(star) \(nickname) \(person)"
     }
 }
 
@@ -100,6 +117,11 @@ enum FengshenInfo {
         byAsterism[asterism] ?? []
     }
 
+    /// 一百单八将，按梁山座次。
+    static let shuihuRoster: [FengshenLord] = all
+        .filter { $0.shuihu != nil }
+        .sorted { ($0.shuihu?.rank ?? 0) < ($1.shuihu?.rank ?? 0) }
+
     static func search(_ raw: String) -> [FengshenLord] {
         let query = raw.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !query.isEmpty else { return [] }
@@ -109,6 +131,8 @@ enum FengshenInfo {
                 || lord.department.contains(query)
                 || lord.group.contains(query)
                 || (lord.asterism?.contains(query) ?? false)
+                || (lord.shuihu?.person.contains(query) ?? false)
+                || (lord.shuihu?.nickname.contains(query) ?? false)
         }
     }
 

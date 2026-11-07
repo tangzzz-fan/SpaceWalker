@@ -850,6 +850,37 @@ final class FengshenTests: XCTestCase {
         XCTAssertTrue(FengshenInfo.search("").isEmpty)
     }
 
+    func testShuihuRosterCoversAll108() {
+        let roster = FengshenInfo.shuihuRoster
+        XCTAssertEqual(roster.count, 108)
+        XCTAssertEqual(roster.compactMap { $0.shuihu?.rank }, Array(1...108))
+        XCTAssertEqual(roster.first?.shuihu?.person, "宋江")
+        XCTAssertEqual(roster.last?.shuihu?.person, "段景住")
+        XCTAssertEqual(roster.filter { $0.group == "天罡三十六" }.count, 36)
+        XCTAssertEqual(roster.filter { $0.group == "地煞七十二" }.count, 72)
+    }
+
+    func testShuihuStarNamesMatchFengshenExceptSeven() {
+        let differing = FengshenInfo.shuihuRoster.filter { lord in
+            guard let star = lord.shuihu?.star else { return false }
+            return star != lord.title
+        }
+        XCTAssertEqual(differing.count, 7)
+        let pairs = Set(differing.compactMap { lord in
+            lord.shuihu.map { "\(lord.title)/\($0.star)" }
+        })
+        XCTAssertEqual(pairs, [
+            "天玄星/天立星", "天健星/天捷星", "天煞星/天杀星",
+            "地辅星/地轴星", "地祐星/地佑星", "地默星/地然星", "地魂星/地丑星",
+        ])
+    }
+
+    func testShuihuPeopleAreSearchable() {
+        XCTAssertEqual(FengshenInfo.search("宋江").first?.shuihu?.rank, 1)
+        XCTAssertEqual(FengshenInfo.search("黑旋风").first?.shuihu?.person, "李逵")
+        XCTAssertEqual(FengshenInfo.search("段景住").first?.shuihu?.rank, 108)
+    }
+
     func testEveryDepartmentHasANote() {
         for department in FengshenInfo.departments {
             XCTAssertNotNil(FengshenInfo.departmentNotes[department], department)

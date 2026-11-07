@@ -104,6 +104,7 @@ struct StarFinderView: View {
         }
         .sheet(isPresented: $showsFengshen) {
             FengshenBoardView(
+                focusAsterism: initialFengshenFocus,
                 initialDepartment: initialFengshenDepartment,
                 initialQuery: initialFengshenQuery
             ) { asterism in
@@ -398,13 +399,27 @@ struct StarFinderView: View {
         dismiss()
     }
 
-    private var initialFengshenDepartment: String? {
-        guard let fengshenTarget, FengshenInfo.departments.contains(fengshenTarget) else { return nil }
+    private var initialFengshenFocus: String? {
+        guard let fengshenTarget, !FengshenInfo.lords(forAsterism: fengshenTarget).isEmpty else {
+            return nil
+        }
         return fengshenTarget
     }
 
+    private var initialFengshenDepartment: String? {
+        guard let fengshenTarget, initialFengshenFocus == nil else { return nil }
+        if fengshenTarget == "水浒" || fengshenTarget == "一百单八将" {
+            return FengshenBoardView.shuihuRoute
+        }
+        return FengshenInfo.departments.contains(fengshenTarget) ? fengshenTarget : nil
+    }
+
     private var initialFengshenQuery: String {
-        guard let fengshenTarget, fengshenTarget != "1", initialFengshenDepartment == nil else { return "" }
+        guard let fengshenTarget,
+              fengshenTarget != "1",
+              initialFengshenFocus == nil,
+              initialFengshenDepartment == nil
+        else { return "" }
         return fengshenTarget
     }
 
