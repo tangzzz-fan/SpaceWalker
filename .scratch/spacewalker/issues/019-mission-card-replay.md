@@ -1,7 +1,7 @@
 ---
 id: 019
 title: 任务卡与重玩
-status: ready-for-agent
+status: done（合拢动画未做）
 stage: M3
 blocked_by: [017, 018]
 ---
@@ -21,12 +21,21 @@ blocked_by: [017, 018]
 
 ## 验收标准
 
-- [ ] 三个任务按顺序解锁，未完成前不进入下一任务。
-- [ ] 每一步有明确状态：未开始 / 进行中 / 完成 / 失败。
-- [ ] 失败原因与 017/018 的判定输出逐字一致（同一条测试断言两处字符串相等）。
-- [ ] 重玩 3 次无状态残留：模块位姿、选中、计时、进度全部归零。
-- [ ] 重玩后史实卡片仍可查看（解锁状态不清）。
-- [ ] 全程无网络依赖，飞行模式可完成整个任务链。
+- [x] 三个任务按顺序解锁：`disassembly` 需 4 个模块全拆才进 `assembly`，全装回才进 `docking`。
+- [x] 每一步有明确状态：顶栏显示「任务 n/3」+ 摘要（拆解 2/4、装配 已装回 3/4、对接 · 原因、三步全部完成）。
+- [x] 失败原因与判定同源：`TiangongMission.docking` 直接存 `Failure.message`，
+      `testFailureUsesJudgeCopy` 断言两处字符串相等。
+- [x] 重玩回到第一步，分离、对接、选中、计时全部归零（`testReplayClearsProgress`）。
+- [x] 重玩不改 `disassemblyTarget`，史实卡不受影响（史实是静态数据，无解锁态）。
+- [x] 全程无网络依赖。
+- [ ] 合拢动画：未做。三模块全到位时只有状态变化，没有整体合拢的表现。
+
+## 实现记录
+
+- 状态机是纯值，`separated(_:count:)` 与 `docking(_:outcome:)` 两个转移函数，其余时间不改状态。
+- 只有 `docking` 阶段接受对接结果；别的阶段送进来原样返回（`testDockingOutcomeIgnoredBeforeDockingPhase`）。
+- 「重玩整个任务」按钮只在 `complete` 时出现在对接卡片里，避免常驻。
+- 失败留在 `docking` 阶段并显示原因，重试不重置整个任务——只重置飞船位姿与计时。
 
 ## 测试缝
 

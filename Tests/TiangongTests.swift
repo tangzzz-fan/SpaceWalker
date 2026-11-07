@@ -276,3 +276,67 @@ final class TiangongDockingTests: XCTestCase {
         XCTAssertEqual(fine.x / coarse.x, 0.25, accuracy: 0.0001)
     }
 }
+
+final class TiangongMissionTests: XCTestCase {
+    func testStartsAtDisassembly() {
+        let state = TiangongMission.start()
+        XCTAssertEqual(state.phase, .disassembly)
+        XCTAssertEqual(state.separatedCount, 0)
+    }
+
+    /// 四个模块全拆完才进装配。
+    func testNeedsAllFourBeforeAssembly() {
+        var state = TiangongMission.start()
+        state = TiangongMission.separated(state, count: 3)
+        XCTAssertEqual(state.phase, .disassembly)
+        state = TiangongMission.separated(state, count: 4)
+        XCTAssertEqual(state.phase, .assembly)
+    }
+
+    /// 全部装回才进对接。
+    func testNeedsZeroSeparatedBeforeDocking() {
+        var state = TiangongMission.start()
+        state = TiangongMission.separated(state, count: 4)
+        state = TiangongMission.separated(state, count: 1)
+        XCTAssertEqual(state.phase, .assembly)
+        state = TiangongMission.separated(state, count: 0)
+        XCTAssertEqual(state.phase, .docking)
+    }
+
+    /// 失败原因直接引用判定文案，不另造。
+    func testFailureUsesJudgeCopy() {
+        var state = TiangongMission.start()
+        state = TiangongMission.separated(state, count: 4)
+        state = TiangongMission.separated(state, count: 0)
+        state = TiangongMission.docking(state, outcome: .failed(.tooFast))
+        XCTAssertEqual(state.phase, .docking)
+        XCTAssertEqual(state.failure, TiangongDocking.Failure.tooFast.message)
+    }
+
+    func testDockedCompletes() {
+        var state = TiangongMission.start()
+        state = TiangongMission.separated(state, count: 4)
+        state = TiangongMission.separated(state, count: 0)
+        state = TiangongMission.docking(state, outcome: .docked)
+        XCTAssertEqual(state.phase, .complete)
+        XCTAssertNil(state.failure)
+    }
+
+    /// 重玩清空进度，但不改拆解目标数。
+    func testReplayClearsProgress() {
+        var state = TiangongMission.start()
+        state = TiangongMission.separated(state, count: 4)
+        state = TiangongMission.docking(state, outcome: .failed(.timeout))
+        let replay = TiangongMission.replay(state)
+        XCTAssertEqual(replay.phase, .disassembly)
+        XCTAssertEqual(replay.separatedCount, 0)
+        XCTAssertNil(replay.failure)
+        XCTAssertEqual(replay.disassemblyTarget, state.disassemblyTarget)
+    }
+
+    /// 只有对接阶段才接受对接结果，别的阶段送进来不该改动状态。
+    func testDockingOutcomeIgnoredBeforeDockingPhase() {
+        let state = TiangongMission.start()
+        XCTAssertEqual(TiangongMission.docking(state, outcome: .docked), state)
+    }
+}

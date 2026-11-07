@@ -18,6 +18,7 @@ final class TiangongSession {
     var selected: TiangongModuleID?
     var separated: Set<TiangongModuleID> = []
 
+    var mission = TiangongMission.start()
     var dockingActive = false
     var dockingOffset = SIMD3<Float>(0, 0, 0.42)
     var dockingOutcome: TiangongDocking.Outcome = .approaching
@@ -127,6 +128,7 @@ final class TiangongSession {
         case .snap(let target):
             separated.remove(id)
             scene.setPosition(target, for: id)
+            mission = TiangongMission.separated(mission, count: separated.count)
             UIImpactFeedbackGenerator(style: .medium).impactOccurred()
             SessionLog.append("tiangong.assembly id=\(id.rawValue) snap=1")
         case .reject(let failure, let push):
@@ -202,6 +204,7 @@ final class TiangongSession {
             delta: delta
         )
         dockingOutcome = outcome
+        mission = TiangongMission.docking(mission, outcome: outcome)
 
         switch outcome {
         case .holding(let value):
@@ -219,6 +222,15 @@ final class TiangongSession {
 
     func resetDocking() {
         beginDocking()
+    }
+
+    func replayMission() {
+        mission = TiangongMission.replay(mission)
+        separated.removeAll()
+        scene.applySeparation(separated, animated: false)
+        endDocking()
+        selected = nil
+        SessionLog.append("tiangong.mission replay")
     }
 
     var isTerminal: Bool {
@@ -257,6 +269,7 @@ final class TiangongSession {
             separated.insert(id)
         }
         scene.applySeparation(separated, animated: true)
+        mission = TiangongMission.separated(mission, count: separated.count)
         UIImpactFeedbackGenerator(style: .light).impactOccurred()
         SessionLog.append(
             "tiangong.disassembly id=\(id.rawValue) separated=\(separated.contains(id) ? 1 : 0)"

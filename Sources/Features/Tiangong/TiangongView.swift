@@ -187,6 +187,9 @@ struct TiangongView: View {
             Text(TiangongHistory.facts.prefix(2).map { "\($0.label) \($0.value)" }.joined(separator: " · "))
                 .font(.caption2)
                 .foregroundStyle(.secondary)
+            Text("任务 \(session.mission.phase.ordinal)/3 · \(TiangongMission.summary(session.mission))")
+                .font(.caption2)
+                .foregroundStyle(.secondary)
             if let probeLine {
                 Text("pick · \(probeLine)")
                     .font(.caption2)
@@ -250,6 +253,11 @@ struct TiangongView: View {
             }
             if case .failed = session.dockingOutcome {
                 Button("重试") { session.resetDocking() }
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.small)
+            }
+            if session.mission.phase == .complete {
+                Button("重玩整个任务") { session.replayMission() }
                     .buttonStyle(.borderedProminent)
                     .controlSize(.small)
             }
