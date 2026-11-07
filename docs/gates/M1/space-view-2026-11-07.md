@@ -37,3 +37,43 @@
 ## 结论
 
 虚拟相机路线成立：不依赖 ARKit、不请求权限、可在模拟器完整走通渲染与拾取。A 阶段不再被平面检测阻塞。真机四项（首帧、帧率、AR 往返、工具栏可用性）待补。
+
+## 第二轮：探针接入与交互补齐（同日）
+
+| 项 | 数值 | 来源 |
+|---|---|---|
+| 首帧 | **1119ms**（进程启动 → 第一次 `SceneEvents.Update`） | `space.firstFrame ms=1119` |
+| 天空盒加载 | 471–585ms | `space.environment ready=1 elapsedMs=471` |
+| 帧率 | avg 60.0 / min 48.6–58.9 / hitches 0 | `probe.fps` |
+| AR 进出 | `enter daysBefore=4.0` → `exit daysAfter=6.1` | 见下 |
+
+### AR 往返与一处真 bug
+
+用 `SPACEWALKER_AUTOAR=1` 自动执行「进入 AR → 8 秒后退出」，模拟器上没有相机，落在权限解释页（`需要相机才能看见太空`），证明「放进房间」的呈现与返回链路可用。
+
+第一轮日志是 `daysBefore=3.9 daysAfter=14.0`——**AR 面板盖住时太阳系仍在按秒推进**，退出后时间跳了 10 天。已修：`tick()` 在 `showsNativeAR` 为真时直接返回，只更新 `lastTick`。修后同一路径为 `4.0 → 6.1`，只推进了退出后的 2 秒。
+
+这条是真机测不出来的（真机进 AR 后画面被相机占据，更容易被忽略），只有拿日志对时间才看得见。
+
+### 交互补齐
+
+| 项 | 实现 | 证据 |
+|---|---|---|
+| 选中高亮 | 选中天体缩放 1.3x（`SolarSystemScene.selectedScale`） | 截图 `021-select-jupiter.jpg` |
+| 名称标签 | 选中天体上方浮一枚胶囊标签，位置由 `project` 每帧换算 | 同上 |
+| 信息卡 | 名称/拉丁名/类型/直径/距日/公转/一句话/比例声明 | 同上 |
+| 重置视角 | 控制栏「↺」按钮 → `rig = OrbitRig()`（FR-A-07） | 截图可见 |
+
+### 新增调试开关
+
+- `SPACEWALKER_SELECT=<bodyID>`：预选中一个天体，用于无触摸注入时取「选中态」证据。
+- `SPACEWALKER_AUTOAR=1`：自动进出 AR 各一次并记日志。
+
+## 仍未完成（阻塞在真机）
+
+`devicectl` 报 `The tunnel connection failed while the system tried to connect to the device`，iPhone 16 Pro 无法建立调试隧道，以下四项未能取证：
+
+1. 真机首帧 ≤ 3s。
+2. 真机帧率 ≥ 55fps。
+3. 「放进房间」在**有相机**的真机上进入与退回。
+4. 手势（拖动旋转 / 双指缩放 / 点选）与触觉反馈。
