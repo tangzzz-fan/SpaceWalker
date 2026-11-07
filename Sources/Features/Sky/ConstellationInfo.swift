@@ -19,7 +19,41 @@ struct ConstellationRegion: Equatable, Identifiable, Sendable {
     var distance: Double
 }
 
+/// 点环（或顶栏）落在天上一块有名字的区域。星座与星群走同一套判定，
+/// 但两者的「来头」不是同一种东西，所以答案要能分清是哪一类。
+enum SkyRegion: Equatable, Sendable {
+    case constellation(ConstellationRegion)
+    case pattern(SkyPattern)
+
+    var key: String {
+        switch self {
+        case .constellation(let region): region.abbreviation
+        case .pattern(let pattern): pattern.id
+        }
+    }
+
+    var title: String {
+        switch self {
+        case .constellation(let region): region.chineseName
+        case .pattern(let pattern): pattern.name
+        }
+    }
+
+    /// 轮廓判定命中时距离为 0；兜底的最近星判定才有真实角距。
+    var distance: Double {
+        switch self {
+        case .constellation(let region): region.distance
+        case .pattern: 0
+        }
+    }
+}
+
 enum ConstellationInfo {
+    /// 全天任意方向到「有星座归属的成员星」的最大角距，实测值。
+    /// 6 等星表把整个天球盖满（p50 1.8°、p99 4.9°、最远 6.9°），
+    /// 所以顶栏兜底不需要再加角距门槛——加了也永远不会触发。
+    static let worstNearestStarDegrees: Double = 6.9
+
     static let latinNames: [String: String] = [
         "And": "Andromeda", "Ant": "Antlia", "Aps": "Apus", "Aqr": "Aquarius", "Aql": "Aquila",
         "Ara": "Ara", "Ari": "Aries", "Aur": "Auriga", "Boo": "Boötes", "Cae": "Caelum",

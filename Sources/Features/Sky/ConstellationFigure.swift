@@ -85,10 +85,11 @@ enum ConstellationFigures {
     ]
 }
 
-/// 一个星座在天空中的可判定区域：把轮廓环投影到以星座中心为法线的切平面，
-/// 之后所有点都在这张平面里做多边形包含测试。
-struct ConstellationOutlineShape: Sendable {
-    var abbreviation: String
+/// 天上一块可判定的多边形区域：把轮廓环投影到以自身中心为法线的切平面，
+/// 之后所有点都在这张平面里做多边形包含测试。星座轮廓与闭合星群共用这套判定。
+struct OutlineShape: Sendable {
+    /// 星座缩写或星群 id。
+    var key: String
     var center: SIMD3<Float>
     var east: SIMD3<Float>
     var north: SIMD3<Float>
@@ -116,9 +117,9 @@ struct ConstellationOutlineShape: Sendable {
 enum ConstellationFigureBuilder {
     /// 用真实亮星的轮廓环构造可判定区域。环不足 3 点或退化时返回 nil。
     static func shape(
-        abbreviation: String,
+        key: String,
         rings: [[SIMD3<Float>]]
-    ) -> ConstellationOutlineShape? {
+    ) -> OutlineShape? {
         let valid = rings.filter { $0.count >= 3 }.map { $0.map(simd_normalize) }
         guard !valid.isEmpty else { return nil }
         let all = valid.flatMap { $0 }
@@ -158,8 +159,8 @@ enum ConstellationFigureBuilder {
             .map { acos(Double(min(max(simd_dot(center, $0), -1), 1))) * 180 / .pi }
             .max() ?? 0
 
-        return ConstellationOutlineShape(
-            abbreviation: abbreviation,
+        return OutlineShape(
+            key: key,
             center: center,
             east: east,
             north: north,

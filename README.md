@@ -2,9 +2,9 @@
 
 举着手机看真实天空。星表按 J2000 赤道坐标渲染，用陀螺仪把星图对齐到你此刻的朝向，再把中国星官、二十八宿与《封神演义》的星君名号叠在同一片天上。
 
-| 星座图形轮廓 | 星官分组卡 | 今夜此刻最适合看 |
-|---|---|---|
-| ![天蝎座轮廓](docs/images/sky-scorpion.png) | ![参宿分组卡](docs/images/sky-group-card.png) | ![今夜榜单](docs/images/sky-tonight.png) |
+| 星座图形轮廓 | 冬季大三角 | 星官分组卡 | 今夜此刻最适合看 |
+|---|---|---|---|
+| ![天蝎座轮廓](docs/images/sky-scorpion.png) | ![冬季大三角](docs/images/sky-pattern-winter.png) | ![参宿分组卡](docs/images/sky-group-card.png) | ![今夜榜单](docs/images/sky-tonight.png) |
 
 ## 功能
 
@@ -19,6 +19,8 @@
 | 一百单八将 | 天罡三十六、地煞七十二与梁山座次逐位对照，含两书七处星名异写 |
 | 星座 | 31 个星座连线；15 个有形状（大熊 / 天蝎 / 狮子为手绘图形，猎户、双子、金牛、飞马等 12 个为星点轮廓）；88 星座全部有中文名与中西两段来头 |
 | 星座识别 | 点环落在星座轮廓内即点亮该座轮廓，停留 0.6 秒弹出标识卡；轮廓色块默认关闭 |
+| 星群 | 冬季大三角、夏季大三角、春季大弧线三条参考线；虚线绘制、段间留空、两端各让 1° 不压星点；默认关闭 |
+| 星群识别 | 点环落在三角形内部 0.6 秒弹卡；判定优先级 星体 > 星座轮廓 > 星群，指着猎户时不会被大三角抢答 |
 | 分组 | 301 个中国星官（227 个有连线）、二十八宿、31 星座、经典组合；可按封神名号（如「参水猿」）检索并定位 |
 | 星官连线 | 按 Stellarium 中国星空文化的成员表绘制，814 段；聚焦某个星官时自动展开 |
 | 观赏 | 最佳观赏期（子夜上中天月份 ±1）与「今夜此刻」榜单（高度 65% + 亮度 35%） |
@@ -71,7 +73,7 @@ Sources/Features/
   Sky/                星表、姿态、地平对齐、拾取、分组、观赏期（B 阶段）
   Prototype/          原型模式
 Sources/Resources/    stars.json、galaxy-equirect.jpg
-Tests/                单元测试（221 项）
+Tests/                单元测试（268 项）
 docs/                 PRD、ADR、门禁证据、素材清单
 ```
 
@@ -81,7 +83,7 @@ docs/                 PRD、ADR、门禁证据、素材清单
 CMMotionManager(67Hz) → DeviceAttitude(平滑 + 换基) → root.orientation
 SkyObserver(纬度/恒星时/航向) → field.orientation(地平旋转)
                               ↓
-        星桶网格 + 星座连线 + 图形轮廓（全部挂在 field 下）
+        星桶网格 + 星座连线 + 图形轮廓 + 星官 + 星群（全部挂在 field 下）
                               ↓
         RealityView 投影 ← pick / 准星 / 卡片
 ```
@@ -105,6 +107,7 @@ SkyObserver(纬度/恒星时/航向) → field.orientation(地平旋转)
 | `SPACEWALKER_FENGSHEN=北斗` | 直达该星官对应的星君并高亮 |
 | `SPACEWALKER_FENGSHEN=水浒` | 直达一百单八将 |
 | `SPACEWALKER_OUTLINES=1` | 启动即显示星座轮廓 |
+| `SPACEWALKER_PATTERNS=1` | 启动即显示星群；写 id（`winter-triangle` / `summer-triangle` / `spring-arc`）则同时对准该星群中心 |
 | `SPACEWALKER_AIM=Ori` | 把视线对准指定星座（缩写） |
 | `SPACEWALKER_DWELL=1` | 定时器驱动准星判定，无陀螺仪时验证停留选中 |
 | `SPACEWALKER_QUERY=参水猿` | 打开找星面板并预填查询 |
@@ -126,7 +129,7 @@ xcodebuild test -project SpaceWalker.xcodeproj -scheme SpaceWalker \
   -destination 'platform=iOS Simulator,name=iPhone 18 Pro'
 ```
 
-221 项单元测试，覆盖星表数学、姿态换基、地平旋转、拾取预筛、停留状态机、星官解析、图形包含关系、耳切三角化、观赏期排序。
+268 项单元测试，覆盖星表数学、姿态换基、地平旋转、拾取预筛、停留状态机、星官解析、图形包含关系、耳切三角化、观赏期排序。
 
 ## 数据与许可
 
@@ -136,7 +139,6 @@ xcodebuild test -project SpaceWalker.xcodeproj -scheme SpaceWalker \
 
 ## 路线图
 
-- 今夜导览：把榜单串成 5 站，逐站指路
 - 认星座小测：亮出连线让用户选名字
-- 更多图形轮廓（猎户、天鹅、仙后）与 88 星座释义补齐
 - 深空天体（Messier）图层
+- 余下 15 个凸包轮廓（天炉、唧筒、显微镜等南天暗座）与冬季六边形

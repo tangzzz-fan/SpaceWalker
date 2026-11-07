@@ -17,7 +17,7 @@ final class SkyScene {
     private(set) var constellationCount = 0
     private var constellationsRequested = true
     private var silhouettesRequested = false
-    private var constellationShapes: [ConstellationOutlineShape] = []
+    private var constellationShapes: [OutlineShape] = []
     private var constellationHighlightNode: Entity?
     private var constellationHighlightID: String?
     private var constellationPositions: [String: SIMD3<Float>] = [:]
@@ -29,6 +29,13 @@ final class SkyScene {
     private(set) var asterismSegmentCount = 0
     private(set) var asterismGroupCount = 0
     private var asterismsRequested = false
+    private var patternNode: Entity?
+    private var patternMaterial: UnlitMaterial?
+    private var patternShapes: [OutlineShape] = []
+    private var patternHighlightNode: Entity?
+    private var patternHighlightID: String?
+    private(set) var patternSegmentCount = 0
+    private var patternsRequested = false
     private var aimLocked = false
     private var isBuilt = false
     private var viewSize: CGSize = .zero
@@ -100,6 +107,7 @@ final class SkyScene {
         nodes = catalog.stars
         buildConstellations(from: catalog.stars)
         buildAsterisms(from: catalog.stars)
+        buildPatterns()
     }
 
     private func buildConstellations(from stars: [Star]) {
@@ -159,13 +167,13 @@ final class SkyScene {
     private func buildSilhouettes(positions: [String: SIMD3<Float>]) {
         var fillMesh = StarMeshData(positions: [], normals: [], indices: [])
         var outlineSegments: [(SIMD3<Float>, SIMD3<Float>)] = []
-        var shapes: [ConstellationOutlineShape] = []
+        var shapes: [OutlineShape] = []
 
         for constellation in Constellations.all {
             let drawn = Self.rings(for: constellation, positions: positions)
             guard !drawn.isEmpty else { continue }
             if let shape = ConstellationFigureBuilder.shape(
-                abbreviation: constellation.abbreviation,
+                key: constellation.abbreviation,
                 rings: drawn
             ) {
                 shapes.append(shape)
@@ -227,15 +235,15 @@ final class SkyScene {
 
     /// 点环方向落在哪个星座轮廓内。命中多个时取距离中心最近的一个。
     func constellation(at direction: SIMD3<Float>) -> Constellation? {
-        var best: (abbreviation: String, dot: Float)?
+        var best: (key: String, dot: Float)?
         for shape in constellationShapes where shape.contains(direction) {
             let dot = simd_dot(simd_normalize(direction), shape.center)
             if best == nil || dot > best!.dot {
-                best = (shape.abbreviation, dot)
+                best = (shape.key, dot)
             }
         }
         guard let best else { return nil }
-        return Constellations.all.first { $0.abbreviation == best.abbreviation }
+        return Constellations.all.first { $0.abbreviation == best.key }
     }
 
     func constellationAtCenter() -> Constellation? {
@@ -396,6 +404,134 @@ final class SkyScene {
         asterismHighlightNode = nil
     }
 
+    // MARK: - 星群
+
+    private func buildPatterns() {
+        let positions = constellationPositions
+        guard !positions.isEmpty else { return }
+
+        var segments: [(SIMD3<Float>, SIMD3<Float>)] = []
+        var shapes: [OutlineShape] = []
+        for pattern in SkyPatternCatalog.all {
+            let drawn = SkyPatternGeometry.segments(
+                for: pattern,
+                positions: positions,
+                radius: Self.patternRadius3D
+            )
+            guard !drawn.isEmpty else { continue }
+            segments.append(contentsOf: drawn)
+            if let ring = SkyPatternGeometry.ring(for: pattern, positions: positions),
+               let shape = ConstellationFigureBuilder.shape(key: pattern.id, rings: [ring]) {
+                shapes.append(shape)
+            }
+        }
+        patternShapes = shapes
+        patternSegmentCount = segments.count
+
+        guard !segments.isEmpty,
+              let mesh = try? StarFieldBuilder.mesh(
+                  StarFieldBuilder.constellation(segments, radius: Self.patternTubeRadius),
+                  name: "patterns"
+              )
+        else { return }
+
+        let material = UnlitMaterial(
+            color: uiColor(Self.patternColor, brightness: Self.patternBaseBrightness)
+        )
+        let node = Entity()
+        node.name = "pattern.lines"
+        node.components.set(ModelComponent(mesh: mesh, materials: [material]))
+        node.isEnabled = patternsRequested
+        field.addChild(node)
+        patternNode = node
+        patternMaterial = material
+    }
+
+    func setPatternsVisible(_ visible: Bool) {
+        patternsRequested = visible
+        patternNode?.isEnabled = visible
+        patternHighlightNode?.isEnabled = visible
+    }
+
+    /// 点环方向落在哪个闭合星群内部。命中多个时取距离中心最近的一个。
+    func pattern(at direction: SIMD3<Float>) -> SkyPattern? {
+        var best: (key: String, dot: Float)?
+        for shape in patternShapes where shape.contains(direction) {
+            let dot = simd_dot(simd_normalize(direction), shape.center)
+            if best == nil || dot > best!.dot {
+                best = (shape.key, dot)
+            }
+        }
+        guard let best else { return nil }
+        return SkyPatternCatalog.pattern(id: best.key)
+    }
+
+    func patternAtCenter() -> SkyPattern? {
+        pattern(at: viewDirectionInField)
+    }
+
+    /// 星群几何中心方向，用于对准与调试。
+    func direction(forPattern id: String) -> SIMD3<Float>? {
+        guard let pattern = SkyPatternCatalog.pattern(id: id) else { return nil }
+        let points = pattern.anchors.compactMap { constellationPositions[$0] }
+        guard !points.isEmpty else { return nil }
+        var sum = SIMD3<Float>(0, 0, 0)
+        for point in points {
+            sum += simd_normalize(point)
+        }
+        guard simd_length(sum) > 0.001 else { return nil }
+        return simd_normalize(sum)
+    }
+
+    /// 临时点亮一条星群，其余星群压暗——和星官高亮同一套语言。
+    func highlightPattern(_ id: String?) {
+        guard id != patternHighlightID else { return }
+        patternHighlightID = id
+        patternHighlightNode?.removeFromParent()
+        patternHighlightNode = nil
+        patternMaterial?.color.tint = id == nil
+            ? uiColor(Self.patternColor, brightness: Self.patternBaseBrightness)
+            : uiColor(Self.patternColor, brightness: Self.patternDimBrightness)
+
+        guard let id,
+              let pattern = SkyPatternCatalog.pattern(id: id),
+              !constellationPositions.isEmpty
+        else { return }
+
+        let segments = SkyPatternGeometry.segments(
+            for: pattern,
+            positions: constellationPositions,
+            radius: Self.patternHighlightRadius3D
+        )
+        guard !segments.isEmpty,
+              let mesh = try? StarFieldBuilder.mesh(
+                  StarFieldBuilder.constellation(segments, radius: Self.patternHighlightTubeRadius),
+                  name: "pattern.focus"
+              )
+        else { return }
+
+        let node = Entity()
+        node.name = "pattern.focus"
+        node.components.set(ModelComponent(
+            mesh: mesh,
+            materials: [UnlitMaterial(
+                color: uiColor(Self.patternColor, brightness: Self.patternHighlightBrightness)
+            )]
+        ))
+        node.isEnabled = true
+        field.addChild(node)
+        patternHighlightNode = node
+    }
+
+    static let patternColor = SIMD3<Float>(0.80, 0.66, 0.98)
+    static let patternTubeRadius: Float = 0.018
+    static let patternHighlightTubeRadius: Float = 0.024
+    static let patternRadius3D: Float = 49.0
+    static let patternHighlightRadius3D: Float = 48.8
+    static let patternBaseBrightness: Float = 0.60
+    static let patternDimBrightness: Float = 0.18
+    static let patternHighlightBrightness: Float = 1.0
+
     static let asterismColor = SIMD3<Float>(0.88, 0.76, 0.52)
     static let asterismRadius: Float = 0.026
     static let asterismHighlightRadius: Float = 0.03
@@ -481,8 +617,24 @@ final class SkyScene {
         return world / length
     }
 
-    func currentRegion() -> ConstellationRegion? {
-        ConstellationInfo.nearest(to: viewDirectionInField, in: nodes)
+    /// 顶栏「当前天区」的答案。优先级与点环识别一致：星座轮廓 > 星群 > 最近成员星，
+    /// 三档共用同一份轮廓数据，顶栏与标识卡才不会各说各话。
+    ///
+    /// 兜底不加角距门槛：6 等星表把全天盖满，实测任意方向到最近成员星最远 6.9°
+    /// （p50 1.8°、p99 4.9°），加了也永远不会触发。
+    func currentRegion() -> SkyRegion? {
+        let direction = viewDirectionInField
+        if let constellation = constellation(at: direction) {
+            return ConstellationInfo
+                .region(for: constellation.abbreviation, in: nodes)
+                .map(SkyRegion.constellation)
+        }
+        if let pattern = pattern(at: direction) {
+            return .pattern(pattern)
+        }
+        return ConstellationInfo
+            .nearest(to: direction, in: nodes)
+            .map(SkyRegion.constellation)
     }
 
     func guideVector(to star: Star) -> GuideVector? {

@@ -954,7 +954,7 @@ final class ConstellationShapeTests: XCTestCase {
             let rings = SkyScene.rings(for: constellation, positions: map)
             guard !rings.isEmpty else { continue }
             let shape = ConstellationFigureBuilder.shape(
-                abbreviation: constellation.abbreviation,
+                key: constellation.abbreviation,
                 rings: rings
             )
             let unwrapped = try XCTUnwrap(shape, constellation.name)
@@ -974,7 +974,7 @@ final class ConstellationShapeTests: XCTestCase {
         for constellation in Constellations.all {
             let rings = SkyScene.rings(for: constellation, positions: map)
             guard let shape = ConstellationFigureBuilder.shape(
-                abbreviation: constellation.abbreviation,
+                key: constellation.abbreviation,
                 rings: rings
             ) else { continue }
             total += 1
@@ -1550,5 +1550,165 @@ final class AppRouteTests: XCTestCase {
     func testSkyMotionDefaultsOn() {
         XCTAssertTrue(LaunchMode.skyMotionEnabled(environment: [:]))
         XCTAssertFalse(LaunchMode.skyMotionEnabled(environment: ["SPACEWALKER_SKYMOTION": "0"]))
+    }
+}
+
+final class SkyPatternTests: XCTestCase {
+    private func positions() throws -> [String: SIMD3<Float>] {
+        let catalog = try XCTUnwrap(StarCatalog.loadFromBundle(.main))
+        var result: [String: SIMD3<Float>] = [:]
+        for star in catalog.stars where star.isNamed && result[star.name] == nil {
+            result[star.name] = StarField.position(for: star)
+        }
+        return result
+    }
+
+    func testIdentifiersAreUniqueAndNamed() {
+        var seen = Set<String>()
+        for pattern in SkyPatternCatalog.all {
+            XCTAssertFalse(pattern.id.isEmpty)
+            XCTAssertTrue(seen.insert(pattern.id).inserted, "星群 id 重复：\(pattern.id)")
+            XCTAssertFalse(pattern.name.isEmpty)
+            XCTAssertFalse(pattern.latin.isEmpty)
+            XCTAssertGreaterThanOrEqual(pattern.anchors.count, 3, pattern.name)
+            XCTAssertEqual(pattern.starCount, Set(pattern.anchors).count)
+        }
+    }
+
+    func testAnchorsExistInCatalog() throws {
+        let map = try positions()
+        for pattern in SkyPatternCatalog.all {
+            for anchor in pattern.anchors {
+                XCTAssertNotNil(map[anchor], "\(pattern.name) 引用了星表里没有的星：\(anchor)")
+            }
+        }
+    }
+
+    func testClosedPatternsHaveInterior() throws {
+        let map = try positions()
+        var closed = 0
+        for pattern in SkyPatternCatalog.all where pattern.closed {
+            closed += 1
+            let ring = try XCTUnwrap(SkyPatternGeometry.ring(for: pattern, positions: map), pattern.name)
+            let shape = try XCTUnwrap(
+                ConstellationFigureBuilder.shape(key: pattern.id, rings: [ring]),
+                pattern.name
+            )
+            XCTAssertEqual(shape.key, pattern.id)
+            XCTAssertTrue(shape.contains(shape.center), "\(pattern.name) 的几何中心不在自己内部")
+            XCTAssertFalse(shape.contains(-shape.center), "\(pattern.name) 把对跖点也判进来了")
+            XCTAssertLessThan(shape.radiusDegrees, 90, pattern.name)
+        }
+        // 冬季大三角、夏季大三角闭合；春季大弧线是折线。
+        XCTAssertEqual(closed, 2)
+    }
+
+    func testOpenPatternHasNoInterior() throws {
+        let map = try positions()
+        let arc = try XCTUnwrap(SkyPatternCatalog.pattern(id: "spring-arc"))
+        XCTAssertFalse(arc.closed)
+        XCTAssertNil(SkyPatternGeometry.ring(for: arc, positions: map), "折线星群不该有可判定内部")
+    }
+
+    func testDashesLeaveGaps() {
+        let start = StarField.direction(rightAscensionHours: 6, declinationDegrees: 0)
+        let end = StarField.direction(rightAscensionHours: 8, declinationDegrees: 10)
+        let total = acos(Double(simd_dot(start, end))) * 180 / .pi
+        let dashes = SkyPatternGeometry.dashes(from: start, to: end)
+        XCTAssertGreaterThan(dashes.count, 3)
+
+        var covered = 0.0
+        for dash in dashes {
+            XCTAssertEqual(simd_length(dash.0), 1, accuracy: 0.0005)
+            XCTAssertEqual(simd_length(dash.1), 1, accuracy: 0.0005)
+            covered += acos(Double(min(max(simd_dot(
+                simd_normalize(dash.0),
+                simd_normalize(dash.1)
+            ), -1), 1))) * 180 / .pi
+        }
+        XCTAssertEqual(covered / total, 1 - SkyPatternGeometry.gapRatio, accuracy: 0.01)
+    }
+
+    func testSegmentsSitOnRequestedRadius() throws {
+        let map = try positions()
+        for pattern in SkyPatternCatalog.all {
+            let edges = pattern.anchors.count - 1 + (pattern.closed ? 1 : 0)
+            let segments = SkyPatternGeometry.segments(for: pattern, positions: map, radius: 49)
+            XCTAssertGreaterThanOrEqual(segments.count, edges, "\(pattern.name) 有边没画出虚线")
+            for segment in segments {
+                XCTAssertEqual(simd_length(segment.0), 49, accuracy: 0.01)
+                XCTAssertEqual(simd_length(segment.1), 49, accuracy: 0.01)
+            }
+        }
+    }
+
+    func testDashesClearTheAnchorStars() throws {
+        let map = try positions()
+        for pattern in SkyPatternCatalog.all {
+            let anchors = pattern.anchors.compactMap { map[$0] }
+            XCTAssertEqual(anchors.count, pattern.anchors.count, pattern.name)
+            for segment in SkyPatternGeometry.segments(for: pattern, positions: map, radius: 49) {
+                for anchor in anchors {
+                    let gap = min(
+                        SkyPatternGeometry.angleDegrees(segment.0, anchor),
+                        SkyPatternGeometry.angleDegrees(segment.1, anchor)
+                    )
+                    XCTAssertGreaterThanOrEqual(
+                        gap,
+                        SkyPatternGeometry.anchorInsetDegrees - 0.01,
+                        "\(pattern.name) 的虚线碰到了锚星"
+                    )
+                }
+            }
+        }
+    }
+
+    func testPolylinesDoNotBacktrack() throws {
+        let map = try positions()
+        for pattern in SkyPatternCatalog.all where !pattern.closed {
+            let points = pattern.anchors.compactMap { map[$0] }.map(simd_normalize)
+            XCTAssertEqual(points.count, pattern.anchors.count, pattern.name)
+            for index in 1..<(points.count - 1) {
+                // 折线在中间星处的「入向」与「出向」夹角应接近 180°；
+                // 掉到 120° 以下说明这条路在折返，多半是锚星顺序排错了。
+                let incoming = simd_normalize(points[index - 1] - points[index])
+                let outgoing = simd_normalize(points[index + 1] - points[index])
+                let angle = acos(Double(min(max(simd_dot(incoming, outgoing), -1), 1))) * 180 / .pi
+                XCTAssertGreaterThan(
+                    angle,
+                    120,
+                    "\(pattern.name) 在 \(pattern.anchors[index]) 处折返，锚星顺序可能排错了"
+                )
+            }
+        }
+    }
+
+    /// 顶栏兜底不加角距门槛，依据是「6 等星表把全天盖满」。
+    /// 这条测试就是那份依据：均匀撒 700 个方向，最远的一个也要在 7.4° 内找到成员星。
+    func testNearestStarCoversTheWholeSky() throws {
+        let catalog = try XCTUnwrap(StarCatalog.loadFromBundle(.main))
+        let members = catalog.stars.filter { !$0.constellation.isEmpty }
+        XCTAssertGreaterThan(members.count, 2000)
+
+        var worst = 0.0
+        let samples = 700
+        for index in 0..<samples {
+            let y = 1 - 2 * (Double(index) + 0.5) / Double(samples)
+            let radius = (1 - y * y).squareRoot()
+            let theta = Double(index) * Double.pi * (3 - 5.0.squareRoot())
+            let direction = SIMD3<Float>(
+                Float(radius * cos(theta)),
+                Float(y),
+                Float(radius * sin(theta))
+            )
+            let region = ConstellationInfo.nearest(to: direction, in: members)
+            XCTAssertNotNil(region, "这个方向找不到任何天区")
+            worst = max(worst, region?.distance ?? 180)
+        }
+        XCTAssertLessThanOrEqual(
+            worst,
+            ConstellationInfo.worstNearestStarDegrees + 0.5,
+            String(format: "全天覆盖变差，最远 %.1f°", worst)
+        )
     }
 }

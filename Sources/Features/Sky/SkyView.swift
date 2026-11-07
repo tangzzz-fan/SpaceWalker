@@ -20,14 +20,18 @@ struct SkyView: View {
     @State private var showsConstellations = true
     @State private var showsAsterisms = false
     @State private var showsOutlines = false
+    @State private var showsPatterns = false
     @State private var identifiedConstellation: Constellation?
     @State private var constellationHold = ConstellationHold()
     @State private var constellationDismissed: String?
+    @State private var identifiedPattern: SkyPattern?
+    @State private var patternHold = ConstellationHold()
+    @State private var patternDismissed: String?
     @State private var fengshenFocus: AsterismFocus?
     @State private var showsFinder = false
     @State private var guide: Star?
     @State private var guideVector: GuideVector?
-    @State private var currentRegion: ConstellationRegion?
+    @State private var currentRegion: SkyRegion?
     @State private var infoRegion: ConstellationRegion?
     @State private var regionStamp: TimeInterval = 0
     @State private var dwell = DwellSelector()
@@ -64,6 +68,10 @@ struct SkyView: View {
                     constellationBadge(constellation)
                         .padding(.bottom, 10)
                 }
+                if let pattern = identifiedPattern {
+                    patternBadge(pattern)
+                        .padding(.bottom, 10)
+                }
                 if let selectedGroup {
                     groupCard(selectedGroup)
                         .padding(.bottom, 10)
@@ -91,6 +99,12 @@ struct SkyView: View {
         }
         .onChange(of: showsOutlines) { _, visible in
             scene.setSilhouettesVisible(visible)
+        }
+        .onChange(of: showsPatterns) { _, visible in
+            scene.setPatternsVisible(visible)
+            if !visible {
+                resetPatternTracking()
+            }
         }
         .onChange(of: selectedGroup) { _, group in
             scene.highlightAsterism(group?.asterismID)
@@ -201,11 +215,16 @@ struct SkyView: View {
             }
             if let region = currentRegion {
                 Button {
-                    infoRegion = region
+                    switch region {
+                    case .constellation(let info):
+                        infoRegion = info
+                    case .pattern(let pattern):
+                        identifiedPattern = pattern
+                    }
                 } label: {
                     HStack(spacing: 4) {
-                        Image(systemName: "book.closed")
-                        Text("当前天区 \(region.chineseName) · 查看来头")
+                        Image(systemName: regionSymbol(region))
+                        Text("当前天区 \(region.title) · 查看来头")
                     }
                     .font(.caption2)
                 }
@@ -227,6 +246,13 @@ struct SkyView: View {
         .padding(.horizontal, 14)
         .padding(.vertical, 10)
         .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
+    }
+
+    private func regionSymbol(_ region: SkyRegion) -> String {
+        switch region {
+        case .constellation: "book.closed"
+        case .pattern: "triangle"
+        }
     }
 
     private var skySubtitle: String {
@@ -325,16 +351,22 @@ struct SkyView: View {
                 Toggle(isOn: $showsOutlines) {
                     Label("星座轮廓", systemImage: "square.on.circle")
                 }
+                Divider()
+                Toggle(isOn: $showsPatterns) {
+                    Label("星群（大三角）", systemImage: "triangle")
+                }
             } label: {
                 Label(
                     "星座",
-                    systemImage: showsConstellations ? "link" : (showsOutlines ? "square.on.circle" : "link.badge.plus")
+                    systemImage: showsPatterns
+                        ? "triangle"
+                        : (showsConstellations ? "link" : (showsOutlines ? "square.on.circle" : "link.badge.plus"))
                 )
                 .font(.caption2)
                 .lineLimit(1)
                 .fixedSize()
             }
-            .accessibilityLabel("星座连线与轮廓")
+            .accessibilityLabel("星座连线、轮廓与星群")
 
             Button {
                 showsAsterisms.toggle()
@@ -501,6 +533,44 @@ struct SkyView: View {
             Button {
                 identifiedConstellation = nil
                 constellationDismissed = constellation.abbreviation
+            } label: {
+                Image(systemName: "xmark.circle.fill")
+                    .foregroundStyle(.secondary)
+            }
+            .padding(10)
+        }
+    }
+
+    private func patternBadge(_ pattern: SkyPattern) -> some View {
+        VStack(alignment: .leading, spacing: 5) {
+            HStack(alignment: .firstTextBaseline, spacing: 6) {
+                Image(systemName: "triangle")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                Text(pattern.name)
+                    .font(.headline)
+                Text(pattern.latin)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                Spacer(minLength: 6)
+            }
+            Text(pattern.summary)
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+                .lineLimit(3)
+                .fixedSize(horizontal: false, vertical: true)
+            Text("\(pattern.season) · \(pattern.starCount) 颗锚星 · 落在星群内 0.6 秒识别")
+                .font(.caption2)
+                .foregroundStyle(.tertiary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(14)
+        .padding(.trailing, 22)
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16))
+        .overlay(alignment: .topTrailing) {
+            Button {
+                identifiedPattern = nil
+                patternDismissed = pattern.id
             } label: {
                 Image(systemName: "xmark.circle.fill")
                     .foregroundStyle(.secondary)
@@ -817,6 +887,20 @@ struct SkyView: View {
             showsOutlines = true
             scene.setSilhouettesVisible(true)
         }
+        if let raw = LaunchMode.patternPreview(environment: ProcessInfo.processInfo.environment) {
+            showsPatterns = true
+            scene.setPatternsVisible(true)
+            let id = raw == "1" ? SkyPatternCatalog.all.first?.id : raw
+            if let id {
+                for _ in 0..<60 where scene.direction(forPattern: id) == nil {
+                    try? await Task.sleep(for: .milliseconds(50))
+                }
+                if let direction = scene.direction(forPattern: id) {
+                    scene.aim(at: direction)
+                    SessionLog.append("sky.aim pattern=\(id)")
+                }
+            }
+        }
         if let abbreviation = LaunchMode.aimConstellation(environment: ProcessInfo.processInfo.environment) {
             for _ in 0..<60 where scene.direction(forConstellation: abbreviation) == nil {
                 try? await Task.sleep(for: .milliseconds(50))
@@ -841,7 +925,7 @@ struct SkyView: View {
         }
         if let abbreviation = LaunchMode.regionPreview(environment: ProcessInfo.processInfo.environment),
            let region = ConstellationInfo.region(for: abbreviation, in: catalog?.stars ?? []) {
-            currentRegion = region
+            currentRegion = .constellation(region)
             try? await Task.sleep(for: .seconds(2))
             infoRegion = region
         }
@@ -960,12 +1044,54 @@ struct SkyView: View {
         scene.highlightConstellation(nil)
     }
 
+    /// 点环落在闭合星群内部时开始计时。星群比星座大得多，0.6 秒的停留门槛
+    /// 是为了挡掉「扫过去」而不是「看着它」的情况。
+    private func patternProgress(at now: TimeInterval) -> Double? {
+        guard let pattern = scene.patternAtCenter() else {
+            resetPatternTracking()
+            return nil
+        }
+        if patternHold.key != pattern.id {
+            patternHold = ConstellationHold(key: pattern.id, since: now)
+            scene.highlightPattern(pattern.id)
+            identifiedPattern = nil
+        }
+        let held = now - patternHold.since
+        let progress = min(max(held / ConstellationHold.required, 0), 1)
+        if progress >= 1,
+           identifiedPattern?.id != pattern.id,
+           patternDismissed != pattern.id {
+            identifiedPattern = pattern
+            UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+            SessionLog.append("sky.pattern dwell=\(pattern.id)")
+        }
+        return progress
+    }
+
+    private func resetPatternTracking() {
+        guard patternHold.key != nil || identifiedPattern != nil else { return }
+        patternHold = ConstellationHold()
+        identifiedPattern = nil
+        patternDismissed = nil
+        scene.highlightPattern(nil)
+    }
+
     private func stepDwell() {
         guard scene.isReady else { return }
         let frameNow = ProcessInfo.processInfo.systemUptime
         if frameNow - regionStamp > 0.5 {
             regionStamp = frameNow
-            currentRegion = scene.currentRegion()
+            let region = scene.currentRegion()
+            if region?.key != currentRegion?.key {
+                SessionLog.append(
+                    String(
+                        format: "sky.region name=%@ distance=%.1f",
+                        region?.key ?? "none",
+                        region?.distance ?? -1
+                    )
+                )
+            }
+            currentRegion = region
         }
         if let target = guide {
             let vector = scene.guideVector(to: target)
@@ -987,12 +1113,20 @@ struct SkyView: View {
         }
         let hit = dwell.update(candidate: candidate, at: now)
         if candidate == nil {
+            // 优先级：星体 > 星座轮廓 > 星群。指着猎户座就说猎户座，
+            // 只有落在没有轮廓的天区里，星群才有资格说话。
             if let progress = constellationProgress(at: now) {
+                resetPatternTracking()
+                hud.show(progress)
+                return
+            }
+            if let progress = patternProgress(at: now) {
                 hud.show(progress)
                 return
             }
         } else {
             resetConstellationTracking()
+            resetPatternTracking()
         }
         hud.show(dwell.progress)
         guard let hit else { return }
