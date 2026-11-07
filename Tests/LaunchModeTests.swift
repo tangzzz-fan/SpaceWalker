@@ -51,6 +51,20 @@ final class LaunchModeTests: XCTestCase {
         XCTAssertEqual(forced.sceneUnderstanding, [.collision, .occlusion, .shadow])
     }
 
+    func testDefaultModeIsSpace() {
+        XCTAssertEqual(LaunchMode.mode(environment: [:]), .space)
+    }
+
+    func testARModeAndPrototypeModeAreAddressable() {
+        XCTAssertEqual(LaunchMode.mode(environment: ["SPACEWALKER_MODE": "ar"]), .ar)
+        XCTAssertEqual(LaunchMode.mode(environment: ["SPACEWALKER_MODE": "prototype"]), .prototype)
+    }
+
+    func testPickProbeIsOffByDefault() {
+        XCTAssertFalse(LaunchMode.pickProbeEnabled(environment: [:]))
+        XCTAssertTrue(LaunchMode.pickProbeEnabled(environment: ["SPACEWALKER_PICKPROBE": "1"]))
+    }
+
     func testUnknownModeKeepsSessionEntry() {
         let features = LaunchMode.enabledFeatures(environment: ["SPACEWALKER_MODE": "dome"])
         XCTAssertTrue(features.isEmpty)

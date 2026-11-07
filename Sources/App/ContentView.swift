@@ -4,12 +4,19 @@ import TGReduxKit
 struct ContentView: View {
     @Environment(Store<AppState, AppAction>.self) private var store
 
+    private var mode: LaunchMode.AppMode {
+        LaunchMode.mode(environment: ProcessInfo.processInfo.environment)
+    }
+
     var body: some View {
         Group {
-            if store.state.flags.prototypeEnabled {
+            switch mode {
+            case .prototype:
                 PrototypeView()
-            } else {
+            case .ar:
                 SessionView()
+            case .space:
+                SpaceView()
             }
         }
     }

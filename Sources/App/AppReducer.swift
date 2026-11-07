@@ -13,6 +13,8 @@ func makeAppReducer() -> Reducer<AppState, AppAction> {
             PlacementReducer.reduce(&state.placement, placementAction)
         case .permission(let permissionAction):
             PermissionReducer.reduce(&state.permission, permissionAction)
+        case .space(let spaceAction):
+            SolarSystemReducer.reduce(&state.space, spaceAction)
         case .flagsLoaded(let flags):
             state.flags = flags
         }

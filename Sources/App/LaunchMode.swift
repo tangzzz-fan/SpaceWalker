@@ -3,6 +3,25 @@ import Foundation
 enum LaunchMode {
     static let environmentKey = "SPACEWALKER_MODE"
     static let prototypeValue = "prototype"
+    static let arValue = "ar"
+
+    enum AppMode: String, Equatable, Sendable {
+        case space
+        case ar
+        case prototype
+    }
+
+    static func mode(environment: [String: String]) -> AppMode {
+        switch environment[environmentKey] {
+        case prototypeValue: .prototype
+        case arValue: .ar
+        default: .space
+        }
+    }
+
+    static func pickProbeEnabled(environment: [String: String]) -> Bool {
+        environment["SPACEWALKER_PICKPROBE"] == "1"
+    }
 
     static func enabledFeatures(environment: [String: String]) -> [AppFeature] {
         environment[environmentKey] == prototypeValue ? [AppFeature.prototype] : []
