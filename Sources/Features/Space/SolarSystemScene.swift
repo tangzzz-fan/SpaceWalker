@@ -1,4 +1,5 @@
 import Foundation
+import os
 import RealityKit
 import SwiftUI
 import UIKit
@@ -8,6 +9,7 @@ final class SolarSystemScene {
     static let coordinateSpaceName = "space"
     static let space = NamedCoordinateSpace.named(coordinateSpaceName)
     static let pickThreshold: CGFloat = 44
+    static let selectedScale: Float = 1.3
 
     private(set) var root = Entity()
     private var bodyNodes: [BodyID: Entity] = [:]
@@ -15,6 +17,8 @@ final class SolarSystemScene {
     private var cameraEntity: Entity?
     private var content: RealityViewCameraContent?
     private var isBuilt = false
+    private let firstFrame = FirstFrameFlag()
+    private var firstFrameSubscription: EventSubscription?
 
     func build() {
         guard !isBuilt else { return }
@@ -44,11 +48,20 @@ final class SolarSystemScene {
 
     func attach(_ content: RealityViewCameraContent) {
         self.content = content
+        guard firstFrameSubscription == nil else { return }
+        let flag = firstFrame
+        firstFrameSubscription = content.subscribe(to: SceneEvents.Update.self) { _ in
+            guard flag.claim() else { return }
+            SessionLog.append("space.firstFrame ms=\(AppClock.elapsedMilliseconds())")
+        }
     }
 
-    func apply(days: Double, showsOrbits: Bool, rig: OrbitRig) {
+    func apply(days: Double, showsOrbits: Bool, rig: OrbitRig, selected: BodyID?) {
         for planet in SolarSystem.bodies {
-            bodyNodes[planet.id]?.position = SolarLayout.position(for: planet, days: days)
+            guard let node = bodyNodes[planet.id] else { continue }
+            node.position = SolarLayout.position(for: planet, days: days)
+            let scale: Float = planet.id == selected ? Self.selectedScale : 1
+            node.scale = SIMD3(scale, scale, scale)
         }
         for node in orbitNodes.values {
             node.isEnabled = showsOrbits
@@ -75,6 +88,11 @@ final class SolarSystemScene {
             }
         }
         return best?.id
+    }
+
+    func screenPoint(for id: BodyID) -> CGPoint? {
+        guard let content, let node = bodyNodes[id] else { return nil }
+        return content.project(point: node.position(relativeTo: nil), to: Self.space)
     }
 
     func verifyPicking() -> String {
@@ -167,8 +185,7 @@ final class SolarSystemScene {
     }
 }
 
-private extension UIColor {
-    convenience init(hex: UInt32) {
+private extension UIColor {    convenience init(hex: UInt32) {
         self.init(
             red: CGFloat((hex >> 16) & 0xFF) / 255,
             green: CGFloat((hex >> 8) & 0xFF) / 255,
@@ -184,5 +201,18 @@ private extension UIColor {
         var alpha: CGFloat = 0
         getRed(&red, green: &green, blue: &blue, alpha: &alpha)
         return UIColor(red: red * factor, green: green * factor, blue: blue * factor, alpha: alpha)
+    }
+}
+
+
+private final class FirstFrameFlag: @unchecked Sendable {
+    private let lock = OSAllocatedUnfairLock(initialState: false)
+
+    func claim() -> Bool {
+        lock.withLock { claimed in
+            guard !claimed else { return false }
+            claimed = true
+            return true
+        }
     }
 }

@@ -7,6 +7,10 @@ struct SpaceView: View {
     @Environment(Store<AppState, AppAction>.self) private var store
 
     @State private var scene = SolarSystemScene()
+    #if DEBUG
+    @State private var probe = ProbeRecorder()
+    @State private var fpsLine: String?
+    #endif
     @State private var environment: RealityViewEnvironment?
     @State private var rig = OrbitRig()
     @State private var canvasSize: CGSize = .zero
@@ -15,6 +19,7 @@ struct SpaceView: View {
     @State private var ticker = Timer.publish(every: 1.0 / 30.0, on: .main, in: .common).autoconnect()
     @State private var lastTick = ProcessInfo.processInfo.systemUptime
     @State private var probeLine: String?
+    @State private var labelPoint: CGPoint?
     @State private var lastProbe: TimeInterval = 0
 
     private var state: SolarSystemState {
@@ -38,6 +43,16 @@ struct SpaceView: View {
                 }
             }
 
+            if let selectedBody, let labelPoint {
+                Text(selectedBody.name)
+                    .font(.caption.weight(.semibold))
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 5)
+                    .background(.ultraThinMaterial, in: Capsule())
+                    .position(x: labelPoint.x, y: labelPoint.y - 34)
+                    .allowsHitTesting(false)
+            }
+
             VStack(alignment: .leading, spacing: 0) {
                 topBar
                 Spacer(minLength: 0)
@@ -52,7 +67,11 @@ struct SpaceView: View {
             .padding(.bottom, 18)
         }
         .preferredColorScheme(.dark)
-        .task { await loadEnvironment() }
+        .task {
+            await loadEnvironment()
+            applyDebugPreselection()
+            await runAutoARIfNeeded()
+        }
         .onReceive(ticker) { _ in tick() }
         .fullScreenCover(isPresented: $showsNativeAR) {
             SessionView()
@@ -69,16 +88,21 @@ struct SpaceView: View {
             scene.build()
             content.add(scene.root)
             scene.attach(content)
+            #if DEBUG
+            probe.attach(content)
+            #endif
             scene.apply(
                 days: store.state.space.days,
                 showsOrbits: store.state.space.showsOrbits,
-                rig: rig
+                rig: rig,
+                selected: store.state.space.selected
             )
         } update: { _ in
             scene.apply(
                 days: store.state.space.days,
                 showsOrbits: store.state.space.showsOrbits,
-                rig: rig
+                rig: rig,
+                selected: store.state.space.selected
             )
         }
         .coordinateSpace(name: SolarSystemScene.coordinateSpaceName)
@@ -133,6 +157,12 @@ struct SpaceView: View {
             Text(rateLine)
                 .font(.caption)
                 .foregroundStyle(.secondary)
+            if let fpsLine {
+                Text(fpsLine)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .monospacedDigit()
+            }
             if let probeLine {
                 Text("pick · \(probeLine)")
                     .font(.caption2)
@@ -165,6 +195,7 @@ struct SpaceView: View {
                     .padding(.horizontal, 8)
                     .padding(.vertical, 3)
                     .background(.white.opacity(0.12), in: Capsule())
+                    .padding(.trailing, 24)
             }
             Text("直径 \(formatted(body.diameterKilometers)) km")
                 .font(.caption)
@@ -222,6 +253,14 @@ struct SpaceView: View {
                     .frame(width: 28, height: 28)
             }
             .accessibilityLabel(state.showsOrbits ? "隐藏轨道" : "显示轨道")
+
+            Button {
+                rig = OrbitRig()
+            } label: {
+                Image(systemName: "arrow.counterclockwise")
+                    .frame(width: 28, height: 28)
+            }
+            .accessibilityLabel("重置视角")
 
             Button {
                 showsCredits = true
@@ -296,6 +335,19 @@ struct SpaceView: View {
     }
 
     @MainActor
+    private func applyDebugPreselection() {
+        #if DEBUG
+        guard store.state.space.selected == nil,
+              let raw = ProcessInfo.processInfo.environment["SPACEWALKER_SELECT"],
+              let id = BodyID(rawValue: raw)
+        else {
+            return
+        }
+        store.dispatch(.space(.select(id)))
+        SessionLog.append("space.select.preset \(raw)")
+        #endif
+    }
+
     private func loadEnvironment() async {
         guard environment == nil else { return }
         let started = ProcessInfo.processInfo.systemUptime
@@ -314,15 +366,50 @@ struct SpaceView: View {
         let delta = min(max(now - lastTick, 0), 0.2)
         lastTick = now
 
+        if showsNativeAR {
+            return
+        }
+
         if !store.state.space.isPaused {
             store.dispatch(.space(.advance(seconds: delta)))
         }
+
+        if let selected = store.state.space.selected {
+            labelPoint = scene.screenPoint(for: selected)
+        } else {
+            labelPoint = nil
+        }
+
+        #if DEBUG
+        fpsLine = probe.tick(now: now, anchorPosition: nil).line
+        #endif
 
         #if DEBUG
         if LaunchMode.pickProbeEnabled(environment: ProcessInfo.processInfo.environment) {
             runPickProbe(now: now)
         }
         #endif
+    }
+
+    @MainActor
+    private func runAutoARIfNeeded() async {
+        #if DEBUG
+        let enabled = LaunchMode.autoAREnabled(environment: ProcessInfo.processInfo.environment)
+        #else
+        let enabled = false
+        #endif
+        guard enabled else { return }
+
+        try? await Task.sleep(for: .seconds(4))
+        let before = store.state.space.days
+        SessionLog.append(String(format: "space.ar.auto enter daysBefore=%.1f", before))
+        showsNativeAR = true
+
+        try? await Task.sleep(for: .seconds(8))
+        showsNativeAR = false
+        try? await Task.sleep(for: .seconds(2))
+        let after = store.state.space.days
+        SessionLog.append(String(format: "space.ar.auto exit daysBefore=%.1f daysAfter=%.1f", before, after))
     }
 
     #if DEBUG

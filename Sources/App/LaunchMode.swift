@@ -23,6 +23,10 @@ enum LaunchMode {
         environment["SPACEWALKER_PICKPROBE"] == "1"
     }
 
+    static func autoAREnabled(environment: [String: String]) -> Bool {
+        environment["SPACEWALKER_AUTOAR"] == "1"
+    }
+
     static func enabledFeatures(environment: [String: String]) -> [AppFeature] {
         environment[environmentKey] == prototypeValue ? [AppFeature.prototype] : []
     }
