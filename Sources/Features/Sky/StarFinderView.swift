@@ -60,12 +60,30 @@ struct StarFinderView: View {
     }
 
     private func constellationSection(_ group: StarFinder.ConstellationGroup) -> some View {
-        Section {
-            ForEach(group.stars.prefix(40), id: \.name) { star in
-                row(StarFinder.hit(for: star))
+        Group {
+            if let fact = ConstellationInfo.fact(for: group.abbreviation) {
+                Section("来头") {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text(fact.westernLore)
+                            .font(.callout)
+                            .lineSpacing(3)
+                            .fixedSize(horizontal: false, vertical: true)
+                        Text(fact.chineseLore)
+                            .font(.callout)
+                            .lineSpacing(3)
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .padding(.vertical, 2)
+                }
             }
-        } header: {
-            Text("\(group.name) · \(group.stars.count) 颗可选中")
+            Section {
+                ForEach(group.stars.prefix(40), id: \.name) { star in
+                    row(StarFinder.hit(for: star))
+                }
+            } header: {
+                Text("\(group.name) · \(group.stars.count) 颗可选中")
+            }
         }
     }
 

@@ -573,6 +573,57 @@ final class StarFinderTests: XCTestCase {
     }
 }
 
+final class ConstellationInfoTests: XCTestCase {
+    private let sample: [Star] = [
+        Star(rightAscensionHours: 5.92, declinationDegrees: 7.4, magnitude: 0.45, colorIndex: 1.5, name: "Betelgeuse", constellation: "Ori"),
+        Star(rightAscensionHours: 5.24, declinationDegrees: -8.2, magnitude: 0.18, colorIndex: -0.1, name: "Rigel", constellation: "Ori"),
+        Star(rightAscensionHours: 16.49, declinationDegrees: -26.4, magnitude: 1.06, colorIndex: 1.8, name: "Antares", constellation: "Sco"),
+    ]
+
+    func testEveryDrawnConstellationHasStory() {
+        let drawn = Set(Constellations.all.map(\.abbreviation))
+        let described = Set(ConstellationInfo.facts.keys)
+        XCTAssertTrue(drawn.subtracting(described).isEmpty, "缺少来头文案：\(drawn.subtracting(described).sorted())")
+        XCTAssertTrue(described.subtracting(drawn).isEmpty, "来头文案没有对应星座：\(described.subtracting(drawn).sorted())")
+    }
+
+    func testStoriesAreNonEmpty() {
+        for fact in ConstellationInfo.facts.values {
+            XCTAssertGreaterThan(fact.westernLore.count, 20, "\(fact.abbreviation) 西方来头过短")
+            XCTAssertGreaterThan(fact.chineseLore.count, 15, "\(fact.abbreviation) 中国星官说明过短")
+        }
+    }
+
+    func testRegionPicksBrightestAndSeason() {
+        let region = try? XCTUnwrap(ConstellationInfo.region(for: "Ori", in: sample))
+        XCTAssertEqual(region?.brightest?.name, "Rigel")
+        XCTAssertEqual(region?.starCount, 2)
+        XCTAssertEqual(region?.bestMonth, 1)
+        XCTAssertEqual(region?.chineseName, "猎户座")
+    }
+
+    func testNearestReturnsConstellationOfPointedRegion() {
+        let orion = ConstellationInfo.nearest(
+            to: StarField.direction(rightAscensionHours: 5.9, declinationDegrees: 7.4),
+            in: sample
+        )
+        XCTAssertEqual(orion?.abbreviation, "Ori")
+
+        let scorpius = ConstellationInfo.nearest(
+            to: StarField.direction(rightAscensionHours: 16.5, declinationDegrees: -26.4),
+            in: sample
+        )
+        XCTAssertEqual(scorpius?.abbreviation, "Sco")
+    }
+
+    func testLatinNameTableCoversCatalog() throws {
+        let catalog = try XCTUnwrap(StarCatalog.loadFromBundle(.main))
+        let abbreviations = Set(catalog.stars.map(\.constellation).filter { !$0.isEmpty })
+        let missing = abbreviations.subtracting(ConstellationInfo.latinNames.keys)
+        XCTAssertTrue(missing.isEmpty, "缺少拉丁名：\(missing.sorted())")
+    }
+}
+
 final class AppRouteTests: XCTestCase {
     func testRouteSwitchIsReduced() {
         var state = AppState()

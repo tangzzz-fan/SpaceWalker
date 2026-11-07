@@ -18,6 +18,9 @@ struct SkyView: View {
     @State private var showsFinder = false
     @State private var guide: Star?
     @State private var guideVector: GuideVector?
+    @State private var currentRegion: ConstellationRegion?
+    @State private var infoRegion: ConstellationRegion?
+    @State private var regionStamp: TimeInterval = 0
     @State private var dwell = DwellSelector()
     @State private var hud = DwellHUD()
     @State private var observer = SkyObserver()
@@ -75,6 +78,11 @@ struct SkyView: View {
             observer.disable()
         }
         .sheet(isPresented: $showsCredits) { creditsSheet }
+        .sheet(item: $infoRegion) { region in
+            ConstellationInfoView(region: region, stars: catalog?.stars ?? []) { star in
+                startGuide(to: star)
+            }
+        }
         .sheet(isPresented: $showsFinder) {
             StarFinderView(stars: catalog?.stars ?? []) { star in
                 startGuide(to: star)
@@ -145,6 +153,20 @@ struct SkyView: View {
             Text(observer.statusText)
                 .font(.caption2)
                 .foregroundStyle(observer.isOn ? .primary : .secondary)
+            if let region = currentRegion {
+                Button {
+                    infoRegion = region
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: "book.closed")
+                        Text("当前天区 \(region.chineseName) · 查看来头")
+                    }
+                    .font(.caption2)
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(.secondary)
+                .padding(.top, 2)
+            }
             if observer.isOn, !observer.hasHeading {
                 Button {
                     calibrateFacingNorth()
@@ -402,6 +424,12 @@ struct SkyView: View {
         if LaunchMode.finderPreviewEnabled(environment: ProcessInfo.processInfo.environment) {
             showsFinder = true
         }
+        if let abbreviation = LaunchMode.regionPreview(environment: ProcessInfo.processInfo.environment),
+           let region = ConstellationInfo.region(for: abbreviation, in: catalog?.stars ?? []) {
+            currentRegion = region
+            try? await Task.sleep(for: .seconds(2))
+            infoRegion = region
+        }
         if let target = LaunchMode.guideTarget(environment: ProcessInfo.processInfo.environment) {
             let stars = catalog?.stars ?? []
             if let star = stars.first(where: { $0.name == target }) {
@@ -460,6 +488,11 @@ struct SkyView: View {
 
     private func stepDwell() {
         guard scene.isReady else { return }
+        let frameNow = ProcessInfo.processInfo.systemUptime
+        if frameNow - regionStamp > 0.5 {
+            regionStamp = frameNow
+            currentRegion = scene.currentRegion()
+        }
         if let target = guide {
             let vector = scene.guideVector(to: target)
             guideVector = vector

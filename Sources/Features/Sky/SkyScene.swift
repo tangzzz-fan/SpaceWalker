@@ -176,6 +176,10 @@ final class SkyScene {
         return world / length
     }
 
+    func currentRegion() -> ConstellationRegion? {
+        ConstellationInfo.nearest(to: viewDirectionInField, in: nodes)
+    }
+
     func guideVector(to star: Star) -> GuideVector? {
         guard let direction = renderedDirection(of: star) else { return nil }
         return SkyGuide.vector(to: direction)
