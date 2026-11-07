@@ -5,50 +5,113 @@ import TGReduxKit
 struct SessionView: View {
     @Environment(Store<AppState, AppAction>.self) private var store
     @Environment(\.scenePhase) private var scenePhase
+
     @State private var runner = SessionRunner()
+    @State private var placement = PlacementController()
+    @State private var ticker = Timer.publish(every: 0.1, on: .main, in: .common).autoconnect()
+    #if DEBUG
+    private let autoPlace = LaunchMode.autoPlaceEnabled(environment: ProcessInfo.processInfo.environment)
+    #endif
+    @State private var stableSurfaceTicks = 0
+    @State private var placementDebugLine: String?
+    @State private var didAutoPlace = false
 
     var body: some View {
-        ZStack(alignment: .top) {
-            RealityView { content in
-                content.camera = .spatialTracking
-            }
-            .ignoresSafeArea()
-            .task { await handle(.appeared) }
-            .onDisappear {
-                Task { await handle(.disappeared) }
-            }
-            .onChange(of: scenePhase) { _, phase in
-                guard let event = Self.event(for: phase) else { return }
-                Task { await handle(event) }
-            }
+        GeometryReader { geometry in
+            let center = CGPoint(x: geometry.size.width / 2, y: geometry.size.height / 2)
 
-            diagnostics
+            ZStack(alignment: .top) {
+                RealityView { content in
+                    content.camera = .spatialTracking
+                    placement.attach(content)
+                }
+                .coordinateSpace(.named(PlacementController.coordinateSpaceName))
+                .ignoresSafeArea()
+                .gesture(
+                    SpatialTapGesture()
+                        .onEnded { _ in placement.place(center: center) }
+                )
+                .task { await handle(.appeared) }
+                .onDisappear {
+                    placement.detach()
+                    Task { await handle(.disappeared) }
+                }
+                .onChange(of: scenePhase) { _, phase in
+                    guard let event = Self.event(for: phase) else { return }
+                    Task { await handle(event) }
+                }
+
+                overlay
+            }
+            .onReceive(ticker) { _ in
+                placement.tick(center: center)
+                placementDebugLine = placement.debugLine
+                #if DEBUG
+                stableSurfaceTicks = store.state.placement.isSurfaceAvailable
+                    ? stableSurfaceTicks + 1
+                    : 0
+                if autoPlace,
+                   !didAutoPlace,
+                   stableSurfaceTicks >= 20 {
+                    placement.place(center: center)
+                    didAutoPlace = true
+                }
+                #endif
+            }
         }
     }
 
-    @MainActor
-    private func handle(_ event: SessionEvent) async {
-        let transition = SessionLifecycle.transition(from: store.state.session.phase, on: event)
-        store.dispatch(.session(.phaseChanged(transition.phase)))
-        #if DEBUG
-        NSLog("[SpaceWalker] session phase=%@ event=%@", transition.phase.rawValue, String(describing: event))
-        #endif
+    private var overlay: some View {
+        VStack(spacing: 10) {
+            statusBanner
+            diagnostics
+        }
+        .padding(.top, 8)
+        .animation(.easeOut(duration: 0.2), value: store.state.placement.isSurfaceAvailable)
+    }
 
-        switch transition.command {
-        case .start, .resume:
-            let outcome = await runner.start()
-            store.dispatch(.session(.reported(outcome)))
-        case .stop:
-            await runner.stop()
-        case .suspend, .none:
-            break
+    @ViewBuilder
+    private var statusBanner: some View {
+        let placementState = store.state.placement
+
+        if placementState.needsReplace {
+            VStack(spacing: 8) {
+                Text("表面丢失，请重新放置")
+                    .font(.subheadline)
+                Button("重新放置") {
+                    placement.reset()
+                    store.dispatch(.placement(.reset))
+                }
+                .buttonStyle(.borderedProminent)
+            }
+            .padding(14)
+            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 14))
+        } else if placementState.isPlaced {
+            Text(placementState.driftLine)
+                .font(.caption)
+                .monospacedDigit()
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(.ultraThinMaterial, in: Capsule())
+        } else if placementState.isSurfaceAvailable {
+            Text("轻点放置")
+                .font(.subheadline)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 8)
+                .background(.ultraThinMaterial, in: Capsule())
+        } else {
+            Label("移动手机扫描桌面", systemImage: "viewfinder")
+                .font(.subheadline)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 8)
+                .background(.ultraThinMaterial, in: Capsule())
         }
     }
 
     @ViewBuilder
     private var diagnostics: some View {
         #if DEBUG
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: 2) {
             Text(store.state.session.phase.rawValue.uppercased())
                 .font(.caption.weight(.semibold))
             if let line = store.state.session.diagnosticLine {
@@ -59,13 +122,50 @@ struct SessionView: View {
                 Text("camera unauthorized")
                     .font(.caption2)
             }
+            if let placementDebugLine {
+                Text(placementDebugLine)
+                    .font(.caption2)
+                    .monospacedDigit()
+            }
         }
-        .padding(10)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 10))
-        .padding(.horizontal, 12)
-        .padding(.top, 8)
+        .padding(8)
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 8))
         .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 12)
         #endif
+    }
+
+    @MainActor
+    private func handle(_ event: SessionEvent) async {
+        let transition = SessionLifecycle.transition(from: store.state.session.phase, on: event)
+        store.dispatch(.session(.phaseChanged(transition.phase)))
+
+        switch transition.command {
+        case .start, .resume:
+            bindPlacementCallbacks()
+            let outcome = await runner.start()
+            store.dispatch(.session(.reported(outcome)))
+        case .stop:
+            await runner.stop()
+        case .suspend, .none:
+            break
+        }
+    }
+
+    @MainActor
+    private func bindPlacementCallbacks() {
+        placement.onSurfaceChanged = { available in
+            store.dispatch(.placement(.surfaceAvailable(available)))
+        }
+        placement.onPlaced = {
+            store.dispatch(.placement(.placed))
+        }
+        placement.onDriftMeasured = { drift in
+            store.dispatch(.placement(.driftMeasured(drift)))
+        }
+        placement.onReplaceNeeded = { needed in
+            store.dispatch(.placement(.replacePrompted(needed)))
+        }
     }
 
     private static func event(for phase: ScenePhase) -> SessionEvent? {

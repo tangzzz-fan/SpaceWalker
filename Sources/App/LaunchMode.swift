@@ -7,4 +7,8 @@ enum LaunchMode {
     static func enabledFeatures(environment: [String: String]) -> [AppFeature] {
         environment[environmentKey] == prototypeValue ? [AppFeature.prototype] : []
     }
+
+    static func autoPlaceEnabled(environment: [String: String]) -> Bool {
+        environment["SPACEWALKER_AUTOPLACE"] == "1"
+    }
 }

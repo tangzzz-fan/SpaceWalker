@@ -3,16 +3,16 @@ import XCTest
 @testable import SpaceWalker
 
 final class SessionPlanTests: XCTestCase {
-    func testM0RequiresWorldAndCameraOnBackLens() {
-        XCTAssertEqual(SessionPlan.m0.anchors, [.world, .camera])
-        XCTAssertTrue(SessionPlan.m0.sceneUnderstanding.isEmpty)
+    func testM0RequiresWorldPlaneCameraAndSceneCollision() {
+        XCTAssertEqual(SessionPlan.m0.anchors, [.world, .plane, .camera])
+        XCTAssertEqual(SessionPlan.m0.sceneUnderstanding, [.collision, .shadow, .occlusion])
         XCTAssertEqual(SessionPlan.m0.camera, .back)
     }
 
     func testReducedDropsUnavailableAnchors() {
         let unavailable = SessionUnavailability(anchors: [.camera])
         let reduced = SessionPlan.reduced(SessionPlan.m0, by: unavailable)
-        XCTAssertEqual(reduced.anchors, [.world])
+        XCTAssertEqual(reduced.anchors, [.world, .plane])
     }
 
     func testOutcomeStaysUsableWithoutCameraAnchor() {

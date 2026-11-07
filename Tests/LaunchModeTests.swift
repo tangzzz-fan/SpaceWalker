@@ -12,6 +12,11 @@ final class LaunchModeTests: XCTestCase {
         XCTAssertEqual(features, [.prototype])
     }
 
+    func testAutoPlaceRequiresExplicitOptIn() {
+        XCTAssertFalse(LaunchMode.autoPlaceEnabled(environment: [:]))
+        XCTAssertTrue(LaunchMode.autoPlaceEnabled(environment: ["SPACEWALKER_AUTOPLACE": "1"]))
+    }
+
     func testUnknownModeKeepsSessionEntry() {
         let features = LaunchMode.enabledFeatures(environment: ["SPACEWALKER_MODE": "dome"])
         XCTAssertTrue(features.isEmpty)

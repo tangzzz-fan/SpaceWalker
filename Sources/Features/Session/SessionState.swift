@@ -10,7 +10,14 @@ struct SessionState: State {
         guard let startedInMilliseconds else { return nil }
         return "\(startedInMilliseconds)ms · anchors \(requirements.anchors.count)"
             + " · scene \(requirements.sceneUnderstanding.count)"
-            + " · unavailable \(unavailability.anchors.count)"
+            + " · unavailable \(unavailableSummary)"
+    }
+
+    private var unavailableSummary: String {
+        let anchors = unavailability.anchors.map(\.rawValue).sorted()
+        let scene = unavailability.sceneUnderstanding.map(\.rawValue).sorted()
+        let items = anchors + scene
+        return items.isEmpty ? "0" : items.joined(separator: "+")
     }
 }
 

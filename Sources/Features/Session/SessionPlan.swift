@@ -9,6 +9,7 @@ enum TrackingAnchor: String, CaseIterable, Sendable {
 enum SceneUnderstandingKind: String, CaseIterable, Sendable {
     case shadow
     case occlusion
+    case collision
 }
 
 enum CameraPosition: String, Sendable {
@@ -40,8 +41,8 @@ struct SessionOutcome: Equatable, Sendable {
 
 enum SessionPlan {
     static let m0 = SessionRequirements(
-        anchors: [.world, .camera],
-        sceneUnderstanding: [],
+        anchors: [.world, .plane, .camera],
+        sceneUnderstanding: [.collision, .shadow, .occlusion],
         camera: .back
     )
 

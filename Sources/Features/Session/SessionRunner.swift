@@ -90,6 +90,8 @@ final class SessionRunner {
                 understanding.insert(.shadow)
             case .occlusion:
                 understanding.insert(.occlusion)
+            case .collision:
+                understanding.insert(.collision)
             }
         }
 
@@ -121,6 +123,8 @@ final class SessionRunner {
                 result.sceneUnderstanding.insert(.shadow)
             } else if capability == .occlusion {
                 result.sceneUnderstanding.insert(.occlusion)
+            } else if capability == .collision {
+                result.sceneUnderstanding.insert(.collision)
             }
         }
 
