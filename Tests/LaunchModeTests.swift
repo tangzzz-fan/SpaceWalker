@@ -17,6 +17,17 @@ final class LaunchModeTests: XCTestCase {
         XCTAssertTrue(LaunchMode.autoPlaceEnabled(environment: ["SPACEWALKER_AUTOPLACE": "1"]))
     }
 
+    func testForcedPermissionIsOffByDefault() {
+        XCTAssertNil(LaunchMode.forcedPermission(environment: [:]))
+    }
+
+    func testForcedPermissionParsesDenied() {
+        XCTAssertEqual(
+            LaunchMode.forcedPermission(environment: ["SPACEWALKER_FORCE_PERMISSION": "denied"]),
+            .denied
+        )
+    }
+
     func testForcedDegradedIsOffByDefault() {
         XCTAssertEqual(
             LaunchMode.forcedUnavailability(environment: [:]),

@@ -12,6 +12,15 @@ enum LaunchMode {
         environment["SPACEWALKER_AUTOPLACE"] == "1"
     }
 
+    static func forcedPermission(environment: [String: String]) -> CameraPermissionState? {
+        switch environment["SPACEWALKER_FORCE_PERMISSION"] {
+        case "denied": .denied
+        case "restricted": .restricted
+        case "authorized": .authorized
+        default: nil
+        }
+    }
+
     static func forcedUnavailability(environment: [String: String]) -> SessionUnavailability {
         guard let value = environment["SPACEWALKER_FORCE_DEGRADED"] else {
             return SessionUnavailability()

@@ -1,3 +1,4 @@
+import AVFoundation
 import RealityKit
 import SwiftUI
 import TGReduxKit
@@ -17,6 +18,24 @@ struct SessionView: View {
     @State private var didAutoPlace = false
 
     var body: some View {
+        Group {
+            switch store.state.permission.screen {
+            case .content:
+                arSurface
+            case .requesting:
+                PermissionRequestingView()
+            case .explanation:
+                PermissionView(status: store.state.permission.status)
+            }
+        }
+        .task { await refreshPermission() }
+        .onChange(of: scenePhase) { _, phase in
+            guard phase == .active else { return }
+            Task { await refreshPermission() }
+        }
+    }
+
+    private var arSurface: some View {
         GeometryReader { geometry in
             let center = CGPoint(x: geometry.size.width / 2, y: geometry.size.height / 2)
 
@@ -162,6 +181,34 @@ struct SessionView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, 12)
         #endif
+    }
+
+    @MainActor
+    private func refreshPermission() async {
+        #if DEBUG
+        if let forced = LaunchMode.forcedPermission(environment: ProcessInfo.processInfo.environment) {
+            store.dispatch(.permission(.status(forced)))
+            SessionLog.append("permission.forced \(forced.rawValue)")
+            return
+        }
+        #endif
+
+        var status = CameraPermissionState.from(
+            AVCaptureDevice.authorizationStatus(for: .video)
+        )
+        if PermissionGate.shouldRequestAccess(
+            status: status,
+            alreadyRequested: store.state.permission.requestedThisLaunch
+        ) {
+            store.dispatch(.permission(.requested))
+            let granted = await AVCaptureDevice.requestAccess(for: .video)
+            status = granted ? .authorized : .denied
+            SessionLog.append("permission.request granted=\(granted)")
+        }
+        if store.state.permission.status != status {
+            store.dispatch(.permission(.status(status)))
+            SessionLog.append("permission.status \(status.rawValue)")
+        }
     }
 
     @MainActor

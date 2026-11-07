@@ -11,6 +11,8 @@ func makeAppReducer() -> Reducer<AppState, AppAction> {
             SessionReducer.reduce(&state.session, sessionAction)
         case .placement(let placementAction):
             PlacementReducer.reduce(&state.placement, placementAction)
+        case .permission(let permissionAction):
+            PermissionReducer.reduce(&state.permission, permissionAction)
         case .flagsLoaded(let flags):
             state.flags = flags
         }
