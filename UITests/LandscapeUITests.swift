@@ -75,14 +75,16 @@ final class LandscapeUITests: XCTestCase {
             "SPACEWALKER_LAYERS": "1",
             "SPACEWALKER_AIM": "Ori",
             "SPACEWALKER_CONSTELLATION": "Ori",
-            "SPACEWALKER_SKYMOTION": "0",
+            "SPACEWALKER_MOTIONLOG": "1",
         ]
         app.launch()
         XCTAssertTrue(app.wait(for: .runningForeground, timeout: 20))
         sleep(7)
 
+        let away = UInt32(ProcessInfo.processInfo.environment["SKYCHECK_AWAY_SECONDS"] ?? "") ?? 12
+        print("SKYCHECK away=\(away)")
         app.buttons["太阳系"].tap()
-        sleep(12)
+        sleep(away)
         app.buttons["星图"].tap()
         sleep(5)
         save("sky-after-roundtrip", app)
