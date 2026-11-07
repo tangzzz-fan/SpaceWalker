@@ -11,7 +11,7 @@
 3. `ManipulationComponent` 是 **visionOS 26.0+**，iOS 不可用；iOS 的拖拽/缩放/旋转必须用 SwiftUI 手势 + 命中组件 + 自行解算 Transform。
 4. `EnvironmentBlendingComponent` 是 **visionOS 26.0+**，且只在混合/渐进沉浸空间生效；iOS 的现实遮挡只能依赖 `sceneUnderstanding: [.occlusion]`。
 5. `MeshInstancesComponent` 是 **iOS 26.0+ / iPadOS 26.0+ / macOS 26.0+ / tvOS 26.0+ / visionOS 26.0+**；实例数据是 `LowLevelInstanceData`，不是 `Entity`，不能逐实例挂 `CollisionComponent` / `InputTargetComponent`。
-6. **iPhone 16 没有 LiDAR**（Apple 中国官网对比页中 iPhone 16 的激光雷达扫描仪为"不适用"，iPhone 16 Pro 才有）。基准机型无 LiDAR，房间网格重建与真实遮挡能力受限。
+6. **iPhone 16 没有 LiDAR，iPhone 16 Pro 有**（Apple 中国官网对比页：iPhone 16 激光雷达"不适用"）。本项目真机实测基准机型为 **iPhone 16 Pro（iPhone17,1）/ iOS 27.0**，即有 LiDAR；此前文档按 iPhone 16 推断的"无 LiDAR"前提作废。
 7. 天宫一号于 2011-09-29 发射，是中国首个目标飞行器/空间实验室，先后与神舟八号、九号、十号共完成 6 次交会对接，2016-03-16 终止数据服务，2018-04-02 再入大气层（落区南太平洋中部）。
 
 ## 事实表
@@ -27,12 +27,12 @@
 | 实例组件 | `MeshInstancesComponent` 对同一实体的模型做 GPU 实例化，实例变换在实体局部空间 | https://developer.apple.com/documentation/realitykit/meshinstancescomponent | **iOS 26.0+** | B 阶段方案成立；但实例不是 Entity |
 | 实例命中 | 实例是 `LowLevelInstanceData`，文档称其"像子实体"，但没有独立 Entity 身份 | 同上（Overview） | iOS 26.0+ | 逐星命中不能用 Collision/InputTarget，需屏幕投影 + 解析判定 |
 | 手势命中 | 实体接收输入需要 `InputTargetComponent`；`CollisionComponent` 定义可交互区域 | https://developer.apple.com/documentation/realitykit/inputtargetcomponent | iOS 13.0+ | A/C 阶段命中方案成立；B 阶段例外 |
-| 设备能力 | iPhone 16 无激光雷达扫描仪；iPhone 16 Pro 有 | https://www.apple.com.cn/iphone/compare/?modelList=iphone-16,iphone-16-pro,iphone-16-pro-max | 硬件 | 基准机型无 LiDAR，遮挡承诺必须降级 |
+| 设备能力 | iPhone 16 无激光雷达扫描仪；iPhone 16 Pro 有 | https://www.apple.com.cn/iphone/compare/?modelList=iphone-16,iphone-16-pro,iphone-16-pro-max | 硬件 | 基准机型实为 16 Pro（有 LiDAR），遮挡不再预设降级，改为实测定档 |
 | 史实 | 2011-09-29 发射；目标飞行器/首个空间实验室；与神舟八/九/十号 6 次对接；2016-03-16 终止数据服务；2018-04-02 再入 | https://www.cmse.gov.cn/xwzx/202209/t20220921_50802.html | — | C 阶段文案与信息卡必须据此，不得称"空间站" |
 
 ## 必须标注为"待真机验证"
 
-- 无 LiDAR 的 iPhone 16 上 `.occlusion` 的实际效果（能否挡住桌沿、手掌、杯子）。
+- 有 LiDAR 的 iPhone 16 Pro 上 `.occlusion` 的实际效果（能否挡住桌沿、手掌、杯子）。
 - 2000 个透明/半透明实例在基准机型上的帧时间、过绘制与发热。
 - `MeshInstancesComponent` 是否支持逐实例材质或逐实例 LOD（当前文档只给出统一网格 + 变换列表）。
 - 姿态视锥选中的角度阈值与停留时间的手感（3° / 0.6s 只是起点）。
@@ -42,4 +42,4 @@
 
 - `ARKitAnchorComponent` 与 `AnchorStateEvents` 在 iOS 26 的完整 API 形状与版本约束：WWDC25 摘要提及，但本次未在独立文档页确认，M0 需以 SDK 头文件为准。
 - `MeshInstancesComponent` 是否参与物理与碰撞：文档未提及，按"不参与"设计。
-- iPhone 16 在 iOS 26 上是否支持 `.sceneUnderstanding` 的网格重建：无 LiDAR 时预计仅平面级，未证实。
+- iPhone 16 Pro 在 iOS 27.0 上 `.sceneUnderstanding` 的网格重建粒度与遮挡质量：未证实，待 003 真机。

@@ -33,8 +33,9 @@ M0 的第一块砖：用 `RealityView` + `SpatialTrackingSession` 把相机画�
 代码已就绪，真机验收未做，本票保持未完成。
 
 - 实现：`Sources/Features/Session/`（`SessionPlan` / `SessionLifecycle` / `SessionState` / `SessionRunner` / `SessionView`），默认入口仍是 000 原型；关闭 `AppFeature.prototype` 即进入 `SessionView`。
-- 已实测：`xcodebuild build`（Simulator 与 generic iOS device）均 SUCCEEDED；真机产物签名 `Apple Development (UKXWZ3FS84)`、bundle id `com.tango.spacewalker`；单测 32 项 0 失败（新增 `SessionLifecycleTests` 12 项、`SessionPlanTests` 6 项、reducer 2 项）。
-- 待真机：1.0s 出画面、前后台 5 次、来电 1 次、锁屏 1 次、退出释放；证据归档 `docs/gates/M0/`。
+- 已实测（真机 iPhone 16 Pro / iOS 27.0）：会话 `RUNNING`，`anchors=2`（world + camera）、`scene=0`、`unavailable=0`，启动 → `run` 返回 **655ms**，相机背景可见；证据 `docs/gates/M0/evidence-2026-11-07.md` 与 `001-session-running-655ms.jpg`。
+- 已实测（Simulator / device）：编译零错误零警告（AppIntents 元数据警告除外）；单测 36 项 0 失败。
+- 待真机：首帧上屏耗时（655ms 是 `run` 返回，不等于首帧）、前后台 5 次、来电 1 次、锁屏 1 次、退出释放。
 - 会话要求：M0 只申请 `[.world, .camera]`、无场景理解、后置相机；`run(_:)` 返回的不可用能力落到 `SessionState.unavailability` 并打日志。
 - 与 000 的关系：本票 `blocked_by: [000]`，但会话与生命周期不随体验结论变化，故提前实现以尽早暴露真机链路风险；000 的记录跑完后，本票结论若与预期不符（如 `.camera` 能力不可用导致黑屏），先改本票再改 003。
 - SDK 约束：`SpatialTrackingSession.Configuration` 未标 `Sendable`，Swift 6 下传给 `run(_:)` 报 sending 错误，已用 `@preconcurrency import RealityKit` 处理，记入 ADR-0001 后果。
