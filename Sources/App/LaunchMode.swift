@@ -129,6 +129,13 @@ enum LaunchMode {
         environment["SPACEWALKER_AIM"]
     }
 
+    /// 启动时的垂直视场角（度）。验收「看全」效果用，比如 85 看整片银河、
+    /// 22 把天鹅座塞满屏幕。
+    static func fieldOfView(environment: [String: String]) -> Float? {
+        guard let raw = environment["SPACEWALKER_FOV"], let value = Float(raw) else { return nil }
+        return value
+    }
+
     /// 直接弹出某个星座的识别卡（写缩写，如 Sgr）。准星落点常有星，星卡会
     /// 抢在前面；验收卡片排版时需要一条不经准星的通道。
     static func constellationPreview(environment: [String: String]) -> String? {

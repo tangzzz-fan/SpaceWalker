@@ -10,6 +10,9 @@ final class SkyScene {
 
     private(set) var root = Entity()
     private var content: RealityViewCameraContent?
+    private var cameraEntity: Entity?
+    /// 垂直视场角。默认 60°，和人眼一支手臂看出去的宽度接近。
+    private(set) var fieldOfView: Float = SkyScene.defaultFieldOfView
     private var nodes: [Star] = []
     private var field = Entity()
     private var constellationNode: Entity?
@@ -150,7 +153,7 @@ final class SkyScene {
         if let faint = try? StarFieldBuilder.mesh(
             StarFieldBuilder.constellation(
                 extendedSegments,
-                radius: Self.constellationRadius * 0.9
+                radius: Self.constellationRadius * 0.62
             ),
             name: "constellations.minor"
         ) {
@@ -312,7 +315,7 @@ final class SkyScene {
         }
         guard !segments.isEmpty,
               let mesh = try? StarFieldBuilder.mesh(
-                  StarFieldBuilder.constellation(segments, radius: 0.046),
+                  StarFieldBuilder.constellation(segments, radius: 0.125),
                   name: "constellation.focus"
               )
         else { return }
@@ -564,7 +567,14 @@ final class SkyScene {
     static let asterismBaseBrightness: Float = 0.52
     static let asterismDimBrightness: Float = 0.16
     static let asterismHighlightBrightness: Float = 0.98
-    static let constellationRadius: Float = 0.032
+    /// 视场范围：16° 能把人马座整个塞满屏幕，95° 用来纵览银河。
+    static let defaultFieldOfView: Float = 60
+    static let minFieldOfView: Float = 16
+    static let maxFieldOfView: Float = 95
+
+    /// 线的世界半径。0.032 在半径 50 的球面上只占 0.037°，60° 视场里约 0.5pt，
+    /// 比星点细二十倍——这才是「骨架摆着却看不出来」的真实原因，不是数据不够。
+    static let constellationRadius: Float = 0.088
     static let constellationFillRadius: Float = 51.4
     static let constellationOutlineRadius: Float = 50.6
     /// 高亮层要落在星座线（半径 50）的内侧才不会被原线挡住。
@@ -572,6 +582,36 @@ final class SkyScene {
 
     func attach(_ content: RealityViewCameraContent) {
         self.content = content
+        installCamera()
+    }
+
+    /// 自建透视相机，为的是能改视场角。
+    ///
+    /// `content.camera = .virtual` 用的是系统默认 FOV，外部改不了；人马座跨 35°、
+    /// 天鹅十字 30°，而竖屏默认视场只有三十几度，永远差一点装不下。
+    /// 相机挂在 content 根上（不挂 field），因为星空转、相机不转。
+    private func installCamera() {
+        guard let content, cameraEntity == nil else { return }
+        let entity = Entity()
+        entity.name = "sky.camera"
+        entity.components.set(PerspectiveCameraComponent(
+            near: 0.05,
+            far: 500,
+            fieldOfViewInDegrees: fieldOfView
+        ))
+        content.add(entity)
+        cameraEntity = entity
+    }
+
+    func setFieldOfView(_ degrees: Float) {
+        let clamped = min(Self.maxFieldOfView, max(Self.minFieldOfView, degrees))
+        guard abs(clamped - fieldOfView) > 0.05 else { return }
+        fieldOfView = clamped
+        guard let cameraEntity,
+              var camera = cameraEntity.components[PerspectiveCameraComponent.self]
+        else { return }
+        camera.fieldOfViewInDegrees = clamped
+        cameraEntity.components.set(camera)
     }
 
     var viewDirectionInField: SIMD3<Float> {

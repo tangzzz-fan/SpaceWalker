@@ -81,7 +81,7 @@ Sources/Features/
   Sky/                星表、姿态、地平对齐、拾取、分组、观赏期（B 阶段）
   Prototype/          原型模式
 Sources/Resources/    stars.json、galaxy-equirect.jpg
-Tests/                单元测试（280 项）
+Tests/                单元测试（282 项）
 docs/                 PRD、ADR、门禁证据、素材清单
 ```
 
@@ -117,6 +117,7 @@ SkyObserver(纬度/恒星时/航向) → field.orientation(地平旋转)
 | `SPACEWALKER_OUTLINES=1` | 启动即显示星座轮廓 |
 | `SPACEWALKER_PATTERNS=1` | 启动即显示星群；写 id（`winter-triangle` / `summer-triangle` / `spring-arc`）则同时对准该星群中心 |
 | `SPACEWALKER_CONSTELLATION=Sgr` | 直接弹出该星座的识别卡并高亮骨架，用于验收卡片排版（准星常被星抢走） |
+| `SPACEWALKER_FOV=88` | 启动视场角（16–95°）；双指捏合等价，双击复位到 60° |
 | `SPACEWALKER_LAYERS=1` | 一次点亮全部图形层（连线 + 轮廓 + 星官 + 星群），真机负载验收用 |
 | `SPACEWALKER_FPS=1` | 右上角帧率读数；`sky.perf` 日志在 Debug 构建下默认就写（`=0` 关闭），读数必须显式打开 |
 | `SPACEWALKER_AIM=Ori` | 把视线对准指定星座（缩写） |
@@ -140,7 +141,7 @@ xcodebuild test -project SpaceWalker.xcodeproj -scheme SpaceWalker \
   -destination 'platform=iOS Simulator,name=iPhone 18 Pro'
 ```
 
-280 项单元测试，覆盖星表数学、姿态换基、地平旋转、拾取预筛、停留状态机、星官解析、图形包含关系、耳切三角化、观赏期排序。
+282 项单元测试，覆盖星表数学、姿态换基、地平旋转、拾取预筛、停留状态机、星官解析、图形包含关系、耳切三角化、观赏期排序。
 
 ## 数据与许可
 

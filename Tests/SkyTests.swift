@@ -1878,3 +1878,44 @@ final class ConstellationShapeNoteTests: XCTestCase {
         XCTAssertNil(ConstellationShapeNote.note(for: "ZZZ"))
     }
 }
+
+@MainActor
+final class SkyFieldOfViewTests: XCTestCase {
+    func testClampsToSupportedRange() {
+        let scene = SkyScene()
+        XCTAssertEqual(scene.fieldOfView, SkyScene.defaultFieldOfView)
+
+        scene.setFieldOfView(2)
+        XCTAssertEqual(scene.fieldOfView, SkyScene.minFieldOfView, "再小就只剩几颗星，没有意义")
+
+        scene.setFieldOfView(400)
+        XCTAssertEqual(scene.fieldOfView, SkyScene.maxFieldOfView)
+        XCTAssertGreaterThan(SkyScene.minFieldOfView, 0)
+        XCTAssertLessThan(SkyScene.minFieldOfView, SkyScene.maxFieldOfView)
+    }
+
+    func testIgnoresSubDegreeJitter() {
+        let scene = SkyScene()
+        let before = scene.fieldOfView
+        scene.setFieldOfView(before + 0.01)
+        XCTAssertEqual(scene.fieldOfView, before, "捏合手势每帧都会报值，零点几度不该重建 mesh")
+    }
+
+    func testAnyFieldOfViewFitsTheSagittariusSpan() throws {
+        // 人马座跨 35°。竖屏默认 60° 垂直视场对应的水平只有 28°，
+        // 所以必须靠拉远到 95° 或转横屏——这条测试钉住「默认装不下」这个事实，
+        // 有人把默认视场改小了要能立刻发现。
+        let height = 852.0
+        let width = 393.0
+        func horizontalFieldOfView(_ vertical: Double) -> Double {
+            let halfVertical = vertical / 2 * .pi / 180
+            return 2 * atan(tan(halfVertical) * width / height) * 180 / .pi
+        }
+        XCTAssertLessThan(horizontalFieldOfView(Double(SkyScene.defaultFieldOfView)), 35)
+        XCTAssertGreaterThan(
+            horizontalFieldOfView(Double(SkyScene.maxFieldOfView)),
+            35,
+            "最大视场也得装得下人马座，否则「看全」无从谈起"
+        )
+    }
+}

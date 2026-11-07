@@ -11,6 +11,7 @@ struct SkyView: View {
     @State private var rig = SkyRig()
     @State private var attitude = DeviceAttitude()
     @State private var lastDrag: CGSize = .zero
+    @State private var zoomBase: Float = SkyScene.defaultFieldOfView
     @State private var selected: Star?
     @State private var selectedGroup: SkyGroup?
     @State private var groups: [SkyGroup] = []
@@ -159,7 +160,6 @@ struct SkyView: View {
 
     private var reality: some View {
         RealityView { content in
-            content.camera = .virtual
             content.environment = .default
             guard let catalog else { return }
             scene.build(catalog: catalog)
@@ -185,6 +185,26 @@ struct SkyView: View {
                     lastDrag = value.translation
                 }
                 .onEnded { _ in lastDrag = .zero }
+        )
+        // 双指捏合改视场角。人放在星空上叫「看全」，不是在缩放图片：
+        // 人马座 35° 装不进 36° 的竖屏视场，只能连视场一起放大。
+        .simultaneousGesture(
+            MagnifyGesture()
+                .onChanged { value in
+                    scene.setFieldOfView(zoomBase / Float(value.magnification))
+                }
+                .onEnded { _ in
+                    zoomBase = scene.fieldOfView
+                }
+        )
+        // 双击回到默认视场。缩放没有「复位」就等于没有退出键，
+        // 放到 95° 之后很难再捏回 60°。
+        .simultaneousGesture(
+            TapGesture(count: 2).onEnded {
+                scene.setFieldOfView(SkyScene.defaultFieldOfView)
+                zoomBase = SkyScene.defaultFieldOfView
+                SessionLog.append("sky.fov reset")
+            }
         )
         .simultaneousGesture(
             SpatialTapGesture(coordinateSpace: .named(SkyScene.coordinateSpaceName))
@@ -957,6 +977,14 @@ struct SkyView: View {
                 try? await Task.sleep(for: .milliseconds(600))
                 focus(group: group)
             }
+        }
+        if let fov = LaunchMode.fieldOfView(environment: ProcessInfo.processInfo.environment) {
+            for _ in 0..<40 where !scene.isReady {
+                try? await Task.sleep(for: .milliseconds(50))
+            }
+            scene.setFieldOfView(fov)
+            zoomBase = scene.fieldOfView
+            SessionLog.append(String(format: "sky.fov value=%.1f", scene.fieldOfView))
         }
         if let abbreviation = LaunchMode.aimTarget(environment: ProcessInfo.processInfo.environment),
            let stars = catalog?.stars {
