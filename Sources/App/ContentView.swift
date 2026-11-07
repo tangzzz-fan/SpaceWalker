@@ -9,11 +9,7 @@ struct ContentView: View {
             if store.state.flags.prototypeEnabled {
                 PrototypeView()
             } else {
-                ContentUnavailableView(
-                    "原型未启用",
-                    systemImage: "sparkles",
-                    description: Text("在 Feature Flag 中开启 spacewalker.prototype")
-                )
+                SessionView()
             }
         }
     }

@@ -27,6 +27,8 @@ iOS 上有两条 AR 路线：成熟的 `ARView` + `ARKit` 配置，以及 iOS 26
 - API 较新、社区案例少，必须以真机验证为准；Simulator 不能验证任何 AR 能力。
 - 必须在 M0 实现能力探测与降级模式，禁止把"系统版本够"当成"能力可用"。
 - Swift 6 严格并发下，会话与实体更新必须收敛到 `@MainActor`，避免跨 actor 传实体。
+- iOS 与 visionOS 的 `Configuration` 初始化不同：iOS 只有 `init(tracking:sceneUnderstanding:camera:)`，且 `Camera` 枚举与 `.camera/.face/.body` 锚能力为 iOS 独有；visionOS 走另外两个 `init`。跨平台代码不能照抄。
+- `SpatialTrackingSession.Configuration` 未标 `Sendable`，Swift 6 语言模式下传给 `run(_:)` 会报 sending 错误；需 `@preconcurrency import RealityKit`。这是 SDK 缺口，不是本地并发设计问题。
 
 ## 替代方案
 

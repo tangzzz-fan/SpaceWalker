@@ -51,6 +51,30 @@ final class AppReducerTests: XCTestCase {
         XCTAssertFalse(state.flags.prototypeEnabled)
     }
 
+    func testSessionPhaseChangedUpdatesState() {
+        let state = reduce([.session(.phaseChanged(.running))])
+        XCTAssertEqual(state.session.phase, .running)
+    }
+
+    func testSessionReportedUsableKeepsPhase() {
+        let outcome = SessionPlan.outcome(
+            for: SessionPlan.m0,
+            unavailability: SessionUnavailability(anchors: [.camera])
+        )
+        let state = reduce([.session(.phaseChanged(.running)), .session(.reported(outcome))])
+        XCTAssertEqual(state.session.phase, .running)
+        XCTAssertEqual(state.session.unavailability.anchors, [.camera])
+    }
+
+    func testSessionReportedUnusableFails() {
+        let outcome = SessionPlan.outcome(
+            for: SessionPlan.m0,
+            unavailability: SessionUnavailability(cameraAuthorized: false)
+        )
+        let state = reduce([.session(.phaseChanged(.running)), .session(.reported(outcome))])
+        XCTAssertEqual(state.session.phase, .failed)
+    }
+
     func testResetKeepsPlacedPhase() {
         let state = reduce([
             .prototype(.anchored),
