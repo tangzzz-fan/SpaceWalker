@@ -13,8 +13,14 @@ final class SkyScene {
     private var nodes: [Star] = []
     private var field = Entity()
     private var constellationNode: Entity?
+    private var silhouetteNode: Entity?
     private(set) var constellationCount = 0
     private var constellationsRequested = true
+    private var silhouettesRequested = false
+    private var constellationShapes: [ConstellationOutlineShape] = []
+    private var constellationHighlightNode: Entity?
+    private var constellationHighlightID: String?
+    private var constellationPositions: [String: SIMD3<Float>] = [:]
     private var asterismNode: Entity?
     private var asterismMaterial: UnlitMaterial?
     private var asterismHighlightNode: Entity?
@@ -23,6 +29,7 @@ final class SkyScene {
     private(set) var asterismSegmentCount = 0
     private(set) var asterismGroupCount = 0
     private var asterismsRequested = false
+    private var aimLocked = false
     private var isBuilt = false
     private var viewSize: CGSize = .zero
     private(set) var isAttitudeDriven = false
@@ -120,34 +127,49 @@ final class SkyScene {
         ))
         group.addChild(stickNode)
 
-        if let silhouette = makeSilhouette(positions: positions) {
-            group.addChild(silhouette)
-        }
+        buildSilhouettes(positions: positions)
 
         group.isEnabled = constellationsRequested
         constellationNode = group
         constellationCount = segments.count
     }
 
-    private func makeSilhouette(positions: [String: SIMD3<Float>]) -> Entity? {
+    /// 每个星座画出的闭合环：优先手工星点轮廓，其次美术图形，最后凸包兜底。
+    static func rings(
+        for constellation: Constellation,
+        positions: [String: SIMD3<Float>]
+    ) -> [[SIMD3<Float>]] {
+        if let figure = ConstellationFigures.all[constellation.abbreviation] {
+            return ConstellationFigureBuilder.rings(figure, positions: positions)
+        }
+        if !constellation.outlines.isEmpty,
+           constellation.outlines.allSatisfy({ ring in ring.allSatisfy { positions[$0] != nil } }) {
+            return constellation.outlines.map { $0.compactMap { positions[$0] } }
+        }
+        if constellation.outline.count >= 3,
+           constellation.outline.allSatisfy({ positions[$0] != nil }) {
+            return [constellation.outline.compactMap { positions[$0] }]
+        }
+        let names = Array(Set(constellation.lines.flatMap { [$0.first, $0.second] }))
+        let points = names.compactMap { positions[$0] }
+        guard points.count >= 3 else { return [] }
+        return [StarFieldBuilder.hullRing(points)]
+    }
+
+    private func buildSilhouettes(positions: [String: SIMD3<Float>]) {
         var fillMesh = StarMeshData(positions: [], normals: [], indices: [])
         var outlineSegments: [(SIMD3<Float>, SIMD3<Float>)] = []
+        var shapes: [ConstellationOutlineShape] = []
 
         for constellation in Constellations.all {
-            let names = Array(Set(constellation.lines.flatMap { [$0.first, $0.second] }))
-            let points = names.compactMap { positions[$0] }
-            guard points.count >= 3 else { continue }
-
-            let drawn: [[SIMD3<Float>]]
-            if let figure = ConstellationFigures.all[constellation.abbreviation] {
-                drawn = ConstellationFigureBuilder.rings(figure, positions: positions)
-            } else if constellation.outline.count >= 3,
-                      constellation.outline.allSatisfy({ positions[$0] != nil }) {
-                drawn = [constellation.outline.compactMap { positions[$0] }]
-            } else {
-                drawn = [StarFieldBuilder.hullRing(points)]
+            let drawn = Self.rings(for: constellation, positions: positions)
+            guard !drawn.isEmpty else { continue }
+            if let shape = ConstellationFigureBuilder.shape(
+                abbreviation: constellation.abbreviation,
+                rings: drawn
+            ) {
+                shapes.append(shape)
             }
-
             for ring in drawn where ring.count >= 3 {
                 fillMesh = StarFieldBuilder.merge([
                     fillMesh,
@@ -161,7 +183,9 @@ final class SkyScene {
             }
         }
 
-        guard !fillMesh.positions.isEmpty, !outlineSegments.isEmpty else { return nil }
+        constellationShapes = shapes
+        constellationPositions = positions
+        guard !fillMesh.positions.isEmpty, !outlineSegments.isEmpty else { return }
 
         let group = Entity()
         group.name = "constellation.silhouette"
@@ -186,13 +210,92 @@ final class SkyScene {
             ))
             group.addChild(node)
         }
-        return group
+        group.isEnabled = silhouettesRequested
+        field.addChild(group)
+        silhouetteNode = group
     }
 
     func setConstellationsVisible(_ visible: Bool) {
         constellationsRequested = visible
         constellationNode?.isEnabled = visible
     }
+
+    func setSilhouettesVisible(_ visible: Bool) {
+        silhouettesRequested = visible
+        silhouetteNode?.isEnabled = visible
+    }
+
+    /// 点环方向落在哪个星座轮廓内。命中多个时取距离中心最近的一个。
+    func constellation(at direction: SIMD3<Float>) -> Constellation? {
+        var best: (abbreviation: String, dot: Float)?
+        for shape in constellationShapes where shape.contains(direction) {
+            let dot = simd_dot(simd_normalize(direction), shape.center)
+            if best == nil || dot > best!.dot {
+                best = (shape.abbreviation, dot)
+            }
+        }
+        guard let best else { return nil }
+        return Constellations.all.first { $0.abbreviation == best.abbreviation }
+    }
+
+    func constellationAtCenter() -> Constellation? {
+        constellation(at: viewDirectionInField)
+    }
+
+    /// 某个星座的几何中心方向，用于对准与调试。
+    func direction(forConstellation abbreviation: String) -> SIMD3<Float>? {
+        guard let constellation = Constellations.all.first(where: { $0.abbreviation == abbreviation })
+        else { return nil }
+        let names = Set(constellation.lines.flatMap { [$0.first, $0.second] })
+        var sum = SIMD3<Float>(0, 0, 0)
+        var count = 0
+        for name in names {
+            guard let position = constellationPositions[name] else { continue }
+            sum += simd_normalize(position)
+            count += 1
+        }
+        guard count > 0, simd_length(sum) > 0.001 else { return nil }
+        return simd_normalize(sum)
+    }
+
+    /// 临时点亮一个星座的轮廓：即使总开关关着，也让用户看见自己指着的那块。
+    func highlightConstellation(_ abbreviation: String?) {
+        guard abbreviation != constellationHighlightID else { return }
+        constellationHighlightID = abbreviation
+        constellationHighlightNode?.removeFromParent()
+        constellationHighlightNode = nil
+        guard let abbreviation,
+              let constellation = Constellations.all.first(where: { $0.abbreviation == abbreviation })
+        else { return }
+
+        let positions = constellationPositions
+        guard !positions.isEmpty else { return }
+        let drawn = Self.rings(for: constellation, positions: positions)
+        var segments: [(SIMD3<Float>, SIMD3<Float>)] = []
+        for ring in drawn where ring.count >= 3 {
+            let vertices = ring.map { simd_normalize($0) * Self.constellationHighlightRadius }
+            for index in 0..<vertices.count {
+                segments.append((vertices[index], vertices[(index + 1) % vertices.count]))
+            }
+        }
+        guard !segments.isEmpty,
+              let mesh = try? StarFieldBuilder.mesh(
+                  StarFieldBuilder.constellation(segments, radius: 0.026),
+                  name: "constellation.focus"
+              )
+        else { return }
+
+        let node = Entity()
+        node.name = "constellation.focus"
+        node.components.set(ModelComponent(
+            mesh: mesh,
+            materials: [UnlitMaterial(color: uiColor(SIMD3(0.66, 0.78, 0.98), brightness: 1))]
+        ))
+        node.isEnabled = true
+        field.addChild(node)
+        constellationHighlightNode = node
+    }
+
 
     private func buildAsterisms(from stars: [Star]) {
         starsByHIP = Dictionary(
@@ -304,6 +407,7 @@ final class SkyScene {
     static let constellationRadius: Float = 0.032
     static let constellationFillRadius: Float = 51.4
     static let constellationOutlineRadius: Float = 50.6
+    static let constellationHighlightRadius: Float = 50.4
 
     func attach(_ content: RealityViewCameraContent) {
         self.content = content
@@ -317,11 +421,18 @@ final class SkyScene {
         field.orientation = orientation
     }
 
+    /// 把视线转到某个方向。定位后要锁住，否则无陀螺仪时 `apply(rig:)`
+    /// 会在下一次 RealityView 更新里把朝向拉回拖动状态。
     func aim(at direction: SIMD3<Float>) {
         let length = simd_length(direction)
         guard length > 0.0001 else { return }
         let world = field.orientation.act(direction / length)
         root.orientation = simd_quatf(from: world, to: SIMD3<Float>(0, 0, -1))
+        aimLocked = true
+    }
+
+    func releaseAim() {
+        aimLocked = false
     }
 
     func setAttitude(_ orientation: simd_quatf) {
@@ -330,7 +441,7 @@ final class SkyScene {
     }
 
     func apply(rig: SkyRig) {
-        guard !isAttitudeDriven else { return }
+        guard !isAttitudeDriven, !aimLocked else { return }
         root.orientation = rig.orientation
     }
 

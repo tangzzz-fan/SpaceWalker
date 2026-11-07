@@ -64,6 +64,21 @@ enum LaunchMode {
     }
 
     /// 「1」只打开星榜；写部门名直接进该部；写别的词按关键词检索。
+    /// 无陀螺仪时用定时器驱动准星判定，便于模拟器验证停留选中与星座识别。
+    static func dwellProbeEnabled(environment: [String: String]) -> Bool {
+        environment["SPACEWALKER_DWELL"] == "1"
+    }
+
+    static func outlinesEnabled(environment: [String: String]) -> Bool {
+        environment["SPACEWALKER_OUTLINES"] == "1"
+    }
+
+    /// 把星图对准指定星座（缩写，如 Ori），用于模拟器无陀螺仪时的验证。
+    static func aimConstellation(environment: [String: String]) -> String? {
+        guard let raw = environment["SPACEWALKER_AIM"], !raw.isEmpty, raw != "0" else { return nil }
+        return raw
+    }
+
     static func fengshenTarget(environment: [String: String]) -> String? {
         guard let raw = environment["SPACEWALKER_FENGSHEN"],
               !raw.isEmpty, raw != "0"

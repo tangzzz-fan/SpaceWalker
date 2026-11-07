@@ -908,6 +908,110 @@ final class FengshenTests: XCTestCase {
     }
 }
 
+final class ConstellationShapeTests: XCTestCase {
+    private func positions() throws -> [String: SIMD3<Float>] {
+        let stars = try XCTUnwrap(StarCatalog.loadFromBundle(.main)).stars
+        var map: [String: SIMD3<Float>] = [:]
+        for star in stars where star.isNamed && map[star.name] == nil {
+            map[star.name] = StarField.position(for: star)
+        }
+        return map
+    }
+
+    func testMultiRingConstellationsAreDeclared() {
+        let byAbbreviation = Dictionary(
+            Constellations.all.map { ($0.abbreviation, $0) },
+            uniquingKeysWith: { first, _ in first }
+        )
+        XCTAssertEqual(byAbbreviation["Gem"]?.outlines.count, 2)
+        XCTAssertEqual(byAbbreviation["Tau"]?.outlines.count, 2)
+        XCTAssertEqual(byAbbreviation["Peg"]?.outlines.count, 2)
+        XCTAssertTrue(byAbbreviation["Gem"]?.outline.isEmpty == true)
+    }
+
+    func testEveryRingReferencesRealStarsAndHasThreePoints() throws {
+        let map = try positions()
+        for constellation in Constellations.all {
+            for ring in constellation.outlines {
+                XCTAssertGreaterThanOrEqual(ring.count, 3, "\(constellation.name) 轮廓环点数不足")
+                for name in ring {
+                    XCTAssertNotNil(map[name], "\(constellation.name) 轮廓引用了不存在的星：\(name)")
+                }
+            }
+            if !constellation.outline.isEmpty {
+                for name in constellation.outline {
+                    XCTAssertNotNil(map[name], "\(constellation.name) 轮廓引用了不存在的星：\(name)")
+                }
+            }
+        }
+    }
+
+    @MainActor
+    func testEveryDrawnConstellationProducesAShape() throws {
+        let map = try positions()
+        var shaped = 0
+        for constellation in Constellations.all {
+            let rings = SkyScene.rings(for: constellation, positions: map)
+            guard !rings.isEmpty else { continue }
+            let shape = ConstellationFigureBuilder.shape(
+                abbreviation: constellation.abbreviation,
+                rings: rings
+            )
+            let unwrapped = try XCTUnwrap(shape, constellation.name)
+            XCTAssertGreaterThan(unwrapped.rings.count, 0, constellation.name)
+            XCTAssertLessThan(unwrapped.radiusDegrees, 90, constellation.name)
+            shaped += 1
+        }
+        // 小犬座只有 Procyon 与 Gomeisa 两颗亮星，凑不出面，其余 30 个都能画。
+        XCTAssertEqual(shaped, 30)
+    }
+
+    @MainActor
+    func testShapeRejectsOppositeAndMostCentersHit() throws {
+        let map = try positions()
+        var centered = 0
+        var total = 0
+        for constellation in Constellations.all {
+            let rings = SkyScene.rings(for: constellation, positions: map)
+            guard let shape = ConstellationFigureBuilder.shape(
+                abbreviation: constellation.abbreviation,
+                rings: rings
+            ) else { continue }
+            total += 1
+            XCTAssertFalse(
+                shape.contains(-shape.center),
+                "\(constellation.name) 把对跖点也判进来了"
+            )
+            if shape.contains(shape.center) {
+                centered += 1
+            }
+        }
+        // 凹形（仙后 W、天鹅十字）与多环（双子、金牛）的几何中心本就落在轮廓之外，
+        // 这里只要求绝大多数命中，防止包含判定整体失效。
+        XCTAssertEqual(total, 30)
+        XCTAssertGreaterThanOrEqual(centered, 20, "命中比例过低，判定可能失效")
+    }
+
+    @MainActor
+    func testMultiRingShapesAreSeparated() throws {
+        let map = try positions()
+        let gemini = try XCTUnwrap(Constellations.all.first { $0.abbreviation == "Gem" })
+        let rings = SkyScene.rings(for: gemini, positions: map)
+        XCTAssertEqual(rings.count, 2)
+        for ring in rings {
+            XCTAssertGreaterThanOrEqual(ring.count, 3)
+        }
+        let centers = rings.map { ring -> SIMD3<Float> in
+            ring.reduce(SIMD3<Float>(0, 0, 0), +) / Float(ring.count)
+        }
+        let separation = acos(Double(min(max(simd_dot(
+            simd_normalize(centers[0]),
+            simd_normalize(centers[1])
+        ), -1), 1))) * 180 / .pi
+        XCTAssertGreaterThan(separation, 2, "双子两个环的中心太近，画不出两个人形")
+    }
+}
+
 final class ConstellationOutlineTests: XCTestCase {
     func testOutlinesReferenceRealStars() throws {
         let catalog = try XCTUnwrap(StarCatalog.loadFromBundle(.main))

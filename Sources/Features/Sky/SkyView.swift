@@ -19,6 +19,10 @@ struct SkyView: View {
     @State private var showsCredits = false
     @State private var showsConstellations = true
     @State private var showsAsterisms = false
+    @State private var showsOutlines = false
+    @State private var identifiedConstellation: Constellation?
+    @State private var constellationHold = ConstellationHold()
+    @State private var constellationDismissed: String?
     @State private var fengshenFocus: AsterismFocus?
     @State private var showsFinder = false
     @State private var guide: Star?
@@ -56,6 +60,10 @@ struct SkyView: View {
                     guideBar(guide)
                         .padding(.bottom, 10)
                 }
+                if let constellation = identifiedConstellation {
+                    constellationBadge(constellation)
+                        .padding(.bottom, 10)
+                }
                 if let selectedGroup {
                     groupCard(selectedGroup)
                         .padding(.bottom, 10)
@@ -80,6 +88,9 @@ struct SkyView: View {
         }
         .onChange(of: showsAsterisms) { _, visible in
             scene.setAsterismsVisible(visible)
+        }
+        .onChange(of: showsOutlines) { _, visible in
+            scene.setSilhouettesVisible(visible)
         }
         .onChange(of: selectedGroup) { _, group in
             scene.highlightAsterism(group?.asterismID)
@@ -137,6 +148,7 @@ struct SkyView: View {
             DragGesture(minimumDistance: 4)
                 .onChanged { value in
                     guard !motionActive else { return }
+                    scene.releaseAim()
                     rig.drag(
                         deltaX: Float(value.translation.width - lastDrag.width),
                         deltaY: Float(value.translation.height - lastDrag.height)
@@ -285,6 +297,7 @@ struct SkyView: View {
         HStack(spacing: 8) {
             if !motionActive {
                 Button {
+                    scene.releaseAim()
                     rig = SkyRig()
                 } label: {
                     Image(systemName: "arrow.counterclockwise")
@@ -305,15 +318,23 @@ struct SkyView: View {
             }
             .accessibilityLabel("搜索并定位一颗星")
 
-            Button {
-                showsConstellations.toggle()
+            Menu {
+                Toggle(isOn: $showsConstellations) {
+                    Label("星座连线", systemImage: "link")
+                }
+                Toggle(isOn: $showsOutlines) {
+                    Label("星座轮廓", systemImage: "square.on.circle")
+                }
             } label: {
-                Label("星座", systemImage: showsConstellations ? "link" : "link.badge.plus")
-                    .font(.caption2)
-                    .lineLimit(1)
-                    .fixedSize()
+                Label(
+                    "星座",
+                    systemImage: showsConstellations ? "link" : (showsOutlines ? "square.on.circle" : "link.badge.plus")
+                )
+                .font(.caption2)
+                .lineLimit(1)
+                .fixedSize()
             }
-            .accessibilityLabel("星座连线")
+            .accessibilityLabel("星座连线与轮廓")
 
             Button {
                 showsAsterisms.toggle()
@@ -433,6 +454,59 @@ struct SkyView: View {
         dwell.reset()
         hud.show(0)
         SessionLog.append("sky.group focus=\(group.id) members=\(group.memberCount)")
+    }
+
+    private func constellationBadge(_ constellation: Constellation) -> some View {
+        let fact = ConstellationInfo.fact(for: constellation.abbreviation)
+        let latin = ConstellationInfo.latinNames[constellation.abbreviation] ?? constellation.abbreviation
+        return VStack(alignment: .leading, spacing: 5) {
+            HStack(alignment: .firstTextBaseline, spacing: 6) {
+                Image(systemName: "circle.dashed")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                Text(constellation.name)
+                    .font(.headline)
+                Text(latin)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                Spacer(minLength: 6)
+                Button {
+                    infoRegion = ConstellationInfo.region(
+                        for: constellation.abbreviation,
+                        in: catalog?.stars ?? []
+                    )
+                } label: {
+                    Image(systemName: "book.closed")
+                        .font(.caption)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("查看星座来头")
+            }
+            if let fact {
+                Text(fact.westernLore)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Text("\(constellation.starCount) 颗连线星 · 落在轮廓内 0.6 秒识别")
+                .font(.caption2)
+                .foregroundStyle(.tertiary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(14)
+        .padding(.trailing, 22)
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16))
+        .overlay(alignment: .topTrailing) {
+            Button {
+                identifiedConstellation = nil
+                constellationDismissed = constellation.abbreviation
+            } label: {
+                Image(systemName: "xmark.circle.fill")
+                    .foregroundStyle(.secondary)
+            }
+            .padding(10)
+        }
     }
 
     private func groupCard(_ group: SkyGroup) -> some View {
@@ -739,10 +813,31 @@ struct SkyView: View {
             showsAsterisms = true
             scene.setAsterismsVisible(true)
         }
+        if LaunchMode.outlinesEnabled(environment: ProcessInfo.processInfo.environment) {
+            showsOutlines = true
+            scene.setSilhouettesVisible(true)
+        }
+        if let abbreviation = LaunchMode.aimConstellation(environment: ProcessInfo.processInfo.environment) {
+            for _ in 0..<60 where scene.direction(forConstellation: abbreviation) == nil {
+                try? await Task.sleep(for: .milliseconds(50))
+            }
+            if let direction = scene.direction(forConstellation: abbreviation) {
+                scene.aim(at: direction)
+                SessionLog.append("sky.aim constellation=\(abbreviation)")
+            }
+        }
         if LaunchMode.finderPreviewEnabled(environment: ProcessInfo.processInfo.environment)
             || LaunchMode.tourPreviewEnabled(environment: ProcessInfo.processInfo.environment)
             || LaunchMode.fengshenTarget(environment: ProcessInfo.processInfo.environment) != nil {
             showsFinder = true
+        }
+        if LaunchMode.dwellProbeEnabled(environment: ProcessInfo.processInfo.environment) {
+            Task {
+                while !Task.isCancelled {
+                    stepDwell()
+                    try? await Task.sleep(for: .milliseconds(80))
+                }
+            }
         }
         if let abbreviation = LaunchMode.regionPreview(environment: ProcessInfo.processInfo.environment),
            let region = ConstellationInfo.region(for: abbreviation, in: catalog?.stars ?? []) {
@@ -833,6 +928,38 @@ struct SkyView: View {
         )
     }
 
+    /// 点环落在某星座轮廓内时开始计时，满 0.6 秒确认并弹标识卡。
+    /// 返回 nil 表示当前不在任何星座轮廓内。
+    private func constellationProgress(at now: TimeInterval) -> Double? {
+        guard let constellation = scene.constellationAtCenter() else {
+            resetConstellationTracking()
+            return nil
+        }
+        if constellationHold.key != constellation.abbreviation {
+            constellationHold = ConstellationHold(key: constellation.abbreviation, since: now)
+            scene.highlightConstellation(constellation.abbreviation)
+            identifiedConstellation = nil
+        }
+        let held = now - constellationHold.since
+        let progress = min(max(held / ConstellationHold.required, 0), 1)
+        if progress >= 1,
+           identifiedConstellation?.abbreviation != constellation.abbreviation,
+           constellationDismissed != constellation.abbreviation {
+            identifiedConstellation = constellation
+            UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+            SessionLog.append("sky.constellation dwell=\(constellation.abbreviation)")
+        }
+        return progress
+    }
+
+    private func resetConstellationTracking() {
+        guard constellationHold.key != nil || identifiedConstellation != nil else { return }
+        constellationHold = ConstellationHold()
+        identifiedConstellation = nil
+        constellationDismissed = nil
+        scene.highlightConstellation(nil)
+    }
+
     private func stepDwell() {
         guard scene.isReady else { return }
         let frameNow = ProcessInfo.processInfo.systemUptime
@@ -859,6 +986,14 @@ struct SkyView: View {
             SessionLog.append(scene.pickDiagnostics())
         }
         let hit = dwell.update(candidate: candidate, at: now)
+        if candidate == nil {
+            if let progress = constellationProgress(at: now) {
+                hud.show(progress)
+                return
+            }
+        } else {
+            resetConstellationTracking()
+        }
         hud.show(dwell.progress)
         guard let hit else { return }
         selected = hit
@@ -907,4 +1042,10 @@ private struct DwellRing: View {
 
 struct AsterismFocus: Identifiable, Equatable {
     var id: String
+}
+
+struct ConstellationHold {
+    static let required: TimeInterval = 0.6
+    var key: String?
+    var since: TimeInterval = 0
 }

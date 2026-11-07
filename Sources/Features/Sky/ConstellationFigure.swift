@@ -85,7 +85,91 @@ enum ConstellationFigures {
     ]
 }
 
+/// 一个星座在天空中的可判定区域：把轮廓环投影到以星座中心为法线的切平面，
+/// 之后所有点都在这张平面里做多边形包含测试。
+struct ConstellationOutlineShape: Sendable {
+    var abbreviation: String
+    var center: SIMD3<Float>
+    var east: SIMD3<Float>
+    var north: SIMD3<Float>
+    var origin: SIMD2<Float>
+    var half: SIMD2<Float>
+    var rings: [[SIMD2<Float>]]
+    /// 从中心到最远轮廓点的角距，用于粗筛。
+    var radiusDegrees: Double
+
+    func contains(_ direction: SIMD3<Float>) -> Bool {
+        let vector = simd_normalize(direction)
+        guard simd_dot(vector, center) >= cos(Float(radiusDegrees) * .pi / 180) else {
+            return false
+        }
+        let degrees = SIMD2(
+            asin(max(-1, min(1, simd_dot(east, vector)))) * 180 / .pi,
+            asin(max(-1, min(1, simd_dot(north, vector)))) * 180 / .pi
+        )
+        guard abs(half.x) > 0.001, abs(half.y) > 0.001 else { return false }
+        let point = SIMD2((degrees.x - origin.x) / half.x, (degrees.y - origin.y) / half.y)
+        return rings.contains { ConstellationFigureBuilder.contains(point, ring: $0) }
+    }
+}
+
 enum ConstellationFigureBuilder {
+    /// 用真实亮星的轮廓环构造可判定区域。环不足 3 点或退化时返回 nil。
+    static func shape(
+        abbreviation: String,
+        rings: [[SIMD3<Float>]]
+    ) -> ConstellationOutlineShape? {
+        let valid = rings.filter { $0.count >= 3 }.map { $0.map(simd_normalize) }
+        guard !valid.isEmpty else { return nil }
+        let all = valid.flatMap { $0 }
+        guard all.count >= 3 else { return nil }
+
+        var sum = SIMD3<Float>(0, 0, 0)
+        for vector in all {
+            sum += vector
+        }
+        guard simd_length(sum) > 0.001 else { return nil }
+        let center = simd_normalize(sum)
+        let reference = abs(center.y) < 0.99 ? SIMD3<Float>(0, 1, 0) : SIMD3<Float>(1, 0, 0)
+        let east = simd_normalize(simd_cross(reference, center))
+        let north = simd_cross(center, east)
+
+        func project(_ vector: SIMD3<Float>) -> SIMD2<Float> {
+            SIMD2(
+                asin(max(-1, min(1, simd_dot(east, vector)))) * 180 / .pi,
+                asin(max(-1, min(1, simd_dot(north, vector)))) * 180 / .pi
+            )
+        }
+
+        let projected = valid.map { $0.map(project) }
+        let xs = projected.flatMap { $0.map(\.x) }
+        let ys = projected.flatMap { $0.map(\.y) }
+        guard let minX = xs.min(), let maxX = xs.max(),
+              let minY = ys.min(), let maxY = ys.max(),
+              maxX - minX > 0.2, maxY - minY > 0.2
+        else { return nil }
+
+        let origin = SIMD2((minX + maxX) / 2, (minY + maxY) / 2)
+        let half = SIMD2((maxX - minX) / 2, (maxY - minY) / 2)
+        let normalized = projected.map { ring in
+            ring.map { SIMD2(($0.x - origin.x) / half.x, ($0.y - origin.y) / half.y) }
+        }
+        let radius = all
+            .map { acos(Double(min(max(simd_dot(center, $0), -1), 1))) * 180 / .pi }
+            .max() ?? 0
+
+        return ConstellationOutlineShape(
+            abbreviation: abbreviation,
+            center: center,
+            east: east,
+            north: north,
+            origin: origin,
+            half: half,
+            rings: normalized,
+            radiusDegrees: radius
+        )
+    }
+
     static func rings(_ figure: ConstellationFigure, positions: [String: SIMD3<Float>]) -> [[SIMD3<Float>]] {
         guard let frame = Frame(figure: figure, positions: positions) else { return [] }
         return figure.rings
