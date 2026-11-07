@@ -1754,7 +1754,14 @@ final class SkyPerformanceProbeTests: XCTestCase {
         XCTAssertTrue(LaunchMode.allLayersEnabled(environment: ["SPACEWALKER_LAYERS": "1"]))
         XCTAssertFalse(LaunchMode.allLayersEnabled(environment: ["SPACEWALKER_LAYERS": "0"]))
         XCTAssertFalse(LaunchMode.allLayersEnabled(environment: [:]))
-        XCTAssertTrue(LaunchMode.fpsProbeEnabled(environment: ["SPACEWALKER_FPS": "1"]))
-        XCTAssertFalse(LaunchMode.fpsProbeEnabled(environment: [:]))
+
+        // 日志 Debug 默认开，0 是唯一的总闸；HUD 必须显式打开，免得污染截图。
+        XCTAssertTrue(LaunchMode.perfLogEnabled(environment: ["SPACEWALKER_FPS": "1"]))
+        XCTAssertFalse(LaunchMode.perfLogEnabled(environment: ["SPACEWALKER_FPS": "0"]))
+        #if DEBUG
+        XCTAssertTrue(LaunchMode.perfLogEnabled(environment: [:]))
+        #endif
+        XCTAssertTrue(LaunchMode.fpsHUDEnabled(environment: ["SPACEWALKER_FPS": "1"]))
+        XCTAssertFalse(LaunchMode.fpsHUDEnabled(environment: [:]))
     }
 }

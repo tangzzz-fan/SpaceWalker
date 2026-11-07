@@ -86,8 +86,19 @@ enum LaunchMode {
         environment["SPACEWALKER_LAYERS"] == "1"
     }
 
-    /// 帧率探针：屏幕右上角读数 + 每 5 秒一行 `sky.perf`。
-    static func fpsProbeEnabled(environment: [String: String]) -> Bool {
+    /// 帧率日志：Debug 构建默认就开——真机验收不该依赖「记得加参数」，
+    /// 忘了加就得让人再跑一遍。`SPACEWALKER_FPS=0` 可关。
+    static func perfLogEnabled(environment: [String: String]) -> Bool {
+        if environment["SPACEWALKER_FPS"] == "0" { return false }
+        #if DEBUG
+        return true
+        #else
+        return environment["SPACEWALKER_FPS"] == "1"
+        #endif
+    }
+
+    /// 屏幕右上角的读数：只在显式打开时显示，避免污染截图。
+    static func fpsHUDEnabled(environment: [String: String]) -> Bool {
         environment["SPACEWALKER_FPS"] == "1"
     }
 

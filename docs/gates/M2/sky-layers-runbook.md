@@ -6,6 +6,7 @@
 | 关联 | issue 040 之后的下一步；`docs/gates/M2/sky-selection-2026-11-07.md` 只覆盖了姿态与拾取，不含内容层 |
 | 执行 | 人工（agent 不判定真机体验） |
 | 耗时 | 约 5 分钟 |
+| 现状 | 帧率部分已由 agent 用 `devicectl` 自驱动跑完，见 `sky-layers-2026-11-07.md`；本文件保留为人工复核与夜间户外补充用 |
 
 ## 1. 为什么必须真机跑
 
@@ -24,10 +25,14 @@
 
 ```bash
 cd /Users/tango/Developments/SpaceWalker
+tools/device.sh run --build
+```
+
+`tools/device.sh` 会自动挑「有线连接的那台真机」，装包并按全图层启动。手工等价命令：
+
+```bash
 xcodebuild -project SpaceWalker.xcodeproj -scheme SpaceWalker \
   -destination 'generic/platform=iOS' -derivedDataPath build build
-
-xcrun devicectl list devices                     # 取 <UDID>
 xcrun devicectl device install app --device <UDID> \
   build/Build/Products/Debug-iphoneos/SpaceWalker.app
 ```

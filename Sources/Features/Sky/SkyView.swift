@@ -165,7 +165,7 @@ struct SkyView: View {
             scene.build(catalog: catalog)
             content.add(scene.root)
             scene.attach(content)
-            if LaunchMode.fpsProbeEnabled(environment: ProcessInfo.processInfo.environment) {
+            if LaunchMode.perfLogEnabled(environment: ProcessInfo.processInfo.environment) {
                 perf.attach(content)
             }
             scene.apply(rig: rig)
@@ -988,7 +988,8 @@ struct SkyView: View {
                 startGuide(to: star)
             }
         }
-        if LaunchMode.fpsProbeEnabled(environment: ProcessInfo.processInfo.environment) {
+        if LaunchMode.perfLogEnabled(environment: ProcessInfo.processInfo.environment) {
+            let showsHUD = LaunchMode.fpsHUDEnabled(environment: ProcessInfo.processInfo.environment)
             Task {
                 var loggedBudget = false
                 while !Task.isCancelled {
@@ -996,10 +997,11 @@ struct SkyView: View {
                         loggedBudget = true
                         SessionLog.append(scene.budget())
                     }
-                    perfSummary = perf.tick(
+                    let summary = perf.tick(
                         now: ProcessInfo.processInfo.systemUptime,
                         layers: layerLabel
                     )
+                    if showsHUD { perfSummary = summary }
                     try? await Task.sleep(for: .seconds(1))
                 }
             }

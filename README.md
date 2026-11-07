@@ -54,6 +54,14 @@ open SpaceWalker.xcodeproj
 真机安装：
 
 ```bash
+tools/device.sh run --build     # 自动挑有线连接的真机：装包 + 全图层启动
+tools/device.sh log             # 跟随 Documents/session.log（也可用 Console.app 过滤 subsystem）
+tools/device.sh shot /tmp/a.png # 真机截屏
+```
+
+手工等价：
+
+```bash
 xcodebuild -project SpaceWalker.xcodeproj -scheme SpaceWalker \
   -destination 'generic/platform=iOS' -configuration Debug \
   -derivedDataPath build build
@@ -109,7 +117,7 @@ SkyObserver(纬度/恒星时/航向) → field.orientation(地平旋转)
 | `SPACEWALKER_OUTLINES=1` | 启动即显示星座轮廓 |
 | `SPACEWALKER_PATTERNS=1` | 启动即显示星群；写 id（`winter-triangle` / `summer-triangle` / `spring-arc`）则同时对准该星群中心 |
 | `SPACEWALKER_LAYERS=1` | 一次点亮全部图形层（连线 + 轮廓 + 星官 + 星群），真机负载验收用 |
-| `SPACEWALKER_FPS=1` | 右上角帧率读数 + 每 5 秒一行 `sky.perf`（含热状态与当前图层） |
+| `SPACEWALKER_FPS=1` | 右上角帧率读数；`sky.perf` 日志在 Debug 构建下默认就写（`=0` 关闭），读数必须显式打开 |
 | `SPACEWALKER_AIM=Ori` | 把视线对准指定星座（缩写） |
 | `SPACEWALKER_DWELL=1` | 定时器驱动准星判定，无陀螺仪时验证停留选中 |
 | `SPACEWALKER_QUERY=参水猿` | 打开找星面板并预填查询 |
