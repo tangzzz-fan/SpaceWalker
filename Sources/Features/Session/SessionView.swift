@@ -1,5 +1,6 @@
 import AVFoundation
 import RealityKit
+import CoreMotion
 import SwiftUI
 import TGReduxKit
 
@@ -57,7 +58,10 @@ struct SessionView: View {
                     SpatialTapGesture()
                         .onEnded { _ in placement.place(center: center) }
                 )
-                .task { await handle(.appeared) }
+                .task {
+                    await handle(.appeared)
+                    await probeTiltIfRequested()
+                }
                 .onDisappear {
                     placement.detach()
                     Task { await handle(.disappeared) }
@@ -91,6 +95,32 @@ struct SessionView: View {
                 #endif
             }
         }
+    }
+
+    /// 相机黑屏有两个完全不同的原因：手机平放挡住后摄，或 passthrough 没启用。
+    /// 重力方向能把两者分开：屏幕朝上（z≈-1）时后摄必然被挡，此时黑屏是正常的。
+    private func probeTiltIfRequested() async {
+        #if DEBUG
+        guard ProcessInfo.processInfo.environment["SPACEWALKER_ARTILT"] == "1" else { return }
+        let motion = CMMotionManager()
+        guard motion.isDeviceMotionAvailable else {
+            SessionLog.append("ar.tilt unavailable")
+            return
+        }
+        motion.startDeviceMotionUpdates()
+        defer { motion.stopDeviceMotionUpdates() }
+        var sent = 0
+        while !Task.isCancelled, sent < 6 {
+            let gravity = motion.deviceMotion?.gravity ?? CMAcceleration(x: 0, y: 0, z: 0)
+            SessionLog.append(String(
+                format: "ar.tilt x=%.2f y=%.2f z=%.2f camera=%d",
+                gravity.x, gravity.y, gravity.z,
+                AVCaptureDevice.authorizationStatus(for: .video).rawValue
+            ))
+            sent += 1
+            try? await Task.sleep(for: .seconds(1))
+        }
+        #endif
     }
 
     private var overlay: some View {
