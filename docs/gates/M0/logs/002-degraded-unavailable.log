@@ -1,0 +1,5 @@
+[7ms] # iPhone17,1 | Version 27.0 (Build 24A437) | app 1.0(1) | bundle com.tango.spacewalker
+[338ms] session.request anchors=camera,plane,world scene=collision,occlusion,shadow camera=back
+[701ms] session.started elapsedMs=700 grantedAnchors=camera,world grantedScene= unavailableAnchors=plane unavailableScene=collision,occlusion,shadow cameraAuthorized=true
+[701ms] session.matrix mode=degraded reasons=planeAnchorUnavailable,surfaceCollisionUnavailable,occlusionUnavailable,shadowUnavailable strategy=unavailable
+[710ms] placement.apply strategy=unavailable planes=false surfaces=false
