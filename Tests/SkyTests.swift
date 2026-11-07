@@ -940,6 +940,36 @@ final class ConstellationFigureTests: XCTestCase {
     }
 }
 
+final class AsterismCatalogTests: XCTestCase {
+    func testCatalogMatchesGeneratedNumbers() {
+        let all = AsterismCatalog.all
+        XCTAssertEqual(all.count, 301)
+        XCTAssertEqual(all.filter(\.isDrawable).count, 227)
+        XCTAssertEqual(all.reduce(0) { $0 + $1.segmentCount }, 814)
+        XCTAssertEqual(all.filter(\.isMansion).count, 28)
+        XCTAssertEqual(Set(all.map(\.id)).count, all.count)
+    }
+
+    func testEveryAsterismHasAVisibleMember() throws {
+        let stars = try XCTUnwrap(StarCatalog.loadFromBundle(.main)).stars
+        let hips = Set(stars.compactMap(\.hipparcos))
+        for asterism in AsterismCatalog.all {
+            XCTAssertTrue(asterism.members.contains { hips.contains($0) }, asterism.name)
+        }
+    }
+
+    func testDrawableAsterismsResolveInCatalog() throws {
+        let stars = try XCTUnwrap(StarCatalog.loadFromBundle(.main)).stars
+        let hips = Set(stars.compactMap(\.hipparcos))
+        for asterism in AsterismCatalog.all where asterism.isDrawable {
+            let resolved = asterism.lines.reduce(0) { total, line in
+                total + max(line.filter { hips.contains($0) }.count - 1, 0)
+            }
+            XCTAssertGreaterThan(resolved, 0, asterism.name)
+        }
+    }
+}
+
 final class SkyGroupTests: XCTestCase {
     private func catalog() throws -> [Star] {
         try XCTUnwrap(StarCatalog.loadFromBundle(.main)).stars
@@ -952,10 +982,13 @@ final class SkyGroupTests: XCTestCase {
         XCTAssertEqual(byTitle["参宿"]?.memberCount, 7)
         XCTAssertEqual(byTitle["昴宿"]?.memberCount, 6)
         XCTAssertEqual(byTitle["五车"]?.memberCount, 5)
-        XCTAssertEqual(byTitle["北斗"]?.memberCount, 8)
+        XCTAssertEqual(byTitle["北斗"]?.memberCount, 7)
         XCTAssertNil(byTitle["北斗七星"])
         XCTAssertEqual(byTitle["参宿"]?.kind, .mansion)
         XCTAssertEqual(byTitle["五车"]?.kind, .asterism)
+        XCTAssertEqual(byTitle["参宿"]?.lineCount, 6)
+        XCTAssertEqual(byTitle["角宿"]?.lineCount, 1)
+        XCTAssertEqual(byTitle["北斗"]?.isDrawable, true)
     }
 
     func testGroupsAreUniqueAndSelectableOnly() throws {

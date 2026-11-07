@@ -33,13 +33,18 @@ struct SkyGroup: Identifiable, Equatable, Sendable {
     var starNames: [String]
     var fengshenLord: String?
     var fengshenPerson: String?
+    var lineCount: Int = 0
 
     var memberCount: Int {
         starNames.count
     }
 
+    var isDrawable: Bool {
+        lineCount > 0
+    }
+
     var subtitle: String {
-        "\(memberCount) 颗可选"
+        isDrawable ? "\(memberCount) 颗可选 · \(lineCount) 段连线" : "\(memberCount) 颗可选"
     }
 
     var fengshenLine: String? {
@@ -54,26 +59,32 @@ enum SkyGroupIndex {
         let byName = Dictionary(grouping: selectable, by: \.name).compactMapValues { $0.first }
         var result: [SkyGroup] = []
 
-        var buckets: [String: [Star]] = [:]
-        for star in selectable {
-            guard let chinese = ChineseStarNames.chinese(for: star.name),
-                  let asterism = AsterismParser.asterism(for: chinese)
-            else { continue }
-            buckets[asterism.name, default: []].append(star)
-        }
-        for (name, members) in buckets {
-            let entry = FengshenInfo.entry(forMansion: name)
-            let isMansion = entry != nil
-            guard members.count >= 2 || isMansion else { continue }
-            let sorted = members.sorted { $0.magnitude < $1.magnitude }
+        let byHIP: [Int: Star] = Dictionary(
+            stars.compactMap { star in star.hipparcos.map { ($0, star) } },
+            uniquingKeysWith: { first, second in
+                first.magnitude <= second.magnitude ? first : second
+            }
+        )
+        for asterism in AsterismCatalog.all {
+            let members = asterism.members.compactMap { byHIP[$0] }
+            let chosen = members
+                .filter(\.isSelectable)
+                .sorted { $0.magnitude < $1.magnitude }
+            guard !chosen.isEmpty else { continue }
+            let entry = FengshenInfo.entry(forMansion: asterism.name)
+            let lineCount = asterism.lines.reduce(0) { total, line in
+                let resolved = line.filter { byHIP[$0] != nil }.count
+                return total + max(resolved - 1, 0)
+            }
             result.append(
                 SkyGroup(
-                    id: "asterism:\(name)",
-                    kind: isMansion ? .mansion : .asterism,
-                    title: name,
-                    starNames: sorted.map(\.name),
+                    id: "asterism:\(asterism.id)",
+                    kind: asterism.isMansion || entry != nil ? .mansion : .asterism,
+                    title: asterism.name,
+                    starNames: chosen.map(\.name),
                     fengshenLord: entry?.lord,
-                    fengshenPerson: entry?.person
+                    fengshenPerson: entry?.person,
+                    lineCount: lineCount
                 )
             )
         }

@@ -35,6 +35,10 @@ enum LaunchMode {
         environment["SPACEWALKER_ALIGN"] == "1"
     }
 
+    static func asterismsEnabled(environment: [String: String]) -> Bool {
+        environment["SPACEWALKER_ASTERISMS"] == "1"
+    }
+
     static func timeOffsetHours(environment: [String: String]) -> Double? {
         guard let raw = environment["SPACEWALKER_TIMEOFFSET"], let value = Double(raw) else { return nil }
         return min(max(value, -24), 24)

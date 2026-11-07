@@ -18,6 +18,7 @@ struct SkyView: View {
     @State private var motionActive = false
     @State private var showsCredits = false
     @State private var showsConstellations = true
+    @State private var showsAsterisms = false
     @State private var showsFinder = false
     @State private var guide: Star?
     @State private var guideVector: GuideVector?
@@ -75,6 +76,9 @@ struct SkyView: View {
         }
         .onChange(of: showsConstellations) { _, visible in
             scene.setConstellationsVisible(visible)
+        }
+        .onChange(of: showsAsterisms) { _, visible in
+            scene.setAsterismsVisible(visible)
         }
         .onChange(of: observer.stage) { _, _ in
             refreshField()
@@ -263,7 +267,7 @@ struct SkyView: View {
     }
 
     private var hintBar: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: 8) {
             if !motionActive {
                 Button {
                     rig = SkyRig()
@@ -280,7 +284,9 @@ struct SkyView: View {
                 showsFinder = true
             } label: {
                 Label("找星", systemImage: "magnifyingglass")
-                    .font(.caption)
+                    .font(.caption2)
+                    .lineLimit(1)
+                    .fixedSize()
             }
             .accessibilityLabel("搜索并定位一颗星")
 
@@ -288,15 +294,30 @@ struct SkyView: View {
                 showsConstellations.toggle()
             } label: {
                 Label("星座", systemImage: showsConstellations ? "link" : "link.badge.plus")
-                    .font(.caption)
+                    .font(.caption2)
+                    .lineLimit(1)
+                    .fixedSize()
             }
             .accessibilityLabel("星座连线")
+
+            Button {
+                showsAsterisms.toggle()
+            } label: {
+                Label("星官", systemImage: "circle.grid.3x3")
+                    .font(.caption2)
+                    .lineLimit(1)
+                    .fixedSize()
+                    .foregroundStyle(showsAsterisms ? Color(red: 0.94, green: 0.82, blue: 0.56) : .primary)
+            }
+            .accessibilityLabel("中国星官连线")
 
             Button {
                 toggleAlignment()
             } label: {
                 Label("今夜", systemImage: observer.isOn ? "location.fill" : "location")
-                    .font(.caption)
+                    .font(.caption2)
+                    .lineLimit(1)
+                    .fixedSize()
             }
             .accessibilityLabel("对齐今夜此刻的真实天空")
 
@@ -386,6 +407,10 @@ struct SkyView: View {
         let stars = catalog?.stars ?? []
         guard let direction = SkyGroupIndex.anchor(group, stars: stars) else { return }
         scene.aim(at: direction)
+        if group.isDrawable, !showsAsterisms {
+            showsAsterisms = true
+            scene.setAsterismsVisible(true)
+        }
         selectedGroup = group
         selected = nil
         guide = nil
@@ -409,7 +434,7 @@ struct SkyView: View {
                     .padding(.vertical, 1)
                     .background(.white.opacity(0.18), in: Capsule())
                 Spacer()
-                Text("\(group.memberCount) 颗")
+                Text(group.isDrawable ? "\(group.memberCount) 颗 · \(group.lineCount) 段" : "\(group.memberCount) 颗")
                     .font(.caption2)
                     .padding(.horizontal, 8)
                     .padding(.vertical, 3)
@@ -629,6 +654,9 @@ struct SkyView: View {
                 Text("恒星数据：HYG Database v4.1（CC BY-SA 4.0），由 Hipparcos、Yale BSC、Glise 等编目汇编。本次仅取视星等 ≤ 4.5 或有专名的 1102 颗。")
                     .font(.caption)
                     .foregroundStyle(.secondary)
+                Text("星官与连线：Stellarium 中国星空文化（CC BY-SA），301 个星官、814 段连线。")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
                 Text("坐标系：J2000 赤道坐标，尚未做时间与地理位置的周日旋转对齐。")
                     .font(.caption)
                     .foregroundStyle(.secondary)
@@ -667,6 +695,10 @@ struct SkyView: View {
         if let hours = LaunchMode.timeOffsetHours(environment: ProcessInfo.processInfo.environment) {
             observer.setTimeOffset(hours: hours)
             refreshField()
+        }
+        if LaunchMode.asterismsEnabled(environment: ProcessInfo.processInfo.environment) {
+            showsAsterisms = true
+            scene.setAsterismsVisible(true)
         }
         if LaunchMode.finderPreviewEnabled(environment: ProcessInfo.processInfo.environment) {
             showsFinder = true
