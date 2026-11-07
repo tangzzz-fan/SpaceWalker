@@ -27,3 +27,14 @@ M0 的关键路径：把虚拟内容稳定地放到真实桌面上。本 ticket 
 
 - 锚点优先用平面锚定，不用纯世界锚点。
 - 记录首次锚定耗时，作为 NFR-02 的分解指标；判定口径以 PRD 为准。
+
+## 实现进展（2026-11-07）
+
+代码已就绪，真机核心路径已验证，人工测量项未做，本票保持未完成。
+
+- 实现：`Sources/Features/Placement/`（`PlacementMath` 纯函数、`PlacementState` 切片、`PlacementController` 命中/放置/漂移、`PlacementFactory` 视觉），视图接线在 `SessionView`。
+- 锚定策略：`AnchorEntity(plane: .horizontal)` 作为父锚点，命中点转成锚点局部坐标后放置，未用纯世界锚点。
+- 已实测：准星在桌面出现并随视角透视正确；未命中时提示「移动手机扫描桌面」；放置命中点 `y=-0.22`、法线 `(0,1,0)`，底面贴合桌面；移动手机后漂移读数 0.5cm。证据 `docs/gates/M0/evidence-2026-11-07.md`。
+- 待人工：木桌与地板各 3 次并测偏差 < 5cm；绕桌一周 ≤ 20cm；遮挡相机 5 秒后的重新放置提示。
+- 能力前提：会话必须显式申请 `.plane`，否则 `AnchorEntity(plane:)` 永不锚定；`.collision` 提供真实表面命中，`.occlusion` 已申请但效果未验证。
+- 调试开关：`SPACEWALKER_AUTOPLACE=1`（仅 DEBUG）在表面稳定 2s 后自动放置，用于无人工点击的门禁取证。
