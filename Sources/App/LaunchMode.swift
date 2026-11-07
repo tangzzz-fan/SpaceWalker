@@ -51,6 +51,10 @@ enum LaunchMode {
         environment["SPACEWALKER_STAR"]
     }
 
+    static func aimTarget(environment: [String: String]) -> String? {
+        environment["SPACEWALKER_AIM"]
+    }
+
     static func autoAREnabled(environment: [String: String]) -> Bool {
         environment["SPACEWALKER_AUTOAR"] == "1"
     }

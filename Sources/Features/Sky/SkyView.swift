@@ -483,6 +483,21 @@ struct SkyView: View {
             try? await Task.sleep(for: .seconds(2))
             infoRegion = region
         }
+        if let abbreviation = LaunchMode.aimTarget(environment: ProcessInfo.processInfo.environment),
+           let stars = catalog?.stars {
+            let members = stars.filter { $0.constellation == abbreviation }
+            if !members.isEmpty {
+                var sum = SIMD3<Float>(0, 0, 0)
+                for star in members {
+                    sum += SkyPicker.direction(for: star)
+                }
+                for _ in 0..<40 where !scene.isReady {
+                    try? await Task.sleep(for: .milliseconds(50))
+                }
+                scene.aim(at: sum)
+                SessionLog.append("sky.aim target=\(abbreviation) stars=\(members.count)")
+            }
+        }
         if let name = LaunchMode.starPreview(environment: ProcessInfo.processInfo.environment),
            let star = catalog?.stars.first(where: { $0.name == name }) {
             selected = star

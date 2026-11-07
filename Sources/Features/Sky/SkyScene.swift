@@ -129,23 +129,26 @@ final class SkyScene {
             let points = names.compactMap { positions[$0] }
             guard points.count >= 3 else { continue }
 
-            let drawn: [SIMD3<Float>]
-            if constellation.outline.count >= 3,
-               constellation.outline.allSatisfy({ positions[$0] != nil }) {
-                drawn = constellation.outline.compactMap { positions[$0] }
+            let drawn: [[SIMD3<Float>]]
+            if let figure = ConstellationFigures.all[constellation.abbreviation] {
+                drawn = ConstellationFigureBuilder.rings(figure, positions: positions)
+            } else if constellation.outline.count >= 3,
+                      constellation.outline.allSatisfy({ positions[$0] != nil }) {
+                drawn = [constellation.outline.compactMap { positions[$0] }]
             } else {
-                drawn = StarFieldBuilder.hullRing(points)
+                drawn = [StarFieldBuilder.hullRing(points)]
             }
-            guard drawn.count >= 3 else { continue }
 
-            fillMesh = StarFieldBuilder.merge([
-                fillMesh,
-                StarFieldBuilder.polygon(ring: drawn, radius: Self.constellationFillRadius),
-            ])
+            for ring in drawn where ring.count >= 3 {
+                fillMesh = StarFieldBuilder.merge([
+                    fillMesh,
+                    StarFieldBuilder.polygon(ring: ring, radius: Self.constellationFillRadius),
+                ])
 
-            let ring = drawn.map { simd_normalize($0) * Self.constellationOutlineRadius }
-            for index in 0..<ring.count {
-                outlineSegments.append((ring[index], ring[(index + 1) % ring.count]))
+                let vertices = ring.map { simd_normalize($0) * Self.constellationOutlineRadius }
+                for index in 0..<vertices.count {
+                    outlineSegments.append((vertices[index], vertices[(index + 1) % vertices.count]))
+                }
             }
         }
 
@@ -196,6 +199,13 @@ final class SkyScene {
 
     func setField(orientation: simd_quatf) {
         field.orientation = orientation
+    }
+
+    func aim(at direction: SIMD3<Float>) {
+        let length = simd_length(direction)
+        guard length > 0.0001 else { return }
+        let world = field.orientation.act(direction / length)
+        root.orientation = simd_quatf(from: world, to: SIMD3<Float>(0, 0, -1))
     }
 
     func setAttitude(_ orientation: simd_quatf) {

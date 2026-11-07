@@ -815,18 +815,44 @@ final class ConstellationOutlineTests: XCTestCase {
         }
     }
 
-    func testPolygonRingProducesFan() {
+    func testPolygonTriangulatesRing() {
         let ring = [
             SIMD3<Float>(0, 0, -50),
             SIMD3<Float>(1, 0, -50),
             SIMD3<Float>(1, 1, -50),
         ]
         let mesh = StarFieldBuilder.polygon(ring: ring, radius: 51)
-        XCTAssertEqual(mesh.positions.count, 9)
-        XCTAssertEqual(mesh.indices.count, 18)
+        XCTAssertEqual(mesh.positions.count, 3)
+        XCTAssertEqual(mesh.indices.count, 6)
         for position in mesh.positions {
             XCTAssertEqual(simd_length(position), 51, accuracy: 0.001)
         }
+    }
+
+    func testTriangulationHandlesConcaveRing() {
+        let ring = [
+            SIMD2<Float>(0, 0), SIMD2<Float>(3, 0), SIMD2<Float>(3, 3),
+            SIMD2<Float>(2, 3), SIMD2<Float>(2, 1), SIMD2<Float>(0, 1),
+        ]
+        let triangles = StarFieldBuilder.triangulate(ring)
+        XCTAssertEqual(triangles.count, ring.count - 2)
+
+        var total: Float = 0
+        for triangle in triangles {
+            let a = ring[triangle.0]
+            let b = ring[triangle.1]
+            let c = ring[triangle.2]
+            total += abs((b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x)) / 2
+        }
+        XCTAssertEqual(total, abs(StarFieldBuilder.signedArea(ring)), accuracy: 0.0001)
+        XCTAssertEqual(total, 5, accuracy: 0.0001)
+    }
+
+    func testTriangulationAcceptsClockwiseRing() {
+        let ring = [
+            SIMD2<Float>(0, 0), SIMD2<Float>(0, 2), SIMD2<Float>(2, 2), SIMD2<Float>(2, 0),
+        ]
+        XCTAssertEqual(StarFieldBuilder.triangulate(ring).count, 2)
     }
 
     func testConvexHullDropsInteriorPoints() {
@@ -837,6 +863,80 @@ final class ConstellationOutlineTests: XCTestCase {
         let hull = StarFieldBuilder.convexHull(points)
         XCTAssertEqual(hull.count, 4)
         XCTAssertFalse(hull.contains(4))
+    }
+}
+
+final class ConstellationFigureTests: XCTestCase {
+    private func positions() throws -> [String: SIMD3<Float>] {
+        let catalog = try XCTUnwrap(StarCatalog.loadFromBundle(.main))
+        var result: [String: SIMD3<Float>] = [:]
+        for star in catalog.stars where star.isNamed && result[star.name] == nil {
+            result[star.name] = StarField.position(for: star)
+        }
+        return result
+    }
+
+    func testFiguresTargetDrawnConstellations() {
+        let drawn = Set(Constellations.all.map(\.abbreviation))
+        for abbreviation in ConstellationFigures.all.keys {
+            XCTAssertTrue(drawn.contains(abbreviation), "\(abbreviation) 没有连线数据")
+        }
+    }
+
+    func testAnchorsExistAndAreEnclosed() throws {
+        let positions = try positions()
+        for (abbreviation, figure) in ConstellationFigures.all {
+            for anchor in figure.anchors {
+                XCTAssertNotNil(positions[anchor], "\(abbreviation) 的锚点星不存在：\(anchor)")
+                XCTAssertTrue(
+                    ConstellationFigureBuilder.isInside(anchor, figure: figure, positions: positions),
+                    "\(abbreviation) 的轮廓没有包住锚点星 \(anchor)"
+                )
+            }
+        }
+    }
+
+    func testRingsAreWellFormed() {
+        for (abbreviation, figure) in ConstellationFigures.all {
+            XCTAssertGreaterThanOrEqual(figure.rings.count, 1, abbreviation)
+            for ring in figure.rings {
+                XCTAssertGreaterThanOrEqual(ring.count, 3, abbreviation)
+                for point in ring {
+                    XCTAssertLessThanOrEqual(abs(point.x), 1.5, abbreviation)
+                    XCTAssertLessThanOrEqual(abs(point.y), 1.5, abbreviation)
+                }
+            }
+        }
+    }
+
+    func testBuilderReturnsOneRingPerRing() throws {
+        let positions = try positions()
+        let figure = try XCTUnwrap(ConstellationFigures.all["UMa"])
+        let rings = ConstellationFigureBuilder.rings(figure, positions: positions)
+        XCTAssertEqual(rings.count, figure.rings.count)
+        for ring in rings {
+            XCTAssertEqual(ring.count, figure.rings.first?.count)
+            for direction in ring {
+                XCTAssertEqual(simd_length(direction), 1, accuracy: 0.0005)
+            }
+        }
+    }
+
+    func testBuilderRejectsMissingAnchors() {
+        let figure = ConstellationFigure(anchors: ["不存在的星"], rings: [[SIMD2<Float>(0, 0), SIMD2<Float>(1, 0), SIMD2<Float>(0, 1)]])
+        XCTAssertTrue(ConstellationFigureBuilder.rings(figure, positions: [:]).isEmpty)
+    }
+
+    func testNormalizedReversesDirection() throws {
+        let positions = try positions()
+        let figure = try XCTUnwrap(ConstellationFigures.all["Sco"])
+        let frame = try XCTUnwrap(ConstellationFigureBuilder.Frame(figure: figure, positions: positions))
+        for point in [SIMD2<Float>(0, 0), SIMD2<Float>(0.6, -0.3), SIMD2<Float>(-0.9, 0.7)] {
+            let direction = try XCTUnwrap(frame.direction(point))
+            let roundTrip = try XCTUnwrap(frame.normalized(direction))
+            XCTAssertEqual(roundTrip.x, point.x, accuracy: 0.02)
+            XCTAssertEqual(roundTrip.y, point.y, accuracy: 0.02)
+        }
     }
 }
 

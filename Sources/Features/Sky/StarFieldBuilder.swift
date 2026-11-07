@@ -171,25 +171,114 @@ enum StarFieldBuilder {
         for point in ring {
             centroid += simd_normalize(point)
         }
-        let center = simd_normalize(centroid) * radius
-        let vertices = ring.map { simd_normalize($0) * radius }
+        guard simd_length(centroid) > 0.0001 else {
+            return StarMeshData(positions: [], normals: [], indices: [])
+        }
+        let center = simd_normalize(centroid)
+        let reference = abs(center.y) < 0.99 ? SIMD3<Float>(0, 1, 0) : SIMD3<Float>(1, 0, 0)
+        let u = simd_normalize(simd_cross(reference, center))
+        let v = simd_cross(center, u)
+
+        var flat: [SIMD2<Float>] = []
+        var kept: [SIMD3<Float>] = []
+        for point in ring {
+            let unit = simd_normalize(point)
+            let projected = SIMD2<Float>(simd_dot(unit, u), simd_dot(unit, v))
+            if let last = flat.last, simd_length(last - projected) < 0.00001 { continue }
+            flat.append(projected)
+            kept.append(unit)
+        }
+        guard flat.count >= 3 else { return StarMeshData(positions: [], normals: [], indices: []) }
 
         var positions: [SIMD3<Float>] = []
         var normals: [SIMD3<Float>] = []
         var indices: [UInt32] = []
 
-        for index in 0..<vertices.count {
-            let a = vertices[index]
-            let b = vertices[(index + 1) % vertices.count]
+        for triangle in triangulate(flat) {
             let base = UInt32(positions.count)
-            positions.append(contentsOf: [center, a, b])
-            normals.append(contentsOf: [
-                simd_normalize(center), simd_normalize(a), simd_normalize(b),
-            ])
+            let corners = [triangle.0, triangle.1, triangle.2]
+            for index in corners {
+                let vertex = kept[index] * radius
+                positions.append(vertex)
+                normals.append(simd_normalize(vertex))
+            }
             indices.append(contentsOf: [base, base + 1, base + 2, base, base + 2, base + 1])
         }
 
         return StarMeshData(positions: positions, normals: normals, indices: indices)
+    }
+
+    static func triangulate(_ points: [SIMD2<Float>]) -> [(Int, Int, Int)] {
+        guard points.count >= 3 else { return [] }
+        var remaining = Array(points.indices)
+        if signedArea(points) < 0 {
+            remaining.reverse()
+        }
+
+        var triangles: [(Int, Int, Int)] = []
+        var attempts = 0
+        while remaining.count > 3, attempts < points.count * points.count {
+            attempts += 1
+            let count = remaining.count
+            var clipped = false
+            for position in 0..<count {
+                let previous = remaining[(position + count - 1) % count]
+                let current = remaining[position]
+                let next = remaining[(position + 1) % count]
+                guard isEar(previous, current, next, remaining: remaining, points: points) else { continue }
+                triangles.append((previous, current, next))
+                remaining.remove(at: position)
+                clipped = true
+                break
+            }
+            if !clipped { break }
+        }
+        if remaining.count == 3 {
+            triangles.append((remaining[0], remaining[1], remaining[2]))
+        }
+        return triangles
+    }
+
+    static func signedArea(_ points: [SIMD2<Float>]) -> Float {
+        var total: Float = 0
+        for index in points.indices {
+            let a = points[index]
+            let b = points[(index + 1) % points.count]
+            total += a.x * b.y - b.x * a.y
+        }
+        return total / 2
+    }
+
+    private static func isEar(
+        _ first: Int,
+        _ second: Int,
+        _ third: Int,
+        remaining: [Int],
+        points: [SIMD2<Float>]
+    ) -> Bool {
+        let a = points[first]
+        let b = points[second]
+        let c = points[third]
+        let cross = (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x)
+        guard cross > 0.0000001 else { return false }
+        for index in remaining where index != first && index != second && index != third {
+            if contains(points[index], a: a, b: b, c: c) { return false }
+        }
+        return true
+    }
+
+    private static func contains(
+        _ point: SIMD2<Float>,
+        a: SIMD2<Float>,
+        b: SIMD2<Float>,
+        c: SIMD2<Float>
+    ) -> Bool {
+        let first = (b.x - a.x) * (point.y - a.y) - (b.y - a.y) * (point.x - a.x)
+        let second = (c.x - b.x) * (point.y - b.y) - (c.y - b.y) * (point.x - b.x)
+        let third = (a.x - c.x) * (point.y - c.y) - (a.y - c.y) * (point.x - c.x)
+        let negative = first < 0 || second < 0 || third < 0
+        let positive = first > 0 || second > 0 || third > 0
+        return !(negative && positive)
     }
 
     static func constellation(_ segments: [(SIMD3<Float>, SIMD3<Float>)], radius: Float) -> StarMeshData {
