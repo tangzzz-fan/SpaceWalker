@@ -59,6 +59,10 @@ enum LaunchMode {
         environment["SPACEWALKER_FINDER"] == "1"
     }
 
+    static func tourPreviewEnabled(environment: [String: String]) -> Bool {
+        environment["SPACEWALKER_TOUR"] == "1"
+    }
+
     static func finderQuery(environment: [String: String]) -> String {
         environment["SPACEWALKER_QUERY"] ?? ""
     }

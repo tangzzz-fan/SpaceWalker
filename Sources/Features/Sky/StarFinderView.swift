@@ -4,6 +4,7 @@ struct StarFinderView: View {
     var stars: [Star]
     var initialQuery: String = ""
     var tonight: [TonightPick] = []
+    var referenceDate: Date = Date()
     var onPick: (Star) -> Void
     var onPickGroup: (SkyGroup) -> Void
 
@@ -11,20 +12,26 @@ struct StarFinderView: View {
     @State private var query: String
     @State private var constellation: StarFinder.ConstellationGroup?
     @State private var showsAllChinese = false
+    @State private var tour: TonightTour?
+    private let startsWithTour: Bool
 
     init(
         stars: [Star],
         initialQuery: String = "",
         tonight: [TonightPick] = [],
+        referenceDate: Date = Date(),
+        initialTour: Bool = false,
         onPick: @escaping (Star) -> Void,
         onPickGroup: @escaping (SkyGroup) -> Void
     ) {
         self.stars = stars
         self.initialQuery = initialQuery
         self.tonight = tonight
+        self.referenceDate = referenceDate
         self.onPick = onPick
         self.onPickGroup = onPickGroup
         _query = State(initialValue: initialQuery)
+        startsWithTour = initialTour
     }
 
     private var results: [StarFinder.Hit] {
@@ -68,6 +75,17 @@ struct StarFinderView: View {
                 }
             }
             .searchable(text: $query, placement: .navigationBarDrawer(displayMode: .always), prompt: "星名 / 中文名 / 星座")
+        }
+        .task {
+            guard startsWithTour, tour == nil else { return }
+            tour = TonightTour.build(picks: tonight, date: referenceDate)
+        }
+        .sheet(item: $tour) { tour in
+            TonightTourView(tour: tour) { group in
+                self.tour = nil
+                onPickGroup(group)
+                dismiss()
+            }
         }
     }
 
@@ -133,7 +151,17 @@ struct StarFinderView: View {
                         .buttonStyle(.plain)
                     }
                 } header: {
-                    Text("今夜此刻最适合看")
+                    HStack {
+                        Text("今夜此刻最适合看")
+                        Spacer()
+                        Button("开始导览") {
+                            tour = TonightTour.build(picks: tonight, date: referenceDate)
+                        }
+                        .font(.caption.weight(.medium))
+                        .textCase(nil)
+                        .buttonStyle(.plain)
+                        .foregroundStyle(.tint)
+                    }
                 } footer: {
                     Text("按当前高度与该星座最亮星综合排序，只列高度 12° 以上的星座。")
                 }

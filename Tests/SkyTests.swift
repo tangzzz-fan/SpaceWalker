@@ -1160,6 +1160,65 @@ final class TimeScrubTests: XCTestCase {
     }
 }
 
+final class TonightTourTests: XCTestCase {
+    private func pick(
+        title: String,
+        altitude: Double,
+        azimuth: Double = 135,
+        magnitude: Double = 1.0,
+        members: Int = 6
+    ) -> TonightPick {
+        TonightPick(
+            group: SkyGroup(
+                id: "constellation:\(title)",
+                kind: .constellation,
+                title: title,
+                starNames: Array(repeating: "S", count: members),
+                fengshenLord: nil,
+                fengshenPerson: nil
+            ),
+            altitude: altitude,
+            azimuth: azimuth,
+            bestMonths: [10, 11, 12],
+            magnitude: magnitude
+        )
+    }
+
+    func testEmptyPicksBuildNothing() {
+        XCTAssertNil(TonightTour.build(picks: [], date: Date(timeIntervalSince1970: 0)))
+    }
+
+    func testStopsAreLimitedAndOrdered() {
+        let picks = (1...6).map { pick(title: "星座\($0)", altitude: Double(80 - $0 * 5)) }
+        let tour = TonightTour.build(picks: picks, date: Date(timeIntervalSince1970: 0), limit: 4)
+        XCTAssertEqual(tour?.stops.count, 4)
+        XCTAssertEqual(tour?.stops.map(\.order), [1, 2, 3, 4])
+        XCTAssertEqual(tour?.stops.first?.pick.group.title, "星座1")
+    }
+
+    func testPlacementWording() {
+        XCTAssertEqual(TonightTour.placement(pick(title: "A", altitude: 82)), "几乎就在头顶")
+        XCTAssertTrue(TonightTour.placement(pick(title: "A", altitude: 55)).hasPrefix("高悬在东"))
+        XCTAssertTrue(TonightTour.placement(pick(title: "A", altitude: 30)).contains("约 30°"))
+        XCTAssertTrue(TonightTour.placement(pick(title: "A", altitude: 15)).hasPrefix("刚爬上东"))
+    }
+
+    func testEveryDrawnConstellationHasATip() {
+        for constellation in Constellations.all {
+            XCTAssertNotNil(SkyTips.tips[constellation.name], constellation.name)
+        }
+    }
+
+    func testHeadlineNamesTheLeadingTarget() {
+        let tour = TonightTour.build(
+            picks: [pick(title: "猎户座", altitude: 48)],
+            date: Date(timeIntervalSince1970: 0)
+        )
+        XCTAssertTrue(tour?.headline.contains("猎户座") == true)
+        XCTAssertTrue(tour?.headline.contains("高悬") == true)
+    }
+}
+
 final class SkySeasonTests: XCTestCase {
     private func stars() throws -> [Star] {
         try XCTUnwrap(StarCatalog.loadFromBundle(.main)).stars
