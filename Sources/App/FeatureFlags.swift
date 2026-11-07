@@ -3,9 +3,9 @@ import TGFeatureFlag
 enum AppFeature: String, TypedFeatureFlag, CaseIterable {
     case prototype = "spacewalker.prototype"
 
-    var typedDefaultValue: Bool { true }
+    var typedDefaultValue: Bool { false }
 }
 
 struct FeatureFlags: Equatable, Sendable {
-    var prototypeEnabled: Bool = true
+    var prototypeEnabled: Bool = false
 }

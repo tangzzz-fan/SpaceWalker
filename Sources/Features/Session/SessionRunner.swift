@@ -13,7 +13,8 @@ final class SessionRunner {
             logger.error("camera access denied or restricted")
             return SessionPlan.outcome(
                 for: SessionPlan.m0,
-                unavailability: SessionUnavailability(cameraAuthorized: false)
+                unavailability: SessionUnavailability(cameraAuthorized: false),
+                startedInMilliseconds: AppClock.elapsedMilliseconds()
             )
         }
 
@@ -22,16 +23,28 @@ final class SessionRunner {
 
         let outcome = SessionPlan.outcome(
             for: SessionPlan.m0,
-            unavailability: Self.unavailability(from: unavailable)
+            unavailability: Self.unavailability(from: unavailable),
+            startedInMilliseconds: AppClock.elapsedMilliseconds()
         )
         logger.notice(
             """
             session started anchors=\(outcome.requirements.anchors.count, privacy: .public) \
             sceneUnderstanding=\(outcome.requirements.sceneUnderstanding.count, privacy: .public) \
             unavailableAnchors=\(outcome.unavailability.anchors.count, privacy: .public) \
-            missingCameraAuthorization=\(!outcome.unavailability.cameraAuthorized, privacy: .public)
+            missingCameraAuthorization=\(!outcome.unavailability.cameraAuthorized, privacy: .public) \
+            elapsedMs=\(outcome.startedInMilliseconds, privacy: .public)
             """
         )
+        #if DEBUG
+        NSLog(
+            "[SpaceWalker] session started elapsedMs=%d anchors=%d scene=%d unavailableAnchors=%d cameraAuthorized=%d",
+            outcome.startedInMilliseconds,
+            outcome.requirements.anchors.count,
+            outcome.requirements.sceneUnderstanding.count,
+            outcome.unavailability.anchors.count,
+            outcome.unavailability.cameraAuthorized ? 1 : 0
+        )
+        #endif
         return outcome
     }
 

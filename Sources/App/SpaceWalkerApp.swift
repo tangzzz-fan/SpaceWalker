@@ -1,3 +1,4 @@
+import Foundation
 import SwiftUI
 import TGFeatureFlag
 import TGReduxKit
@@ -7,8 +8,11 @@ struct SpaceWalkerApp: App {
     @State private var store: Store<AppState, AppAction>
 
     init() {
+        _ = AppClock.launchUptime
+
         let resolver = FeatureFlagResolver()
-        resolver.register(provider: LocalProvider(enabledFeatures: [AppFeature.prototype]))
+        let features = LaunchMode.enabledFeatures(environment: ProcessInfo.processInfo.environment)
+        resolver.register(provider: LocalProvider(enabledFeatures: features))
 
         _store = State(
             initialValue: Store(

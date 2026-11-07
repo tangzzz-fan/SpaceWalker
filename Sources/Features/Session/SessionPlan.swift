@@ -31,6 +31,7 @@ struct SessionUnavailability: Equatable, Sendable {
 struct SessionOutcome: Equatable, Sendable {
     var requirements: SessionRequirements
     var unavailability: SessionUnavailability
+    var startedInMilliseconds = 0
 
     var isUsable: Bool {
         requirements.anchors.contains(.world) && unavailability.cameraAuthorized
@@ -56,11 +57,13 @@ enum SessionPlan {
 
     static func outcome(
         for requirements: SessionRequirements,
-        unavailability: SessionUnavailability
+        unavailability: SessionUnavailability,
+        startedInMilliseconds: Int = 0
     ) -> SessionOutcome {
         SessionOutcome(
             requirements: reduced(requirements, by: unavailability),
-            unavailability: unavailability
+            unavailability: unavailability,
+            startedInMilliseconds: startedInMilliseconds
         )
     }
 }
