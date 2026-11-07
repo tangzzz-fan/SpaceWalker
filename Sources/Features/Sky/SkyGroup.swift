@@ -34,6 +34,7 @@ struct SkyGroup: Identifiable, Equatable, Sendable {
     var fengshenLord: String?
     var fengshenPerson: String?
     var lineCount: Int = 0
+    var asterismID: String?
 
     var memberCount: Int {
         starNames.count
@@ -84,7 +85,8 @@ enum SkyGroupIndex {
                     starNames: chosen.map(\.name),
                     fengshenLord: entry?.lord,
                     fengshenPerson: entry?.person,
-                    lineCount: lineCount
+                    lineCount: lineCount,
+                    asterismID: asterism.id
                 )
             )
         }

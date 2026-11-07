@@ -80,6 +80,9 @@ struct SkyView: View {
         .onChange(of: showsAsterisms) { _, visible in
             scene.setAsterismsVisible(visible)
         }
+        .onChange(of: selectedGroup) { _, group in
+            scene.highlightAsterism(group?.asterismID)
+        }
         .onChange(of: observer.stage) { _, _ in
             refreshField()
             refreshTonight()
@@ -209,7 +212,7 @@ struct SkyView: View {
               let sidereal = observer.currentSiderealDegrees()
         else {
             let stars = catalog?.stars ?? []
-            return "\(stars.count) 颗恒星 · \(stars.filter(\.isSelectable).count) 颗可选中 · \(Constellations.all.count) 个星座"
+            return "\(stars.count) 颗恒星 · \(stars.filter(\.isSelectable).count) 颗可选中 · \(Constellations.all.count) 个星座 · \(AsterismCatalog.all.count) 个星官"
         }
         let base = String(format: "%.1f°N %.1f°E · 恒星时 %.1f°", latitude, longitude, sidereal)
         return observer.clock.isNow ? base : "\(base) · \(timeOffsetLabel)"

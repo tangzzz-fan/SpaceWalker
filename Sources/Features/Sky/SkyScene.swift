@@ -16,6 +16,10 @@ final class SkyScene {
     private(set) var constellationCount = 0
     private var constellationsRequested = true
     private var asterismNode: Entity?
+    private var asterismMaterial: UnlitMaterial?
+    private var asterismHighlightNode: Entity?
+    private var asterismHighlightID: String?
+    private var starsByHIP: [Int: Star] = [:]
     private(set) var asterismSegmentCount = 0
     private(set) var asterismGroupCount = 0
     private var asterismsRequested = false
@@ -191,28 +195,20 @@ final class SkyScene {
     }
 
     private func buildAsterisms(from stars: [Star]) {
-        let byHIP: [Int: Star] = Dictionary(
+        starsByHIP = Dictionary(
             stars.compactMap { star in star.hipparcos.map { ($0, star) } },
             uniquingKeysWith: { first, second in
                 first.magnitude <= second.magnitude ? first : second
             }
         )
+
         var segments: [(SIMD3<Float>, SIMD3<Float>)] = []
         var drawnGroups = 0
         for asterism in AsterismCatalog.all {
-            var added = false
-            for line in asterism.lines {
-                let points = line.compactMap { hip -> SIMD3<Float>? in
-                    guard let star = byHIP[hip] else { return nil }
-                    return StarField.position(for: star, radius: Self.asterismRadius3D)
-                }
-                guard points.count >= 2 else { continue }
-                for index in 0..<(points.count - 1) {
-                    segments.append((points[index], points[index + 1]))
-                }
-                added = true
-            }
-            if added { drawnGroups += 1 }
+            let lines = asterismSegments(for: asterism)
+            guard !lines.isEmpty else { continue }
+            segments.append(contentsOf: lines)
+            drawnGroups += 1
         }
         guard !segments.isEmpty,
               let mesh = try? StarFieldBuilder.mesh(
@@ -221,26 +217,90 @@ final class SkyScene {
               )
         else { return }
 
+        let material = UnlitMaterial(color: uiColor(Self.asterismColor, brightness: Self.asterismBaseBrightness))
         let node = Entity()
         node.name = "asterism.lines"
-        node.components.set(ModelComponent(
-            mesh: mesh,
-            materials: [UnlitMaterial(color: uiColor(SIMD3(0.88, 0.76, 0.52), brightness: 0.72))]
-        ))
+        node.components.set(ModelComponent(mesh: mesh, materials: [material]))
         node.isEnabled = asterismsRequested
         field.addChild(node)
         asterismNode = node
+        asterismMaterial = material
         asterismSegmentCount = segments.count
         asterismGroupCount = drawnGroups
+    }
+
+    private func asterismSegments(
+        for asterism: Asterism,
+        radius: Float = SkyScene.asterismRadius3D
+    ) -> [(SIMD3<Float>, SIMD3<Float>)] {
+        var segments: [(SIMD3<Float>, SIMD3<Float>)] = []
+        for line in asterism.lines {
+            let points = line.compactMap { hip -> SIMD3<Float>? in
+                guard let star = starsByHIP[hip] else { return nil }
+                return StarField.position(for: star, radius: radius)
+            }
+            guard points.count >= 2 else { continue }
+            for index in 0..<(points.count - 1) {
+                segments.append((points[index], points[index + 1]))
+            }
+        }
+        return segments
     }
 
     func setAsterismsVisible(_ visible: Bool) {
         asterismsRequested = visible
         asterismNode?.isEnabled = visible
+        asterismHighlightNode?.isEnabled = visible
     }
 
+    func highlightAsterism(_ asterismID: String?) {
+        guard let asterismID,
+              let asterism = AsterismCatalog.all.first(where: { $0.id == asterismID })
+        else {
+            clearAsterismHighlight()
+            return
+        }
+        guard asterismID != asterismHighlightID else { return }
+        asterismHighlightID = asterismID
+        asterismMaterial?.color.tint = uiColor(Self.asterismColor, brightness: Self.asterismDimBrightness)
+
+        asterismHighlightNode?.removeFromParent()
+        asterismHighlightNode = nil
+
+        let segments = asterismSegments(for: asterism, radius: Self.asterismHighlightRadius3D)
+        guard !segments.isEmpty,
+              let mesh = try? StarFieldBuilder.mesh(
+                  StarFieldBuilder.constellation(segments, radius: Self.asterismHighlightRadius),
+                  name: "asterism.highlight"
+              )
+        else { return }
+
+        let node = Entity()
+        node.name = "asterism.highlight"
+        node.components.set(ModelComponent(
+            mesh: mesh,
+            materials: [UnlitMaterial(color: uiColor(Self.asterismColor, brightness: Self.asterismHighlightBrightness))]
+        ))
+        node.isEnabled = asterismsRequested
+        field.addChild(node)
+        asterismHighlightNode = node
+    }
+
+    func clearAsterismHighlight() {
+        asterismHighlightID = nil
+        asterismMaterial?.color.tint = uiColor(Self.asterismColor, brightness: Self.asterismBaseBrightness)
+        asterismHighlightNode?.removeFromParent()
+        asterismHighlightNode = nil
+    }
+
+    static let asterismColor = SIMD3<Float>(0.88, 0.76, 0.52)
     static let asterismRadius: Float = 0.026
+    static let asterismHighlightRadius: Float = 0.03
     static let asterismRadius3D: Float = 49.4
+    static let asterismHighlightRadius3D: Float = 49.2
+    static let asterismBaseBrightness: Float = 0.52
+    static let asterismDimBrightness: Float = 0.16
+    static let asterismHighlightBrightness: Float = 0.98
     static let constellationRadius: Float = 0.032
     static let constellationFillRadius: Float = 51.4
     static let constellationOutlineRadius: Float = 50.6
