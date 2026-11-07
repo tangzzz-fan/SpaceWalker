@@ -201,6 +201,291 @@ enum ConstellationInfo {
             westernLore: "安德洛墨达之父、埃塞俄比亚国王刻甫斯，因女儿之祸而束手无策。",
             chineseLore: "天钩，属紫微垣，象征天庭的钩陈与仪仗。"
         ),
+        "Ant": ConstellationFact(
+            abbreviation: "Ant",
+            westernLore: "1750 年代由拉卡伊在南天划出，纪念物理学家波义耳的气泵。",
+            chineseLore: "南天深空，中国传统星表在此基本没有命名星官。"
+        ),
+        "Aps": ConstellationFact(
+            abbreviation: "Aps",
+            westernLore: "1598 年荷兰航海者凯泽与德豪特曼所设，原名「天堂鸟」，后改称天燕。",
+            chineseLore: "南天深空，中国传统星表在此基本没有命名星官。"
+        ),
+        "Aqr": ConstellationFact(
+            abbreviation: "Aqr",
+            westernLore: "特洛伊王子伽倪墨得斯被宙斯化作的鹰叼上奥林匹斯，成为众神的斟酒人。",
+            chineseLore: "跨女宿、虚宿、危宿。危宿一与虚宿一分别是它的 α、β 星；「羽林军」「坟墓」都在这一带。"
+        ),
+        "Ara": ConstellationFact(
+            abbreviation: "Ara",
+            westernLore: "众神与泰坦开战之前，在此坛上焚香立誓结盟，之后这祭坛被放到天上。",
+            chineseLore: "属尾宿、箕宿，位置偏南，中国大部分地区只能看到坛口。"
+        ),
+        "Cae": ConstellationFact(
+            abbreviation: "Cae",
+            westernLore: "拉卡伊设，取雕刻家手中的凿子，用来纪念这门手艺。",
+            chineseLore: "南天深空，中国传统星表在此基本没有命名星官。"
+        ),
+        "Cam": ConstellationFact(
+            abbreviation: "Cam",
+            westernLore: "1612 年普朗修斯所设。原想纪念《圣经》中驮着利百加的长颈兽，因经上没写名字，索性叫它长颈鹿。",
+            chineseLore: "属紫微垣北缘，「六甲」「天棓」一带延伸到这片空区。"
+        ),
+        "Car": ConstellationFact(
+            abbreviation: "Car",
+            westernLore: "南船座阿尔戈号的龙骨——伊阿宋率众英雄远航取金羊毛的那条船。",
+            chineseLore: "属鬼宿。船底座 α 即老人星，全天第二亮，中国称「南极老人」，主寿，只在南方低空露面。"
+        ),
+        "Cen": ConstellationFact(
+            abbreviation: "Cen",
+            westernLore: "半人马喀戎，阿喀琉斯与伊阿宋的老师，也是医神的师父。",
+            chineseLore: "跨角宿、亢宿、氐宿。南门二与马腹一并称「南门」，古人靠它们定南方。"
+        ),
+        "Cha": ConstellationFact(
+            abbreviation: "Cha",
+            westernLore: "1598 年荷兰航海者所设，南天的小星座。",
+            chineseLore: "南天深处，中国传统星表在此基本没有命名星官。"
+        ),
+        "Cir": ConstellationFact(
+            abbreviation: "Cir",
+            westernLore: "拉卡伊设，取绘图用的圆规，代表他绘制南天星图时用的工具。",
+            chineseLore: "南天深空，中国传统星表在此基本没有命名星官。"
+        ),
+        "Cnc": ConstellationFact(
+            abbreviation: "Cnc",
+            westernLore: "赫拉克勒斯与九头蛇缠斗时踩到的那只螃蟹，赫拉把它升上天空作为奖赏。",
+            chineseLore: "鬼宿所在。中央那团模糊的蜂巢星团就是「积尸气」，古人视为丧葬之兆。"
+        ),
+        "Col": ConstellationFact(
+            abbreviation: "Col",
+            westernLore: "诺亚方舟放出去探陆地的那只鸽子，衔回橄榄枝报平安。",
+            chineseLore: "属参宿、井宿，含「丈人」「子」「孙」等星官。"
+        ),
+        "Com": ConstellationFact(
+            abbreviation: "Com",
+            westernLore: "埃及王后贝勒尼基二世剪下头发献给阿佛洛狄忒，头发被放到天上成了这片暗星。",
+            chineseLore: "属太微垣，含「郎将」「周鼎」等星官。"
+        ),
+        "CrA": ConstellationFact(
+            abbreviation: "CrA",
+            westernLore: "人马手中弓箭旁的一顶冠冕，被单独放到南天。",
+            chineseLore: "属箕宿，含「鳖」星官，中国大部分地区看不到。"
+        ),
+        "CrB": ConstellationFact(
+            abbreviation: "CrB",
+            westernLore: "忒修斯带回的阿里阿德涅婚冠，被狄俄尼索斯抛上天空。",
+            chineseLore: "属天市垣，含「贯索」，古人视之为牢狱，以它的明暗占卜刑狱。"
+        ),
+        "Crt": ConstellationFact(
+            abbreviation: "Crt",
+            westernLore: "阿波罗的酒杯。乌鸦替阿波罗取水时延误，谎称被水蛇拦住，连杯带蛇一起被扔上天。",
+            chineseLore: "属翼宿，含「天相」星官，杯身在南天低处。"
+        ),
+        "CVn": ConstellationFact(
+            abbreviation: "CVn",
+            westernLore: "牧夫牵着的两只猎犬，跟着大熊绕北极星转，最亮的一颗叫常陈一。",
+            chineseLore: "属太微垣，含「常陈」，主宿卫，是天子近旁的禁军。"
+        ),
+        "Dor": ConstellationFact(
+            abbreviation: "Dor",
+            westernLore: "1598 年荷兰航海者所设，原名「剑鱼」。",
+            chineseLore: "南天深空，大麦哲伦云的一部分落在它的范围里。"
+        ),
+        "Equ": ConstellationFact(
+            abbreviation: "Equ",
+            westernLore: "与飞马珀伽索斯有关的幼马；一说半人马喀戎之女希佩所化。",
+            chineseLore: "属虚宿、危宿，是全天第二小的星座。"
+        ),
+        "Eri": ConstellationFact(
+            abbreviation: "Eri",
+            westernLore: "法厄同驾驭太阳车失控，被宙斯击落，坠入的这条河。",
+            chineseLore: "南北跨度极大，跨参宿、井宿、娄宿、昴宿，含「天园」「九州殊口」。"
+        ),
+        "For": ConstellationFact(
+            abbreviation: "For",
+            westernLore: "拉卡伊设，纪念化学家做实验用的熔炉，那里只有几颗暗星。",
+            chineseLore: "南天深空，中国传统星表在此基本没有命名星官。"
+        ),
+        "Gru": ConstellationFact(
+            abbreviation: "Gru",
+            westernLore: "1598 年荷兰航海者所设，最初画的是火烈鸟。",
+            chineseLore: "属斗宿、箕宿，位置偏南，中国南方才能看全。"
+        ),
+        "Hor": ConstellationFact(
+            abbreviation: "Hor",
+            westernLore: "拉卡伊设，取摆钟，用来纪念航海计时器的发明。",
+            chineseLore: "南天深空，中国传统星表在此基本没有命名星官。"
+        ),
+        "Hya": ConstellationFact(
+            abbreviation: "Hya",
+            westernLore: "被赫拉克勒斯斩杀的九头蛇，赫拉把它放到天上。",
+            chineseLore: "横跨柳宿、星宿、张宿、翼宿，是全天最长的一个星座。"
+        ),
+        "Hyi": ConstellationFact(
+            abbreviation: "Hyi",
+            westernLore: "1598 年荷兰航海者所设，南天的一条水蛇。",
+            chineseLore: "南天深空，中国传统星表在此基本没有命名星官。"
+        ),
+        "Ind": ConstellationFact(
+            abbreviation: "Ind",
+            westernLore: "1598 年荷兰航海者所设，代表他们沿途见到的美洲原住民。",
+            chineseLore: "南天深空，中国传统星表在此基本没有命名星官。"
+        ),
+        "Lac": ConstellationFact(
+            abbreviation: "Lac",
+            westernLore: "1690 年海维留斯所设。周围星太暗，他说「得眯着眼像蝎虎一样才找得到」。",
+            chineseLore: "属危宿、室宿，星都很暗，得靠仙后座引路。"
+        ),
+        "Lep": ConstellationFact(
+            abbreviation: "Lep",
+            westernLore: "猎户脚边的一只野兔，正被猎户牵着的大犬追赶。",
+            chineseLore: "属参宿、井宿，含「厕」「屏」，都是些小星官。"
+        ),
+        "LMi": ConstellationFact(
+            abbreviation: "LMi",
+            westernLore: "海维留斯从大熊座身上划出来的一块，给大熊添了只小狮子。",
+            chineseLore: "属太微垣，落在「常陈」与「轩辕」之间的暗区。"
+        ),
+        "Lup": ConstellationFact(
+            abbreviation: "Lup",
+            westernLore: "半人马扛着的祭品，后来被画成一头狼，蹲在南天低处。",
+            chineseLore: "属氐宿、房宿，半人马扛着它，南天低处可见。"
+        ),
+        "Lyn": ConstellationFact(
+            abbreviation: "Lyn",
+            westernLore: "海维留斯所设，说「要有猞猁的眼力才看得清这里的星」。",
+            chineseLore: "属井宿，全是四五等以下的暗星，得靠周边亮星定位。"
+        ),
+        "Men": ConstellationFact(
+            abbreviation: "Men",
+            westernLore: "拉卡伊设，纪念南非开普敦的桌山——他当年就在那里观测。",
+            chineseLore: "南天深处，中国传统星表在此基本没有命名星官。"
+        ),
+        "Mic": ConstellationFact(
+            abbreviation: "Mic",
+            westernLore: "拉卡伊设，取显微镜，纪念这门新兴的观察手艺。",
+            chineseLore: "南天深空，中国传统星表在此基本没有命名星官。"
+        ),
+        "Mon": ConstellationFact(
+            abbreviation: "Mon",
+            westernLore: "1612 年普朗修斯所设的独角兽，正好落在银河里。",
+            chineseLore: "属井宿、鬼宿，含「四渎」「阙丘」。"
+        ),
+        "Mus": ConstellationFact(
+            abbreviation: "Mus",
+            westernLore: "1598 年荷兰航海者所设，最初叫「蜜蜂」。",
+            chineseLore: "南天深空，中国传统星表在此基本没有命名星官。"
+        ),
+        "Nor": ConstellationFact(
+            abbreviation: "Nor",
+            westernLore: "拉卡伊设，取木工用的曲尺，与三角板、直尺成套。",
+            chineseLore: "南天深空，中国传统星表在此基本没有命名星官。"
+        ),
+        "Oct": ConstellationFact(
+            abbreviation: "Oct",
+            westernLore: "拉卡伊设，南天极就在这个星座里，但那里没有亮星。",
+            chineseLore: "南天深处，中国传统星表在此基本没有命名星官。"
+        ),
+        "Pav": ConstellationFact(
+            abbreviation: "Pav",
+            westernLore: "1598 年荷兰航海者所设，取他们一路上见到的孔雀。",
+            chineseLore: "南天深空，中国传统星表在此基本没有命名星官。"
+        ),
+        "Phe": ConstellationFact(
+            abbreviation: "Phe",
+            westernLore: "1598 年荷兰航海者所设的凤凰，从灰烬里重生。",
+            chineseLore: "属翼宿、轸宿边缘，南天低处，中国大部分地区看不到。"
+        ),
+        "Pic": ConstellationFact(
+            abbreviation: "Pic",
+            westernLore: "拉卡伊设，取画架，纪念画家作画时用的支架。",
+            chineseLore: "南天深空，中国传统星表在此基本没有命名星官。"
+        ),
+        "Psc": ConstellationFact(
+            abbreviation: "Psc",
+            westernLore: "阿佛洛狄忒与厄洛斯化作两条鱼逃离堤丰，用绳子系住尾巴，免得走散。",
+            chineseLore: "属奎宿、娄宿，含「外屏」「天溷」。"
+        ),
+        "PsA": ConstellationFact(
+            abbreviation: "PsA",
+            westernLore: "与双鱼同源，一说为河神俄刻阿诺斯之鱼，口中吐水。",
+            chineseLore: "属牛宿。北落师门是它的 α 星，古人以它上中天定秋分。"
+        ),
+        "Pup": ConstellationFact(
+            abbreviation: "Pup",
+            westernLore: "南船座的船尾，整条阿尔戈号被拆成三块后留下的最后一段。",
+            chineseLore: "属井宿、鬼宿，含「弧矢」与老人星一带。"
+        ),
+        "Pyx": ConstellationFact(
+            abbreviation: "Pyx",
+            westernLore: "拉卡伊设，最初叫「罗盘座」，后改为水手用的磁罗盘。",
+            chineseLore: "南天深空，中国传统星表在此基本没有命名星官。"
+        ),
+        "Ret": ConstellationFact(
+            abbreviation: "Ret",
+            westernLore: "拉卡伊设，取光学仪器里用来瞄准的十字线网。",
+            chineseLore: "南天深空，中国传统星表在此基本没有命名星官。"
+        ),
+        "Scl": ConstellationFact(
+            abbreviation: "Scl",
+            westernLore: "拉卡伊设，取雕刻家的工作室，那片天区极空。",
+            chineseLore: "南天深空，中国传统星表在此基本没有命名星官。"
+        ),
+        "Sct": ConstellationFact(
+            abbreviation: "Sct",
+            westernLore: "1690 年海维留斯所设，纪念波兰国王索别斯基在维也纳之战中的盾。",
+            chineseLore: "属斗宿、箕宿，紧贴银河最亮的一段。"
+        ),
+        "Ser": ConstellationFact(
+            abbreviation: "Ser",
+            westernLore: "医神阿斯克勒庇俄斯手中那条蛇，传说他靠蛇衔来的草救活死人。",
+            chineseLore: "被蛇夫座分成头尾两段，属天市垣。"
+        ),
+        "Sex": ConstellationFact(
+            abbreviation: "Sex",
+            westernLore: "海维留斯设，取他用来测量星与星角距的六分仪。",
+            chineseLore: "属星宿、柳宿，只有几颗四等星，形状像一条短线。"
+        ),
+        "Sge": ConstellationFact(
+            abbreviation: "Sge",
+            westernLore: "赫拉克勒斯射杀啄食普罗米修斯肝脏那只鹰的箭。",
+            chineseLore: "属女宿、虚宿，很小，形如一枝箭。"
+        ),
+        "Tel": ConstellationFact(
+            abbreviation: "Tel",
+            westernLore: "拉卡伊设，取望远镜，纪念他那个时代最新的观测工具。",
+            chineseLore: "南天深空，中国传统星表在此基本没有命名星官。"
+        ),
+        "TrA": ConstellationFact(
+            abbreviation: "TrA",
+            westernLore: "1598 年荷兰航海者所设，南天的三角形。",
+            chineseLore: "属翼宿、轸宿边缘，南天低处，三颗亮星成三角。"
+        ),
+        "Tri": ConstellationFact(
+            abbreviation: "Tri",
+            westernLore: "希腊字母 Δ，被认作尼罗河三角洲或西西里岛。",
+            chineseLore: "属娄宿、胃宿，三颗星大小相近，很早就被单独列出。"
+        ),
+        "Tuc": ConstellationFact(
+            abbreviation: "Tuc",
+            westernLore: "1598 年荷兰航海者所设，原名「印度鸬鹚」。",
+            chineseLore: "南天深空，中国传统星表在此基本没有命名星官。"
+        ),
+        "Vel": ConstellationFact(
+            abbreviation: "Vel",
+            westernLore: "南船座的船帆，整条阿尔戈号拆成三块后留下的帆。",
+            chineseLore: "属鬼宿、翼宿，含「天社」，是南船座里最靠北的一段。"
+        ),
+        "Vol": ConstellationFact(
+            abbreviation: "Vol",
+            westernLore: "1598 年荷兰航海者所设的飞鱼，在船底座以南。",
+            chineseLore: "南天深空，中国传统星表在此基本没有命名星官。"
+        ),
+        "Vul": ConstellationFact(
+            abbreviation: "Vul",
+            westernLore: "海维留斯所设，原本画的是「狐狸叼着一只鹅」。",
+            chineseLore: "属牛宿、女宿，只有一颗四等星，其余都很暗。"
+        ),
     ]
 
     static func fact(for abbreviation: String) -> ConstellationFact? {

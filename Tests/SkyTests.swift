@@ -606,8 +606,9 @@ final class ConstellationInfoTests: XCTestCase {
     func testEveryDrawnConstellationHasStory() {
         let drawn = Set(Constellations.all.map(\.abbreviation))
         let described = Set(ConstellationInfo.facts.keys)
+        let known = Set(ConstellationInfo.latinNames.keys)
         XCTAssertTrue(drawn.subtracting(described).isEmpty, "缺少来头文案：\(drawn.subtracting(described).sorted())")
-        XCTAssertTrue(described.subtracting(drawn).isEmpty, "来头文案没有对应星座：\(described.subtracting(drawn).sorted())")
+        XCTAssertTrue(described.subtracting(known).isEmpty, "来头文案里有不存在的星座：\(described.subtracting(known).sorted())")
     }
 
     func testStoriesAreNonEmpty() {
@@ -1157,6 +1158,34 @@ final class TimeScrubTests: XCTestCase {
         XCTAssertEqual(clock.offsetHours, 12)
         clock.setOffset(hours: -12, at: reference)
         XCTAssertEqual(clock.offsetHours, -12)
+    }
+}
+
+final class ConstellationFactsTests: XCTestCase {
+    func testEveryConstellationHasLore() {
+        let abbreviations = Set(ConstellationInfo.latinNames.keys)
+        XCTAssertEqual(abbreviations.count, 88)
+        for abbreviation in abbreviations {
+            let fact = ConstellationInfo.fact(for: abbreviation)
+            XCTAssertNotNil(fact, abbreviation)
+            XCTAssertFalse(fact?.westernLore.isEmpty ?? true, abbreviation)
+            XCTAssertFalse(fact?.chineseLore.isEmpty ?? true, abbreviation)
+        }
+    }
+
+    func testFactsMatchTheirKeys() {
+        for (key, fact) in ConstellationInfo.facts {
+            XCTAssertEqual(key, fact.abbreviation)
+        }
+    }
+
+    func testLoreLengthIsReadable() {
+        for (key, fact) in ConstellationInfo.facts {
+            XCTAssertGreaterThan(fact.westernLore.count, 10, key)
+            XCTAssertGreaterThan(fact.chineseLore.count, 6, key)
+            XCTAssertLessThan(fact.westernLore.count, 90, key)
+            XCTAssertLessThan(fact.chineseLore.count, 90, key)
+        }
     }
 }
 
