@@ -40,6 +40,9 @@ settings:
     TARGETED_DEVICE_FAMILY: "1,2"
     CLANG_ENABLE_MODULES: YES
     ENABLE_USER_SCRIPT_SANDBOXING: YES
+    # 签名：team 固定为 UKXWZ3FS84，由 Xcode 自动管理描述文件
+    DEVELOPMENT_TEAM: UKXWZ3FS84
+    CODE_SIGN_STYLE: Automatic
 
 targets:
   SpaceWalker:
@@ -65,8 +68,12 @@ targets:
         product: TGFeatureFlag
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.tango.SpaceWalker
+        PRODUCT_BUNDLE_IDENTIFIER: com.tango.spacewalker
         SUPPORTED_PLATFORMS: iphoneos iphonesimulator
+        CODE_SIGN_IDENTITY: "Apple Development"
+      configs:
+        Release:
+          CODE_SIGN_IDENTITY: "Apple Distribution"
 
   SpaceWalkerTests:
     type: bundle.unit-test
@@ -75,7 +82,8 @@ targets:
       - path: Tests
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.tango.SpaceWalkerTests
+        PRODUCT_BUNDLE_IDENTIFIER: com.tango.spacewalkertests
         GENERATE_INFOPLIST_FILE: YES
+        CODE_SIGN_IDENTITY: "Apple Development"
     dependencies:
       - target: SpaceWalker
