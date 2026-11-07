@@ -1,0 +1,32 @@
+[4ms] # iPhone17,1 | Version 27.0 (Build 24A437) | app 1.0(1) | bundle com.tango.spacewalker
+[137ms] permission.status authorized
+[478ms] session.request anchors=camera,plane,world scene=collision,occlusion,shadow camera=back
+[586ms] probe.fps avg=53.9 min=25.8 hitches=1
+[868ms] session.started elapsedMs=868 grantedAnchors=camera,plane,world grantedScene=collision,occlusion,shadow unavailableAnchors= unavailableScene= cameraAuthorized=true
+[868ms] session.matrix mode=full reasons= strategy=surfaceHit
+[883ms] placement.apply strategy=surfaceHit planes=true surfaces=true
+[1905ms] probe.drift samples=2 max=0.000 jumps=0 dir=(0.00,0.00,0.00)
+[3004ms] probe.drift samples=3 max=0.000 jumps=0 dir=(0.00,0.00,0.00)
+[4104ms] probe.drift samples=4 max=0.000 jumps=0 dir=(0.00,0.00,0.00)
+[5203ms] probe.drift samples=5 max=0.000 jumps=0 dir=(0.00,0.00,0.00)
+[5604ms] probe.fps avg=60.0 min=42.7 hitches=0
+[6204ms] probe.drift samples=6 max=0.000 jumps=0 dir=(0.00,0.00,0.00)
+[7305ms] probe.drift samples=7 max=0.000 jumps=0 dir=(0.00,0.00,0.00)
+[8306ms] probe.drift samples=8 max=0.000 jumps=0 dir=(0.00,0.00,0.00)
+[9403ms] probe.drift samples=9 max=0.000 jumps=0 dir=(0.00,0.00,0.00)
+[10403ms] probe.drift samples=10 max=0.000 jumps=0 dir=(0.00,0.00,0.00)
+[10703ms] probe.fps avg=60.0 min=45.3 hitches=0
+[11404ms] probe.drift samples=11 max=0.000 jumps=0 dir=(0.00,0.00,0.00)
+[12504ms] probe.drift samples=12 max=0.000 jumps=0 dir=(0.00,0.00,0.00)
+[13604ms] probe.drift samples=13 max=0.000 jumps=0 dir=(0.00,0.00,0.00)
+[14706ms] probe.drift samples=14 max=0.000 jumps=0 dir=(0.00,0.00,0.00)
+[15706ms] probe.fps avg=60.0 min=43.6 hitches=0
+[15804ms] probe.drift samples=15 max=0.000 jumps=0 dir=(0.00,0.00,0.00)
+[16805ms] probe.drift samples=16 max=0.000 jumps=0 dir=(0.00,0.00,0.00)
+[17904ms] probe.drift samples=17 max=0.000 jumps=0 dir=(0.00,0.00,0.00)
+[19005ms] probe.drift samples=18 max=0.000 jumps=0 dir=(0.00,0.00,0.00)
+[20105ms] probe.drift samples=19 max=0.000 jumps=0 dir=(0.00,0.00,0.00)
+[20805ms] probe.fps avg=60.0 min=49.8 hitches=0
+[21105ms] probe.drift samples=20 max=0.000 jumps=0 dir=(0.00,0.00,0.00)
+[22107ms] probe.drift samples=21 max=0.000 jumps=0 dir=(0.00,0.00,0.00)
+[23205ms] probe.drift samples=22 max=0.000 jumps=0 dir=(0.00,0.00,0.00)

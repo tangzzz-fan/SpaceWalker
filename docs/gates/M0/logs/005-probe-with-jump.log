@@ -1,0 +1,11 @@
+[3ms] # iPhone17,1 | Version 27.0 (Build 24A437) | app 1.0(1) | bundle com.tango.spacewalker
+[252ms] permission.status authorized
+[595ms] session.request anchors=camera,plane,world scene=collision,occlusion,shadow camera=back
+[704ms] probe.fps avg=44.8 min=33.0 hitches=0
+[1015ms] session.started elapsedMs=1015 grantedAnchors=camera,plane,world grantedScene=collision,occlusion,shadow unavailableAnchors= unavailableScene= cameraAuthorized=true
+[1017ms] session.matrix mode=full reasons= strategy=surfaceHit
+[1048ms] placement.apply strategy=surfaceHit planes=true surfaces=true
+[5712ms] probe.fps avg=60.0 min=48.8 hitches=0
+[10828ms] probe.fps avg=59.0 min=21.7 hitches=1
+[15915ms] probe.fps avg=60.0 min=53.1 hitches=0
+[20993ms] probe.fps avg=59.4 min=27.2 hitches=1

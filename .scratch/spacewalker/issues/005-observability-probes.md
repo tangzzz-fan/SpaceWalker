@@ -27,3 +27,14 @@ blocked_by: [001]
 
 - 探针不做可视化图表，只做 HUD 与文本日志。
 - 数据格式固定，便于 M1/M2 复用。
+
+## 实现进展（2026-11-07）
+
+四条 agent 侧已取证，第五条为工程约束。
+
+- `FrameRateSampler`（纯）：120 帧窗口，输出 avg / min / hitches / hitchRatio，6 项单测。
+- `DriftTrack`（纯）：锚点位置序列 → 最大位移 + 归一化方向 + 跳变计数；跳变阈值 0.5m 可配，4 项单测。
+- `ProbeRecorder`：`SceneEvents.Update` 取 deltaTime，`OSAllocatedUnfairLock` 保护窗口，避免跨 actor；1Hz 采样漂移、5s 记录帧率、1Hz 记录漂移。
+- 真机：稳态 60fps / min 42.7–49.2 / hitches 0，漂移 max=0.000、jumps=0；HUD 行与 `导出日志` 见截图与日志。
+- **新发现**：手机移动时 `AnchorEntity(plane:)` 会重新绑定到另一块平面，世界坐标一次跳 1.13m。这不是追踪漂移，已用分段 + `jumps` 计数区分（`logs/005-probe-with-jump.log` 有原始记录）。
+- 待人工：30 秒录屏与 `probe.*` 时间戳对齐（日志毫秒已是启动基准，可直接对）。
