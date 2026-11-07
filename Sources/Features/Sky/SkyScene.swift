@@ -12,6 +12,9 @@ final class SkyScene {
     private var content: RealityViewCameraContent?
     private var nodes: [Star] = []
     private var field = Entity()
+    private var constellationNode: Entity?
+    private(set) var constellationCount = 0
+    private var constellationsRequested = true
     private var isBuilt = false
     private var viewSize: CGSize = .zero
     private(set) var isAttitudeDriven = false
@@ -80,14 +83,43 @@ final class SkyScene {
         }
 
         nodes = catalog.stars
+        buildConstellations(from: catalog.stars)
     }
+
+    private func buildConstellations(from stars: [Star]) {
+        var positions: [String: SIMD3<Float>] = [:]
+        for star in stars where star.isNamed && positions[star.name] == nil {
+            positions[star.name] = StarField.position(for: star)
+        }
+        let segments = Constellations.segments(positions: positions)
+        guard !segments.isEmpty,
+              let mesh = try? StarFieldBuilder.mesh(
+                  StarFieldBuilder.constellation(segments, radius: Self.constellationRadius),
+                  name: "constellations"
+              )
+        else { return }
+
+        let entity = Entity()
+        entity.name = "constellations"
+        entity.components.set(ModelComponent(
+            mesh: mesh,
+            materials: [UnlitMaterial(color: uiColor(SIMD3(0.62, 0.72, 0.92), brightness: 0.46))]
+        ))
+        field.addChild(entity)
+        entity.isEnabled = constellationsRequested
+        constellationNode = entity
+        constellationCount = segments.count
+    }
+
+    func setConstellationsVisible(_ visible: Bool) {
+        constellationsRequested = visible
+        constellationNode?.isEnabled = visible
+    }
+
+    static let constellationRadius: Float = 0.032
 
     func attach(_ content: RealityViewCameraContent) {
         self.content = content
-    }
-
-    var deviceForwardWorld: SIMD3<Float> {
-        root.orientation.inverse.act(SIMD3<Float>(0, 0, -1))
     }
 
     var viewDirectionInField: SIMD3<Float> {
@@ -143,6 +175,18 @@ final class SkyScene {
         guard length > 0.0001 else { return nil }
         return world / length
     }
+
+    func guideVector(to star: Star) -> GuideVector? {
+        guard let direction = renderedDirection(of: star) else { return nil }
+        return SkyGuide.vector(to: direction)
+    }
+
+    func aimOffsetDegrees(of star: Star) -> Double {
+        guard let direction = renderedDirection(of: star) else { return 180 }
+        return SkyPicker.offsetDegrees(direction, Self.screenCenterDirection)
+    }
+
+    static let screenCenterDirection = SIMD3<Float>(0, 0, -1)
 
     func pickDiagnostics(radius: CGFloat = 60) -> String {
         guard let content, viewSize.width > 0 else { return "sky.pickNear not-ready" }

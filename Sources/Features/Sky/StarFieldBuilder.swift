@@ -79,6 +79,42 @@ enum StarFieldBuilder {
         return StarMeshData(positions: positions, normals: normals, indices: indices)
     }
 
+    static func tube(from start: SIMD3<Float>, to end: SIMD3<Float>, radius: Float) -> StarMeshData {
+        let axis = end - start
+        let length = simd_length(axis)
+        guard length > 0.0001 else {
+            return StarMeshData(positions: [], normals: [], indices: [])
+        }
+        let direction = axis / length
+        let reference = abs(direction.y) < 0.9 ? SIMD3<Float>(0, 1, 0) : SIMD3<Float>(1, 0, 0)
+        let right = simd_normalize(simd_cross(direction, reference)) * radius
+        let up = simd_normalize(simd_cross(direction, right)) * radius
+        let corners = [right + up, -right + up, -right - up, right - up]
+
+        var positions: [SIMD3<Float>] = []
+        var normals: [SIMD3<Float>] = []
+        var indices: [UInt32] = []
+
+        for index in 0..<4 {
+            let current = corners[index]
+            let next = corners[(index + 1) % 4]
+            let normal = simd_normalize(current + next)
+            let base = UInt32(positions.count)
+            positions.append(contentsOf: [start + current, end + current, end + next, start + next])
+            normals.append(contentsOf: [normal, normal, normal, normal])
+            indices.append(contentsOf: [
+                base, base + 1, base + 2, base, base + 2, base + 3,
+                base, base + 2, base + 1, base, base + 3, base + 2,
+            ])
+        }
+
+        return StarMeshData(positions: positions, normals: normals, indices: indices)
+    }
+
+    static func constellation(_ segments: [(SIMD3<Float>, SIMD3<Float>)], radius: Float) -> StarMeshData {
+        merge(segments.map { tube(from: $0.0, to: $0.1, radius: radius) })
+    }
+
     static func merge(_ chunks: [StarMeshData]) -> StarMeshData {
         var positions: [SIMD3<Float>] = []
         var normals: [SIMD3<Float>] = []

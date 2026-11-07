@@ -466,6 +466,113 @@ final class AstronomyTests: XCTestCase {
     }
 }
 
+final class ConstellationTests: XCTestCase {
+    func testEveryLineReferencesRealCatalogStar() throws {
+        let catalog = try XCTUnwrap(StarCatalog.loadFromBundle(.main), "星表资源缺失")
+        let names = Set(catalog.stars.map(\.name).filter { !$0.isEmpty })
+        let missing = Constellations.referencedNames.subtracting(names)
+
+        XCTAssertTrue(missing.isEmpty, "星座连线引用了星表里不存在的星名：\(missing.sorted())")
+    }
+
+    func testEveryLineIsWellFormed() {
+        for constellation in Constellations.all {
+            XCTAssertFalse(constellation.lines.isEmpty, "\(constellation.name) 没有连线")
+            for line in constellation.lines {
+                XCTAssertNotEqual(line.first, line.second, "\(constellation.name) 存在自连线")
+                XCTAssertFalse(line.first.isEmpty)
+                XCTAssertFalse(line.second.isEmpty)
+            }
+        }
+    }
+
+    func testAbbreviationsAreUnique() {
+        let abbreviations = Constellations.all.map(\.abbreviation)
+        XCTAssertEqual(Set(abbreviations).count, abbreviations.count)
+    }
+
+    func testSegmentGeometryIsClosedTube() {
+        let mesh = StarFieldBuilder.tube(from: SIMD3(0, 0, 0), to: SIMD3(0, 0, -10), radius: 0.05)
+        XCTAssertEqual(mesh.positions.count, 16)
+        XCTAssertEqual(mesh.normals.count, 16)
+        XCTAssertEqual(mesh.indices.count, 48)
+        XCTAssertEqual(simd_length(mesh.positions[0] - SIMD3<Float>(0, 0, 0)), 0.05 * sqrt(2), accuracy: 0.0001)
+    }
+
+    func testConstellationMeshCoversEverySegment() {
+        let segments = [ (SIMD3<Float>(0, 0, -10), SIMD3<Float>(1, 0, -10)), (SIMD3<Float>(1, 0, -10), SIMD3<Float>(1, 1, -10)) ]
+        let mesh = StarFieldBuilder.constellation(segments, radius: 0.05)
+        XCTAssertEqual(mesh.positions.count, 32)
+        XCTAssertEqual(mesh.indices.count, 96)
+    }
+}
+
+final class StarFinderTests: XCTestCase {
+    private let sample: [Star] = [
+        Star(rightAscensionHours: 6.75, declinationDegrees: -16.7, magnitude: -1.44, colorIndex: 0.0, name: "Sirius", constellation: "CMa"),
+        Star(rightAscensionHours: 5.9, declinationDegrees: 7.4, magnitude: 0.45, colorIndex: 1.5, name: "Betelgeuse", constellation: "Ori"),
+        Star(rightAscensionHours: 5.6, declinationDegrees: -1.2, magnitude: 1.69, colorIndex: -0.2, name: "Alnilam", constellation: "Ori"),
+        Star(rightAscensionHours: 2.53, declinationDegrees: 89.26, magnitude: 1.97, colorIndex: 0.6, name: "Polaris", constellation: "UMi"),
+        Star(rightAscensionHours: 11.06, declinationDegrees: 61.75, magnitude: 1.81, colorIndex: 1.1, name: "Dubhe", constellation: "UMa"),
+        Star(rightAscensionHours: 5.6, declinationDegrees: -1.3, magnitude: 3.9, colorIndex: 0.0, name: "", constellation: "Ori"),
+    ]
+
+    func testChineseNameSearchFindsSirius() {
+        XCTAssertEqual(StarFinder.search(sample, query: "天狼").first?.star.name, "Sirius")
+    }
+
+    func testSpokenAliasFindsPolaris() {
+        XCTAssertEqual(StarFinder.search(sample, query: "北极星").first?.star.name, "Polaris")
+    }
+
+    func testConstellationNicknameListsItsStars() {
+        let hits = StarFinder.search(sample, query: "北斗")
+        XCTAssertEqual(hits.map(\.star.name), ["Dubhe"])
+    }
+
+    func testConstellationNameListsAllSelectableMembers() {
+        let hits = StarFinder.search(sample, query: "猎户")
+        XCTAssertEqual(hits.map(\.star.name).sorted(), ["Alnilam", "Betelgeuse"])
+    }
+
+    func testUnnamedStarIsNeverReturned() {
+        for query in ["", "a", "星", "Ori"] {
+            XCTAssertFalse(StarFinder.search(sample, query: query).contains { $0.star.name.isEmpty })
+        }
+    }
+
+    func testChineseNamedStarsAreAllSelectable() {
+        let hits = StarFinder.chineseNamed(sample)
+        XCTAssertTrue(hits.allSatisfy { $0.star.isSelectable })
+        XCTAssertEqual(hits.first?.star.name, "Sirius")
+    }
+
+    func testGuideVectorPointsRightAndUp() {
+        let right = SkyGuide.vector(to: SIMD3(1, 0, -1))
+        XCTAssertEqual(right.yaw, 45, accuracy: 0.01)
+        XCTAssertEqual(right.pitch, 0, accuracy: 0.01)
+        XCTAssertEqual(right.distance, 45, accuracy: 0.01)
+
+        let up = SkyGuide.vector(to: SIMD3(0, 1, -0.0001))
+        XCTAssertEqual(up.pitch, 90, accuracy: 0.01)
+        XCTAssertTrue(up.distance > 89)
+    }
+
+    func testGuideVectorAlignedAtCenter() {
+        let centered = SkyGuide.vector(to: SIMD3(0, 0, -1))
+        XCTAssertTrue(centered.isAligned)
+        XCTAssertEqual(centered.distance, 0, accuracy: 0.001)
+        XCTAssertEqual(centered.instruction, "已对准")
+    }
+
+    func testConstellationNameTableCoversCatalog() throws {
+        let catalog = try XCTUnwrap(StarCatalog.loadFromBundle(.main))
+        let abbreviations = Set(catalog.stars.map(\.constellation).filter { !$0.isEmpty })
+        let missing = abbreviations.subtracting(ConstellationNames.table.keys)
+        XCTAssertTrue(missing.isEmpty, "缺少中文星座名：\(missing.sorted())")
+    }
+}
+
 final class AppRouteTests: XCTestCase {
     func testRouteSwitchIsReduced() {
         var state = AppState()

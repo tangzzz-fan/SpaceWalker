@@ -14,6 +14,10 @@ struct SkyView: View {
     @State private var selected: Star?
     @State private var motionActive = false
     @State private var showsCredits = false
+    @State private var showsConstellations = true
+    @State private var showsFinder = false
+    @State private var guide: Star?
+    @State private var guideVector: GuideVector?
     @State private var dwell = DwellSelector()
     @State private var hud = DwellHUD()
     @State private var observer = SkyObserver()
@@ -40,6 +44,10 @@ struct SkyView: View {
             VStack(alignment: .leading, spacing: 0) {
                 topBar
                 Spacer(minLength: 0)
+                if let guide {
+                    guideBar(guide)
+                        .padding(.bottom, 10)
+                }
                 if let selected {
                     starCard(selected)
                         .padding(.bottom, 10)
@@ -55,6 +63,9 @@ struct SkyView: View {
             await load()
             await runPickProbe()
         }
+        .onChange(of: showsConstellations) { _, visible in
+            scene.setConstellationsVisible(visible)
+        }
         .onChange(of: observer.stage) { _, _ in
             alignmentStamp = 0
             applyAlignment()
@@ -64,6 +75,11 @@ struct SkyView: View {
             observer.disable()
         }
         .sheet(isPresented: $showsCredits) { creditsSheet }
+        .sheet(isPresented: $showsFinder) {
+            StarFinderView(stars: catalog?.stars ?? []) { star in
+                startGuide(to: star)
+            }
+        }
     }
 
     private var reality: some View {
@@ -151,7 +167,8 @@ struct SkyView: View {
               let longitude = observer.longitude,
               let sidereal = observer.currentSiderealDegrees()
         else {
-            return "\(catalog?.stars.count ?? 0) 颗恒星 · \(scene.selectableCount) 颗可选中"
+            let stars = catalog?.stars ?? []
+            return "\(stars.count) 颗恒星 · \(stars.filter(\.isSelectable).count) 颗可选中 · \(Constellations.all.count) 个星座"
         }
         return String(format: "%.1f°N %.1f°E · 恒星时 %.1f°", latitude, longitude, sidereal)
     }
@@ -171,9 +188,25 @@ struct SkyView: View {
             Spacer()
 
             Button {
+                showsFinder = true
+            } label: {
+                Label("找星", systemImage: "magnifyingglass")
+                    .font(.caption)
+            }
+            .accessibilityLabel("搜索并定位一颗星")
+
+            Button {
+                showsConstellations.toggle()
+            } label: {
+                Label("星座", systemImage: showsConstellations ? "link" : "link.badge.plus")
+                    .font(.caption)
+            }
+            .accessibilityLabel("星座连线")
+
+            Button {
                 toggleAlignment()
             } label: {
-                Label(observer.isOn ? "今夜" : "对齐今夜", systemImage: observer.isOn ? "location.fill" : "location")
+                Label("今夜", systemImage: observer.isOn ? "location.fill" : "location")
                     .font(.caption)
             }
             .accessibilityLabel("对齐今夜此刻的真实天空")
@@ -181,9 +214,10 @@ struct SkyView: View {
             Button {
                 store.dispatch(.route(.solarSystem))
             } label: {
-                Label("太阳系", systemImage: "sun.max")
-                    .font(.caption)
+                Image(systemName: "sun.max")
+                    .frame(width: 28, height: 28)
             }
+            .accessibilityLabel("太阳系")
 
             Button {
                 showsCredits = true
@@ -196,6 +230,46 @@ struct SkyView: View {
         .padding(.horizontal, 14)
         .padding(.vertical, 10)
         .background(.ultraThinMaterial, in: Capsule())
+    }
+
+    private func guideBar(_ star: Star) -> some View {
+        HStack(spacing: 12) {
+            Image(systemName: "location.north.fill")
+                .font(.title3)
+                .rotationEffect(.degrees(guideVector?.arrowDegrees ?? 0))
+                .frame(width: 34, height: 34)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text("前往 \(ChineseStarNames.chinese(for: star.name) ?? star.name)")
+                    .font(.subheadline.weight(.medium))
+                Text(guideVector?.instruction ?? "转动手机寻找…")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
+
+            Spacer()
+
+            Button {
+                guide = nil
+                guideVector = nil
+            } label: {
+                Image(systemName: "xmark.circle.fill")
+                    .foregroundStyle(.secondary)
+            }
+            .accessibilityLabel("取消指路")
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 14))
+    }
+
+    private func startGuide(to star: Star) {
+        guide = star
+        guideVector = scene.guideVector(to: star)
+        selected = nil
+        dwell.reset()
+        hud.show(0)
+        SessionLog.append("sky.guide start=\(star.name)")
     }
 
     private func starCard(_ star: Star) -> some View {
@@ -259,15 +333,13 @@ struct SkyView: View {
     }
 
     private func aimOffset(for star: Star) -> Double {
-        guard let direction = scene.renderedDirection(of: star) else { return 180 }
-        let alignment = simd_dot(direction, scene.deviceForwardWorld)
-        return acos(Double(min(max(alignment, -1), 1))) * 180 / .pi
+        scene.aimOffsetDegrees(of: star)
     }
 
     private func calibrateFacingNorth() {
         observer.calibrateAgainst(
             starAzimuth: 0,
-            sceneAzimuth: Astronomy.sceneAzimuth(scene.deviceForwardWorld),
+            sceneAzimuth: Astronomy.sceneAzimuth(scene.viewDirectionInField),
             label: "正北"
         )
         alignmentStamp = ProcessInfo.processInfo.systemUptime
@@ -279,7 +351,7 @@ struct SkyView: View {
     private func calibrate(using star: Star, azimuth: Double) {
         observer.calibrateAgainst(
             starAzimuth: azimuth,
-            sceneAzimuth: Astronomy.sceneAzimuth(scene.deviceForwardWorld),
+            sceneAzimuth: Astronomy.sceneAzimuth(scene.viewDirectionInField),
             label: star.name
         )
         alignmentStamp = ProcessInfo.processInfo.systemUptime
@@ -327,6 +399,15 @@ struct SkyView: View {
         if LaunchMode.autoAlignEnabled(environment: ProcessInfo.processInfo.environment), !observer.isOn {
             observer.enable()
         }
+        if LaunchMode.finderPreviewEnabled(environment: ProcessInfo.processInfo.environment) {
+            showsFinder = true
+        }
+        if let target = LaunchMode.guideTarget(environment: ProcessInfo.processInfo.environment) {
+            let stars = catalog?.stars ?? []
+            if let star = stars.first(where: { $0.name == target }) {
+                startGuide(to: star)
+            }
+        }
     }
 
     private func startMotion() {
@@ -334,7 +415,7 @@ struct SkyView: View {
         guard !attitude.isAvailable else { return }
         attitude.start { orientation in
             scene.setAttitude(orientation)
-            observer.calibrate(sceneAzimuth: Astronomy.sceneAzimuth(scene.deviceForwardWorld))
+            observer.calibrate(sceneAzimuth: Astronomy.sceneAzimuth(scene.viewDirectionInField))
             applyAlignment()
             stepDwell()
         }
@@ -379,6 +460,17 @@ struct SkyView: View {
 
     private func stepDwell() {
         guard scene.isReady else { return }
+        if let target = guide {
+            let vector = scene.guideVector(to: target)
+            guideVector = vector
+            guard let vector, vector.isAligned else { return }
+            selected = target
+            guide = nil
+            guideVector = nil
+            UIImpactFeedbackGenerator(style: .rigid).impactOccurred()
+            SessionLog.append("sky.guide arrived=\(target.name)")
+            return
+        }
         let now = ProcessInfo.processInfo.systemUptime
         let candidate = scene.pickAtCenter()
         if candidate == nil, now - diagnosticsStamp > 1.5,
@@ -391,7 +483,14 @@ struct SkyView: View {
         guard let hit else { return }
         selected = hit
         UIImpactFeedbackGenerator(style: .light).impactOccurred()
-        SessionLog.append(String(format: "sky.dwell name=%@ mag=%.2f", hit.name, hit.magnitude))
+        SessionLog.append(
+            String(
+                format: "sky.dwell name=%@ mag=%.2f offset=%.1f",
+                hit.name,
+                hit.magnitude,
+                scene.aimOffsetDegrees(of: hit)
+            )
+        )
     }
 
     private func runPickProbe() async {

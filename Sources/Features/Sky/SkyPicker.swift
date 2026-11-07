@@ -7,6 +7,13 @@ enum SkyPicker {
     static let prefilterDegrees: Float = 4
     static let candidateLimit = 4
 
+    static func offsetDegrees(_ a: SIMD3<Float>, _ b: SIMD3<Float>) -> Double {
+        let normalizedA = simd_length(a) > 0.0001 ? simd_normalize(a) : SIMD3<Float>(0, 0, -1)
+        let normalizedB = simd_length(b) > 0.0001 ? simd_normalize(b) : SIMD3<Float>(0, 0, -1)
+        let dot = simd_dot(normalizedA, normalizedB)
+        return acos(Double(min(max(dot, -1), 1))) * 180 / .pi
+    }
+
     static func direction(for star: Star) -> SIMD3<Float> {
         StarField.direction(
             rightAscensionHours: star.rightAscensionHours,

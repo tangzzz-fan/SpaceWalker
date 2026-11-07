@@ -35,6 +35,14 @@ enum LaunchMode {
         environment["SPACEWALKER_ALIGN"] == "1"
     }
 
+    static func finderPreviewEnabled(environment: [String: String]) -> Bool {
+        environment["SPACEWALKER_FINDER"] == "1"
+    }
+
+    static func guideTarget(environment: [String: String]) -> String? {
+        environment["SPACEWALKER_GUIDE"]
+    }
+
     static func autoAREnabled(environment: [String: String]) -> Bool {
         environment["SPACEWALKER_AUTOAR"] == "1"
     }
