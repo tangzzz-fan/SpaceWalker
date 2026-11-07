@@ -19,6 +19,14 @@ enum LaunchMode {
         }
     }
 
+    static func initialRoute(environment: [String: String]) -> AppRoute {
+        environment[environmentKey] == "sky" ? .sky : .solarSystem
+    }
+
+    static func skyMotionEnabled(environment: [String: String]) -> Bool {
+        environment["SPACEWALKER_SKYMOTION"] != "0"
+    }
+
     static func pickProbeEnabled(environment: [String: String]) -> Bool {
         environment["SPACEWALKER_PICKPROBE"] == "1"
     }

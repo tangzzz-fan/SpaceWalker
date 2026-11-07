@@ -1,6 +1,12 @@
 import TGReduxKit
 
+enum AppRoute: Equatable, Sendable {
+    case solarSystem
+    case sky
+}
+
 struct AppState: State {
+    var route: AppRoute = .solarSystem
     var prototype = PrototypeState()
     var session = SessionState()
     var placement = PlacementState()
@@ -16,5 +22,6 @@ enum AppAction: Action {
     case placement(PlacementAction)
     case permission(PermissionAction)
     case space(SolarSystemAction)
+    case route(AppRoute)
     case flagsLoaded(FeatureFlags)
 }

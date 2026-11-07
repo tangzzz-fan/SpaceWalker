@@ -17,7 +17,9 @@ struct SpaceWalkerApp: App {
 
         _store = State(
             initialValue: Store(
-                initialState: AppState(),
+                initialState: AppState(
+                    route: LaunchMode.initialRoute(environment: ProcessInfo.processInfo.environment)
+                ),
                 reducer: makeAppReducer(),
                 middlewares: [makeFlagsMiddleware(resolver: resolver)]
             )

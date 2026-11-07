@@ -263,6 +263,14 @@ struct SpaceView: View {
             .accessibilityLabel("重置视角")
 
             Button {
+                store.dispatch(.route(.sky))
+            } label: {
+                Image(systemName: "sparkles")
+                    .frame(width: 28, height: 28)
+            }
+            .accessibilityLabel("星图")
+
+            Button {
                 showsCredits = true
             } label: {
                 Image(systemName: "info.circle")
@@ -381,7 +389,7 @@ struct SpaceView: View {
         }
 
         #if DEBUG
-        fpsLine = probe.tick(now: now, anchorPosition: nil).line
+        fpsLine = probe.tick(now: now, anchorPosition: nil).fpsOnlyLine
         #endif
 
         #if DEBUG

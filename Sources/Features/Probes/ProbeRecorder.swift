@@ -94,6 +94,10 @@ struct ProbeSummary: Equatable, Sendable {
     var driftSamples: Int = 0
     var driftJumps: Int = 0
 
+    var fpsOnlyLine: String {
+        String(format: "%.0ffps · min %.0f · 卡顿 %d", fps, minimumFPS, hitches)
+    }
+
     var line: String {
         String(
             format: "%.0ffps · min %.0f · 卡顿 %d · 漂移 %.1fcm",

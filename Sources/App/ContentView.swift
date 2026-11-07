@@ -16,7 +16,12 @@ struct ContentView: View {
             case .ar:
                 SessionView()
             case .space:
-                SpaceView()
+                switch store.state.route {
+                case .solarSystem:
+                    SpaceView()
+                case .sky:
+                    SkyView()
+                }
             }
         }
     }

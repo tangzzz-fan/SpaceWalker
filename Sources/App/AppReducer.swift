@@ -15,6 +15,8 @@ func makeAppReducer() -> Reducer<AppState, AppAction> {
             PermissionReducer.reduce(&state.permission, permissionAction)
         case .space(let spaceAction):
             SolarSystemReducer.reduce(&state.space, spaceAction)
+        case .route(let route):
+            state.route = route
         case .flagsLoaded(let flags):
             state.flags = flags
         }
