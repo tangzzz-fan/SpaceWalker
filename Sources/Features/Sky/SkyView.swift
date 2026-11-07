@@ -5,6 +5,7 @@ import UIKit
 
 struct SkyView: View {
     @Environment(Store<AppState, AppAction>.self) private var store
+    @Environment(\.verticalSizeClass) private var verticalSizeClass
 
     @State private var scene = SkyScene()
     @State private var catalog: StarCatalog?
@@ -12,6 +13,8 @@ struct SkyView: View {
     @State private var attitude = DeviceAttitude()
     @State private var lastDrag: CGSize = .zero
     @State private var zoomBase: Float = SkyScene.defaultFieldOfView
+    @State private var isPinching = false
+    @State private var rigBeforePinch: SkyRig?
     @State private var selected: Star?
     @State private var selectedGroup: SkyGroup?
     @State private var groups: [SkyGroup] = []
@@ -50,8 +53,17 @@ struct SkyView: View {
             if catalog != nil {
                 GeometryReader { proxy in
                     reality
-                        .onAppear { scene.resize(proxy.size) }
-                        .onChange(of: proxy.size) { _, size in scene.resize(size) }
+                        .onAppear {
+                            scene.resize(proxy.size)
+                            logLayout(proxy.size)
+                        }
+                        .onChange(of: proxy.size) { _, size in
+                            scene.resize(size)
+                            // 转屏会按高度比例改视场，捏合的基准跟着走，
+                            // 否则下次捏合会从旧值开始跳一下。
+                            zoomBase = scene.fieldOfView
+                            logLayout(size)
+                        }
                 }
             } else {
                 ProgressView()
@@ -60,44 +72,11 @@ struct SkyView: View {
 
             crosshair
 
-            VStack(alignment: .leading, spacing: 0) {
-                topBar
-                if let summary = perfSummary {
-                    Text(summary.fpsOnlyLine)
-                        .font(.system(size: 10, design: .monospaced))
-                        .foregroundStyle(.secondary)
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 3)
-                        .background(.ultraThinMaterial, in: Capsule())
-                        .frame(maxWidth: .infinity, alignment: .trailing)
-                        .padding(.top, 6)
-                }
-                Spacer(minLength: 0)
-                if let guide {
-                    guideBar(guide)
-                        .padding(.bottom, 10)
-                }
-                if let constellation = identifiedConstellation {
-                    constellationBadge(constellation)
-                        .padding(.bottom, 10)
-                }
-                if let pattern = identifiedPattern {
-                    patternBadge(pattern)
-                        .padding(.bottom, 10)
-                }
-                if let selectedGroup {
-                    groupCard(selectedGroup)
-                        .padding(.bottom, 10)
-                }
-                if let selected {
-                    starCard(selected)
-                        .padding(.bottom, 10)
-                }
-                hintBar
+            if isLandscape {
+                landscapeOverlay
+            } else {
+                portraitOverlay
             }
-            .padding(.horizontal, 16)
-            .padding(.top, 8)
-            .padding(.bottom, 18)
         }
         .preferredColorScheme(.dark)
         .task {
@@ -176,7 +155,12 @@ struct SkyView: View {
         .gesture(
             DragGesture(minimumDistance: 4)
                 .onChanged { value in
-                    guard !motionActive else { return }
+                    // 捏合时两根手指也有位移，不挡掉就会「缩放顺带把天空推走」。
+                    guard !motionActive, !isPinching else {
+                        lastDrag = value.translation
+                        return
+                    }
+                    if lastDrag == .zero { rigBeforePinch = rig }
                     scene.releaseAim()
                     rig.drag(
                         deltaX: Float(value.translation.width - lastDrag.width),
@@ -184,17 +168,36 @@ struct SkyView: View {
                     )
                     lastDrag = value.translation
                 }
-                .onEnded { _ in lastDrag = .zero }
+                .onEnded { _ in
+                    lastDrag = .zero
+                    rigBeforePinch = nil
+                }
         )
         // 双指捏合改视场角。人放在星空上叫「看全」，不是在缩放图片：
         // 人马座 35° 装不进 36° 的竖屏视场，只能连视场一起放大。
         .simultaneousGesture(
             MagnifyGesture()
                 .onChanged { value in
+                    if !isPinching {
+                        isPinching = true
+                        // 捏合被识别前，拖动已经按两指的位移把天空推了一段。
+                        // 退回捏合前的姿态，缩放就只改视场，不动朝向。
+                        if let snapshot = rigBeforePinch {
+                            rig = snapshot
+                            scene.apply(rig: snapshot)
+                            lastDrag = .zero
+                        }
+                    }
                     scene.setFieldOfView(zoomBase / Float(value.magnification))
                 }
                 .onEnded { _ in
+                    isPinching = false
                     zoomBase = scene.fieldOfView
+                    lastDrag = .zero
+                    SessionLog.append(String(
+                        format: "sky.zoom fov=%.1f rig=%.2f,%.2f",
+                        scene.fieldOfView, rig.yaw, rig.pitch
+                    ))
                 }
         )
         // 双击回到默认视场。缩放没有「复位」就等于没有退出键，
@@ -216,6 +219,168 @@ struct SkyView: View {
                     hud.show(0)
                     SessionLog.append("sky.select name=\(hit?.name ?? "none") mag=\(hit?.magnitude ?? 0)")
                 }
+        )
+    }
+
+    private var isLandscape: Bool {
+        verticalSizeClass == .compact
+    }
+
+    /// 竖屏：顶栏在上，卡片与底栏依次叠在下方。
+    private var portraitOverlay: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            topBar
+            perfBadge(alignment: .trailing)
+            Spacer(minLength: 0)
+            VStack(alignment: .leading, spacing: 10) {
+                activeCards
+            }
+            hintBar
+                .padding(.top, 10)
+        }
+        .padding(.horizontal, 16)
+        .padding(.top, 8)
+        .padding(.bottom, 18)
+    }
+
+    /// 横屏：高度只剩 390pt，顶栏和卡片不能都往下堆。
+    /// 顶栏压成一行胶囊留在左上，卡片改挂在右侧竖栏，中间视场留空。
+    private var landscapeOverlay: some View {
+        VStack(spacing: 8) {
+            HStack(alignment: .top, spacing: 10) {
+                VStack(alignment: .leading, spacing: 6) {
+                    compactTopBar
+                    perfBadge(alignment: .leading)
+                    Spacer(minLength: 0)
+                }
+                Spacer(minLength: 0)
+                ScrollView(.vertical, showsIndicators: false) {
+                    VStack(alignment: .trailing, spacing: 8) {
+                        activeCards
+                    }
+                    .frame(maxWidth: .infinity, alignment: .trailing)
+                }
+                .frame(width: 340)
+            }
+            // 横屏宽度富余，底栏按内容收紧居中；竖屏那条通栏胶囊在横屏会太空。
+            HStack(spacing: 0) {
+                Spacer(minLength: 0)
+                hintBar
+                    .fixedSize(horizontal: true, vertical: false)
+                Spacer(minLength: 0)
+            }
+        }
+        .padding(.horizontal, 14)
+        .padding(.top, 6)
+        .padding(.bottom, 8)
+    }
+
+    @ViewBuilder
+    private var activeCards: some View {
+        if let guide {
+            guideBar(guide)
+        }
+        if let constellation = identifiedConstellation {
+            constellationBadge(constellation)
+        }
+        if let pattern = identifiedPattern {
+            patternBadge(pattern)
+        }
+        if let selectedGroup {
+            groupCard(selectedGroup)
+        }
+        if let selected {
+            starCard(selected)
+        }
+    }
+
+    @ViewBuilder
+    private func perfBadge(alignment: Alignment) -> some View {
+        if let summary = perfSummary {
+            Text(summary.fpsOnlyLine)
+                .font(.system(size: 10, design: .monospaced))
+                .foregroundStyle(.secondary)
+                .padding(.horizontal, 6)
+                .padding(.vertical, 3)
+                .background(.ultraThinMaterial, in: Capsule())
+                .frame(maxWidth: .infinity, alignment: alignment)
+                .padding(.top, 6)
+        }
+    }
+
+    /// 横屏顶栏只留最要紧的：坐标、时刻、当前天区。
+    /// 「姿态跟随 / 拖动旋转」这类说明交给底栏状态，不再占一整行。
+    private var compactTopBar: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 10) {
+                Text("星图")
+                    .font(.system(size: 16, weight: .semibold, design: .rounded))
+                Text(compactSubtitle)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                if observer.isOn, !observer.hasHeading {
+                    Button {
+                        calibrateFacingNorth()
+                    } label: {
+                        Image(systemName: "location.north.line")
+                            .font(.caption2)
+                    }
+                    .buttonStyle(.borderless)
+                    .accessibilityLabel("手机水平朝正北时点此")
+                }
+                if let region = currentRegion {
+                    Button {
+                        openRegion(region)
+                    } label: {
+                        HStack(spacing: 3) {
+                            Image(systemName: regionSymbol(region))
+                            Text(region.title)
+                        }
+                        .font(.caption2)
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(.secondary)
+                    .accessibilityLabel("当前天区 \(region.title)，查看来头")
+                }
+            }
+            if observer.stage == .ready {
+                timeScrubber
+            }
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
+    }
+
+    private var compactSubtitle: String {
+        if !motionActive {
+            return "拖动旋转"
+        }
+        guard observer.stage == .ready,
+              let latitude = observer.latitude,
+              let longitude = observer.longitude,
+              let sidereal = observer.currentSiderealDegrees()
+        else {
+            return "姿态跟随"
+        }
+        let base = String(format: "%.1f°N %.1f°E · 恒星时 %.1f°", latitude, longitude, sidereal)
+        return observer.clock.isNow ? base : "\(base) · \(timeOffsetLabel)"
+    }
+
+    private func openRegion(_ region: SkyRegion) {
+        switch region {
+        case .constellation(let info):
+            infoRegion = info
+        case .pattern(let pattern):
+            identifiedPattern = pattern
+        }
+    }
+
+    /// 转屏时留一行尺寸，排查排版时不用猜当时是哪个方向。
+    private func logLayout(_ size: CGSize) {
+        SessionLog.append(
+            String(format: "sky.layout %.0fx%.0f %@", size.width, size.height, isLandscape ? "landscape" : "portrait")
         )
     }
 
@@ -250,12 +415,7 @@ struct SkyView: View {
             }
             if let region = currentRegion {
                 Button {
-                    switch region {
-                    case .constellation(let info):
-                        infoRegion = info
-                    case .pattern(let pattern):
-                        identifiedPattern = pattern
-                    }
+                    openRegion(region)
                 } label: {
                     HStack(spacing: 4) {
                         Image(systemName: regionSymbol(region))
@@ -509,7 +669,7 @@ struct SkyView: View {
     private func focus(group: SkyGroup) {
         let stars = catalog?.stars ?? []
         guard let direction = SkyGroupIndex.anchor(group, stars: stars) else { return }
-        scene.aim(at: direction)
+        if let aimed = scene.aim(at: direction) { rig = aimed }
         if group.isDrawable, !showsAsterisms {
             showsAsterisms = true
             scene.setAsterismsVisible(true)
@@ -945,7 +1105,7 @@ struct SkyView: View {
                     try? await Task.sleep(for: .milliseconds(50))
                 }
                 if let direction = scene.direction(forPattern: id) {
-                    scene.aim(at: direction)
+                    if let aimed = scene.aim(at: direction) { rig = aimed }
                     SessionLog.append("sky.aim pattern=\(id)")
                 }
             }
@@ -999,14 +1159,14 @@ struct SkyView: View {
                 ? stars.filter { $0.constellation == abbreviation }
                 : stars.filter { keys.contains($0.key) }
             if !members.isEmpty {
-                var sum = SIMD3<Float>(0, 0, 0)
-                for star in members {
-                    sum += SkyPicker.direction(for: star)
-                }
+                // 用最小覆盖圆求中心：形状再偏，定位过去也整块落在视场里。
+                let center = SkyPicker.enclosingCenter(of: members.map(SkyPicker.direction(for:)))
                 for _ in 0..<40 where !scene.isReady {
                     try? await Task.sleep(for: .milliseconds(50))
                 }
-                scene.aim(at: sum)
+                if let center, let aimed = scene.aim(at: center) {
+                    rig = aimed
+                }
                 SessionLog.append("sky.aim target=\(abbreviation) stars=\(members.count)")
             }
         }

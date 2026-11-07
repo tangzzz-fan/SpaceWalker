@@ -57,7 +57,18 @@ final class SkyScene {
     }
 
     func resize(_ size: CGSize) {
+        let previous = viewSize
+        guard size.width > 1, size.height > 1 else {
+            viewSize = size
+            return
+        }
         viewSize = size
+
+        // 转屏时保住「每点多少度」：竖屏 60° 的视场转到横屏该变成 31°，
+        // 否则一横过来整片星空缩成一半，像被人拉远了。捏合缩放同样按比例带过去。
+        let flipped = (previous.width < previous.height) != (size.width < size.height)
+        guard flipped, previous.height > 1 else { return }
+        setFieldOfView(fieldOfView * Float(size.height / previous.height))
     }
 
     func build(catalog: StarCatalog) {
@@ -625,12 +636,26 @@ final class SkyScene {
 
     /// 把视线转到某个方向。定位后要锁住，否则无陀螺仪时 `apply(rig:)`
     /// 会在下一次 RealityView 更新里把朝向拉回拖动状态。
-    func aim(at direction: SIMD3<Float>) {
+    /// 把视线转到某个方向，并返回等价的拖动角度。
+    ///
+    /// 用 yaw/pitch 两轴构造，而不是 `simd_quatf(from:to:)`：后者取最短弧，
+    /// 滚转角是任意的，定位到星座后整片天会歪着出现；而且它表达不出
+    /// 拖动用的 yaw/pitch，一捏合 releaseAim 就会弹回旧角度。
+    /// 调用方拿返回值同步 `rig`，交接就无缝了。
+    @discardableResult
+    func aim(at direction: SIMD3<Float>) -> SkyRig? {
         let length = simd_length(direction)
-        guard length > 0.0001 else { return }
+        guard length > 0.0001 else { return nil }
         let world = field.orientation.act(direction / length)
-        root.orientation = simd_quatf(from: world, to: SIMD3<Float>(0, 0, -1))
+        let pitch = atan2(world.y, (world.x * world.x + world.z * world.z).squareRoot())
+        let yaw = atan2(-world.x, -world.z)
+        let rig = SkyRig(
+            yaw: yaw,
+            pitch: min(max(pitch, SkyRig.pitchRange.lowerBound), SkyRig.pitchRange.upperBound)
+        )
+        root.orientation = rig.orientation
         aimLocked = true
+        return rig
     }
 
     func releaseAim() {

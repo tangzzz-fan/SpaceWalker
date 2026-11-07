@@ -131,9 +131,10 @@ final class StarFieldBuilderTests: XCTestCase {
 
 final class SkyRigTests: XCTestCase {
     func testDragClampsPitchAndChangesYaw() {
+        // 手往下推，视线往上抬；一直推只能顶到上限，不能翻过头顶。
         var rig = SkyRig()
         rig.drag(deltaX: 100, deltaY: 10_000)
-        XCTAssertEqual(rig.pitch, SkyRig.pitchRange.lowerBound, accuracy: 0.0001)
+        XCTAssertEqual(rig.pitch, SkyRig.pitchRange.upperBound, accuracy: 0.0001)
         XCTAssertNotEqual(rig.yaw, 0)
     }
 
@@ -142,6 +143,25 @@ final class SkyRigTests: XCTestCase {
         rig.drag(deltaX: 0, deltaY: 120)
         let centered = rig.orientation.inverse.act(SIMD3<Float>(0, 0, -1))
         XCTAssertGreaterThan(centered.y, 0)
+    }
+
+    func testPanningAtHighPitchDoesNotRollTheSky() {
+        // 俯仰 40° 之后再横着转，世界正上方在相机坐标里仍该只有 +Y 分量。
+        // 旧的 `Ry·Rx` 把相机朝向当成了星空朝向，实测滚到 58°：
+        // 星空没有地平线参照，这个错很难被肉眼发现，只能靠断言钉住。
+        var rig = SkyRig(pitch: 0.7)
+        rig.drag(deltaX: 320, deltaY: 0)
+        let up = rig.orientation.act(SIMD3<Float>(0, 1, 0))
+        XCTAssertEqual(up.x, 0, accuracy: 0.001)
+        XCTAssertGreaterThan(up.y, 0)
+    }
+
+    func testDragRightMovesTheViewLeft() {
+        // 手往右推，星空跟着往右走，视线因此向左。
+        var rig = SkyRig()
+        rig.drag(deltaX: 120, deltaY: 0)
+        let centered = rig.orientation.inverse.act(SIMD3<Float>(0, 0, -1))
+        XCTAssertLessThan(centered.x, 0)
     }
 
     func testOrientationIsUnitQuaternion() {
@@ -1848,6 +1868,27 @@ final class ConstellationCoverageTests: XCTestCase {
         XCTAssertEqual(identified, 86)
     }
 
+    func testEnclosingCenterBeatsCentroidOnAsymmetricShapes() throws {
+        // 人马座骨架一头是弓、一头是马身，质心明显偏向星多的一侧。
+        // 定位用的是最小覆盖圆圆心，必须比质心更居中，否则「看全」时总有一头出画。
+        let catalog = try XCTUnwrap(StarCatalog.loadFromBundle(.main))
+        let sgr = try XCTUnwrap(Constellations.all.first { $0.abbreviation == "Sgr" })
+        let keys = Set(sgr.lines.flatMap { [$0.first, $0.second] })
+        let directions = catalog.stars
+            .filter { keys.contains($0.key) }
+            .map(SkyPicker.direction(for:))
+        XCTAssertGreaterThan(directions.count, 10)
+
+        let center = try XCTUnwrap(SkyPicker.enclosingCenter(of: directions))
+        let centroid = directions.reduce(SIMD3<Float>(0, 0, 0), +)
+        func reach(_ vector: SIMD3<Float>) -> Double {
+            directions.map { SkyPicker.offsetDegrees($0, vector) }.max() ?? 0
+        }
+        XCTAssertLessThan(reach(center), reach(centroid), "最小覆盖圆没有比质心更居中")
+        XCTAssertLessThan(reach(center), 20, "人马座骨架半径不该超过 20°")
+        XCTAssertEqual(simd_length(center), 1, accuracy: 0.001)
+    }
+
     func testLepusIsAdjacentToCanisMajor() throws {
         let map = try positions()
         let lepus = try XCTUnwrap(Constellations.all.first { $0.abbreviation == "Lep" })
@@ -1891,6 +1932,51 @@ final class ConstellationShapeNoteTests: XCTestCase {
 }
 
 @MainActor
+final class SkyAimTests: XCTestCase {
+    private func target() -> SIMD3<Float> {
+        // 人马座中心，赤经 19h、赤纬 −25° 附近，不在天极，能验滚转。
+        StarField.direction(rightAscensionHours: 19, declinationDegrees: -25)
+    }
+
+    func testAimCentersTheDirectionAndLeavesNoRoll() {
+        let scene = SkyScene()
+        let direction = target()
+        let rig = try? XCTUnwrap(scene.aim(at: direction))
+        XCTAssertNotNil(rig)
+
+        // 视线落点就是目标方向。
+        XCTAssertEqual(SkyPicker.offsetDegrees(scene.viewDirectionInField, direction), 0, accuracy: 0.01)
+
+        // 没有滚转：世界正上方投影到相机坐标系里应当只有 +Y 分量。
+        // 旧的 simd_quatf(from:to:) 走最短弧，这里会拿到一个随机的滚转角，
+        // 定位过去整片天歪着，截图里看得很明显。
+        let up = scene.root.orientation.act(SIMD3<Float>(0, 1, 0))
+        XCTAssertEqual(up.x, 0, accuracy: 0.001)
+        XCTAssertGreaterThan(up.y, 0)
+    }
+
+    func testAimRoundTripsWithDrag() {
+        // 定位后接着拖动，不能弹回旧角度：返回的 rig 必须就是当前朝向，
+        // 否则 releaseAim 之后 apply(rig:) 会把画面拽回起点。
+        let scene = SkyScene()
+        let direction = target()
+        let rig = try? XCTUnwrap(scene.aim(at: direction))
+        XCTAssertNotNil(rig)
+        guard let rig else { return }
+        XCTAssertEqual(rig.orientation, scene.root.orientation)
+
+        scene.releaseAim()
+        scene.apply(rig: rig)
+        XCTAssertEqual(SkyPicker.offsetDegrees(scene.viewDirectionInField, direction), 0, accuracy: 0.01)
+    }
+
+    func testAimRejectsZeroLength() {
+        let scene = SkyScene()
+        XCTAssertNil(scene.aim(at: SIMD3<Float>(0, 0, 0)))
+    }
+}
+
+@MainActor
 final class SkyFieldOfViewTests: XCTestCase {
     func testClampsToSupportedRange() {
         let scene = SkyScene()
@@ -1912,13 +1998,38 @@ final class SkyFieldOfViewTests: XCTestCase {
         XCTAssertEqual(scene.fieldOfView, before, "捏合手势每帧都会报值，零点几度不该重建 mesh")
     }
 
+    func testRotationKeepsAngularScale() {
+        // 竖屏 402×778、横屏 874×402。转屏若不改视场，同一片天会缩成一半；
+        // 按高度比例缩放后每点对应的角度不变，星座看起来一样大，只是两边更空。
+        let scene = SkyScene()
+        scene.resize(CGSize(width: 402, height: 778))
+        XCTAssertEqual(scene.fieldOfView, SkyScene.defaultFieldOfView)
+
+        scene.resize(CGSize(width: 874, height: 402))
+        XCTAssertEqual(scene.fieldOfView, 60 * 402 / 778, accuracy: 0.1)
+
+        let portraitScale = 60.0 / 778
+        let landscapeScale = Double(scene.fieldOfView) / 402
+        XCTAssertEqual(portraitScale, landscapeScale, accuracy: 0.002, "每点对应角度变了，就是「横过来缩水」")
+
+        scene.resize(CGSize(width: 402, height: 778))
+        XCTAssertEqual(scene.fieldOfView, SkyScene.defaultFieldOfView, accuracy: 0.2, "转回去要回到原视场")
+    }
+
+    func testSameOrientationResizeDoesNotTouchFieldOfView() {
+        // 分屏、来电横幅这类高度变化不该改视场，否则每变一次都缩一点。
+        let scene = SkyScene()
+        scene.resize(CGSize(width: 402, height: 778))
+        scene.setFieldOfView(45)
+        scene.resize(CGSize(width: 402, height: 740))
+        XCTAssertEqual(scene.fieldOfView, 45, accuracy: 0.01)
+    }
+
     func testAnyFieldOfViewFitsTheSagittariusSpan() throws {
         // 人马座跨 35°。竖屏默认 60° 垂直视场对应的水平只有 28°，
         // 所以必须靠拉远到 95° 或转横屏——这条测试钉住「默认装不下」这个事实，
         // 有人把默认视场改小了要能立刻发现。
-        let height = 852.0
-        let width = 393.0
-        func horizontalFieldOfView(_ vertical: Double) -> Double {
+        func horizontalFieldOfView(_ vertical: Double, width: Double = 393, height: Double = 852) -> Double {
             let halfVertical = vertical / 2 * .pi / 180
             return 2 * atan(tan(halfVertical) * width / height) * 180 / .pi
         }
@@ -1928,5 +2039,24 @@ final class SkyFieldOfViewTests: XCTestCase {
             35,
             "最大视场也得装得下人马座，否则「看全」无从谈起"
         )
+
+        // 横屏才是「看全」的正解：默认 60° 垂直视场，横过来水平就有 90°，
+        // 75 座星座里最宽的也装得下，而且不用把视场拉到 95° 去牺牲细节。
+        XCTAssertGreaterThan(
+            horizontalFieldOfView(Double(SkyScene.defaultFieldOfView), width: 852, height: 393),
+            80,
+            "横屏默认视场装不下人马座，那就不是方向问题而是投影问题"
+        )
+    }
+
+    /// 转屏能力写在 Info.plist 里，xcodegen 每次重写工程都会重新生成这个文件，
+    /// 少写一条就静默退回竖屏锁死——用测试钉住。
+    func testLandscapeIsDeclaredInInfoPlist() throws {
+        let orientations = try XCTUnwrap(
+            Bundle.main.object(forInfoDictionaryKey: "UISupportedInterfaceOrientations") as? [String]
+        )
+        XCTAssertTrue(orientations.contains("UIInterfaceOrientationPortrait"))
+        XCTAssertTrue(orientations.contains("UIInterfaceOrientationLandscapeLeft"))
+        XCTAssertTrue(orientations.contains("UIInterfaceOrientationLandscapeRight"))
     }
 }

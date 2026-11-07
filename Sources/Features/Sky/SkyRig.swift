@@ -11,12 +11,15 @@ struct SkyRig: Equatable, Sendable {
     var orientation: simd_quatf {
         let yawRotation = simd_quatf(angle: yaw, axis: SIMD3(0, 1, 0))
         let pitchRotation = simd_quatf(angle: pitch, axis: SIMD3(1, 0, 0))
-        return yawRotation * pitchRotation
+        // yaw/pitch 描述的是「相机」：先抬头再左右转，相机不会滚。
+        // 但这里要的是星空的朝向，得取逆——直接用 Ry·Rx 的话，
+        // 俯仰 40° 之后再横着转，整片天会跟着滚（实测最大 58°）。
+        return pitchRotation.inverse * yawRotation.inverse
     }
 
     mutating func drag(deltaX: Float, deltaY: Float) {
-        yaw -= deltaX * Self.dragSensitivity
-        pitch = Self.clamp(pitch - deltaY * Self.dragSensitivity)
+        yaw += deltaX * Self.dragSensitivity
+        pitch = Self.clamp(pitch + deltaY * Self.dragSensitivity)
     }
 
     private static func clamp(_ value: Float) -> Float {

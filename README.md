@@ -27,6 +27,7 @@
 | 今夜导览 | 把榜单串成一句话：此刻最该看什么、在哪个方位、怎么认出它；可逐站指路 |
 | 找星 | 四路检索（中文星名、拉丁专名、星座、俗称）+ 指路（左转 N° · 抬高 M°） |
 | 时间滑块 | ±12 小时拖动，星空实时旋转；「此刻」一键回位（用于讲季节与可见性） |
+| 横竖屏 | 横屏把顶栏压成一行、卡片挂到右侧，中间视场留空；转屏保尺度（竖屏 60° 对应横屏 31°），星座不会突然缩一半；双指捏合 16–95°、双击复位 |
 
 界面截图见 `docs/images/`。
 
@@ -81,7 +82,7 @@ Sources/Features/
   Sky/                星表、姿态、地平对齐、拾取、分组、观赏期（B 阶段）
   Prototype/          原型模式
 Sources/Resources/    stars.json、galaxy-equirect.jpg
-Tests/                单元测试（282 项）
+Tests/                单元测试（293 项）
 docs/                 PRD、ADR、门禁证据、素材清单
 ```
 
@@ -137,11 +138,18 @@ SkyObserver(纬度/恒星时/航向) → field.orientation(地平旋转)
 ## 测试
 
 ```bash
+# 单测（293 项，约 4 秒）
 xcodebuild test -project SpaceWalker.xcodeproj -scheme SpaceWalker \
+  -destination 'platform=iOS Simulator,name=iPhone 18 Pro'
+
+# 方向与排版验收（UI 测试，约 50 秒）
+xcodebuild test -project SpaceWalker.xcodeproj -scheme SkyCheck \
   -destination 'platform=iOS Simulator,name=iPhone 18 Pro'
 ```
 
-282 项单元测试，覆盖星表数学、姿态换基、地平旋转、拾取预筛、停留状态机、星官解析、图形包含关系、耳切三角化、观赏期排序。
+293 项单元测试，覆盖星表数学、姿态换基、地平旋转、拾取预筛、停留状态机、星官解析、图形包含关系、耳切三角化、观赏期排序、转屏保尺度。
+
+`SkyCheck` 是单独的 scheme：用 `XCUIDevice` 真的把设备转到左右横屏，逐张截图，断言顶栏与识别卡都还在。模拟器没有窗口、点不动，这是唯一能验横屏排版的通道；拆开是为了不让每次跑单测都搭上五十秒。
 
 ## 数据与许可
 

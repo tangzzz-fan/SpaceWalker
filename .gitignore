@@ -33,3 +33,6 @@ build/
 
 # 模拟器构建输出
 build-sim/
+
+# UI 测试构建输出
+build-ui/

@@ -26,6 +26,16 @@ schemes:
     archive:
       config: Release
 
+  SkyCheck:
+    build:
+      targets:
+        SpaceWalker: all
+        SpaceWalkerUITests: [test]
+    test:
+      config: Debug
+      targets:
+        - SpaceWalkerUITests
+
 packages:
   TGReduxKit:
     path: "Packages/TGReduxKit"
@@ -60,6 +70,8 @@ targets:
           UIColorName: ""
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
         UIRequiredDeviceCapabilities:
           - arm64
     dependencies:
@@ -84,6 +96,21 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.tango.spacewalkertests
+        GENERATE_INFOPLIST_FILE: YES
+        CODE_SIGN_IDENTITY: "Apple Development"
+    dependencies:
+      - target: SpaceWalker
+
+  # 真机/模拟器上的方向与排版验收。`xcodebuild test` 会跑它，
+  # 单独拆一个 scheme 是为了不让 280 项单测每次都等 UI 测试。
+  SpaceWalkerUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - path: UITests
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.tango.spacewalkeruitests
         GENERATE_INFOPLIST_FILE: YES
         CODE_SIGN_IDENTITY: "Apple Development"
     dependencies:

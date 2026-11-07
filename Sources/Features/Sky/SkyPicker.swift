@@ -23,6 +23,32 @@ enum SkyPicker {
             .map { $0 }
     }
 
+    /// 一组方向的中心：取「能盖住所有方向的最小圆的圆心」。
+    ///
+    /// 用平均方向（质心）会偏：人马座骨架质心离包围中心 2.4°，
+    /// 定位过去茶壶就贴着屏幕边缘。最小覆盖圆的圆心是两两中点里的最优解，
+    /// 二十几颗星穷举也就几百次。
+    static func enclosingCenter(of directions: [SIMD3<Float>]) -> SIMD3<Float>? {
+        let unit = directions.map(simd_normalize).filter { simd_length($0) > 0.5 }
+        guard unit.count > 1 else { return unit.first }
+        var best: (center: SIMD3<Float>, radius: Float)?
+        for first in 0..<unit.count {
+            for second in (first + 1)..<unit.count {
+                let sum = unit[first] + unit[second]
+                guard simd_length(sum) > 0.001 else { continue }
+                let center = simd_normalize(sum)
+                var radius: Float = 0
+                for vector in unit {
+                    radius = max(radius, acos(min(Float(1), simd_dot(center, vector))))
+                }
+                if best == nil || radius < best!.radius {
+                    best = (center, radius)
+                }
+            }
+        }
+        return best?.center
+    }
+
     static func offsetDegrees(_ a: SIMD3<Float>, _ b: SIMD3<Float>) -> Double {
         let normalizedA = simd_length(a) > 0.0001 ? simd_normalize(a) : SIMD3<Float>(0, 0, -1)
         let normalizedB = simd_length(b) > 0.0001 ? simd_normalize(b) : SIMD3<Float>(0, 0, -1)
