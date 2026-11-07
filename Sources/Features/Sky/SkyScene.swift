@@ -72,6 +72,10 @@ final class SkyScene {
         root.orientation.inverse.act(SIMD3<Float>(0, 0, -1))
     }
 
+    var viewDirectionInField: SIMD3<Float> {
+        (root.orientation * field.orientation).inverse.act(SIMD3<Float>(0, 0, -1))
+    }
+
     func setField(orientation: simd_quatf) {
         field.orientation = orientation
     }
@@ -103,7 +107,7 @@ final class SkyScene {
 
     func pickAtCenter() -> Star? {
         guard let content, viewSize.width > 0 else { return nil }
-        let forward = deviceForwardWorld
+        let forward = viewDirectionInField
         let center = CGPoint(x: viewSize.width / 2, y: viewSize.height / 2)
 
         for star in SkyPicker.nearest(to: forward, in: nodes) {
@@ -113,6 +117,26 @@ final class SkyScene {
             }
         }
         return nil
+    }
+
+    func pickDiagnostics(radius: CGFloat = 60) -> String {
+        guard let content, viewSize.width > 0 else { return "sky.pickNear not-ready" }
+        let center = CGPoint(x: viewSize.width / 2, y: viewSize.height / 2)
+        var near: [(name: String, distance: CGFloat, magnitude: Double, selectable: Bool)] = []
+
+        for star in nodes {
+            guard let projected = project(star, in: content) else { continue }
+            let distance = hypot(projected.x - center.x, projected.y - center.y)
+            guard distance <= radius else { continue }
+            near.append((star.name.isEmpty ? "-" : star.name, distance, star.magnitude, star.isSelectable))
+        }
+
+        guard !near.isEmpty else { return "sky.pickNear none" }
+        near.sort { $0.distance < $1.distance }
+        let top = near.prefix(3).map {
+            String(format: "%@ %.1fpt m%.1f %@", $0.name, $0.distance, $0.magnitude, $0.selectable ? "sel" : "bg")
+        }
+        return "sky.pickNear " + top.joined(separator: " | ")
     }
 
     func pickRoundtrip() -> String {
@@ -127,7 +151,7 @@ final class SkyScene {
         var failures: [String] = []
 
         for star in targets {
-            let direction = SkyPicker.direction(for: star)
+            let direction = field.orientation.act(SkyPicker.direction(for: star))
             root.orientation = simd_quatf(from: direction, to: SIMD3<Float>(0, 0, -1))
             guard let hit = pickAtCenter() else {
                 failures.append("\(star.name):none")
@@ -155,7 +179,7 @@ final class SkyScene {
     }
 
     private func project(_ star: Star, in content: RealityViewCameraContent) -> CGPoint? {
-        let world = root.convert(position: StarField.position(for: star), to: nil)
+        let world = field.convert(position: StarField.position(for: star), to: nil)
         return content.project(point: world, to: Self.space)
     }
 

@@ -18,6 +18,7 @@ struct SkyView: View {
     @State private var hud = DwellHUD()
     @State private var observer = SkyObserver()
     @State private var alignmentStamp: TimeInterval = 0
+    @State private var diagnosticsStamp: TimeInterval = 0
 
     var body: some View {
         ZStack {
@@ -317,7 +318,13 @@ struct SkyView: View {
     private func stepDwell() {
         guard scene.isReady else { return }
         let now = ProcessInfo.processInfo.systemUptime
-        let hit = dwell.update(candidate: scene.pickAtCenter(), at: now)
+        let candidate = scene.pickAtCenter()
+        if candidate == nil, now - diagnosticsStamp > 1.5,
+           LaunchMode.pickProbeEnabled(environment: ProcessInfo.processInfo.environment) {
+            diagnosticsStamp = now
+            SessionLog.append(scene.pickDiagnostics())
+        }
+        let hit = dwell.update(candidate: candidate, at: now)
         hud.show(dwell.progress)
         guard let hit else { return }
         selected = hit
