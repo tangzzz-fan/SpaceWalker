@@ -313,6 +313,7 @@ final class SkyScene {
             let radius = Self.constellationHighlightRadius
             return (simd_normalize(a) * radius, simd_normalize(b) * radius)
         }
+        SessionLog.append("sky.highlight id=\(abbreviation) lines=\(constellation.lines.count) pos=\(positions.count) segs=\(segments.count)")
         guard !segments.isEmpty,
               let mesh = try? StarFieldBuilder.mesh(
                   StarFieldBuilder.constellation(segments, radius: 0.125),

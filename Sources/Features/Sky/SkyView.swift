@@ -1012,6 +1012,11 @@ struct SkyView: View {
         }
         if let abbreviation = LaunchMode.constellationPreview(environment: ProcessInfo.processInfo.environment),
            let constellation = Constellations.all.first(where: { $0.abbreviation == abbreviation }) {
+            // 高亮要等场景建完：星座位置表是 build 阶段填的，早一步调就是空表，
+            // 卡片弹了、天上却没亮线。
+            for _ in 0..<40 where !scene.isReady {
+                try? await Task.sleep(for: .milliseconds(50))
+            }
             identifiedConstellation = constellation
             constellationHold = ConstellationHold(key: abbreviation, since: ProcessInfo.processInfo.systemUptime)
             scene.highlightConstellation(abbreviation)

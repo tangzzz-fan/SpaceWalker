@@ -29,9 +29,9 @@
 |---|---|---|
 | `Sources/Resources/galaxy-equirect.jpg` | NASA/Goddard Space Flight Center Scientific Visualization Studio，*Deep Star Maps 2020*（[SVS 4851](https://svs.gsfc.nasa.gov/4851)） | 公有领域（NASA 内容一般不受版权保护） |
 | 文档截图 `docs/images/*.png` | 本项目模拟器截图 | MIT |
-| `Sources/Resources/constellation-art/*.png`（85 座星座插画） | [Stellarium](https://github.com/Stellarium/stellarium) `skycultures/modern/illustrations`，Johan Meuris 绘 | **Free Art License 1.3** | 必须署名作者与许可（界面内已标「星座图 Stellarium / Johan Meuris · Free Art License」）；图片原样分发、未改动像素，故仅需附带许可；若改写图片，改后版本须以 FAL 发布 |
+| `Sources/Resources/constellation-art/*.png`（87 张，覆盖 88 座中的 87 座） | [Stellarium](https://github.com/Stellarium/stellarium) `skycultures/modern/illustrations`，Johan Meuris 绘 | **Free Art License 1.3** | 必须署名作者与许可（界面内已标「星座图 Stellarium / Johan Meuris · Free Art License」）；图片原样分发、未改动像素，故仅需附带许可；若改写图片，改后版本须以 FAL 发布 |
 
-星座插画取自 Stellarium 现代星空文化，原作者 Johan Meuris。取用时只做了重命名（`sagittarius.png` → `art-Sgr.png`）以便按缩写查找，像素未改。界面里用 `luminanceToAlpha` 把黑底转成透明、线条着色，属于运行时渲染，不产生衍生作品。
+星座插画取自 Stellarium 现代星空文化，原作者 Johan Meuris。南船座拆成船底/船尾/船帆三座后共用同一张整船图，巨蛇座原库未提供单图（蛇夫座抱着两段蛇）。取用时只做了重命名（`sagittarius.png` → `art-Sgr.png`）以便按缩写查找，像素未改。界面里用 `luminanceToAlpha` 把黑底转成透明、线条着色，属于运行时渲染，不产生衍生作品。
 
 **注意**：FAL 是 copyleft。若将来要闭源分发，可以整体替换这 85 张图，不影响代码的 MIT 许可；图片与代码是两个独立作品，聚合分发不传染。
 

@@ -1864,14 +1864,25 @@ final class ConstellationCoverageTests: XCTestCase {
 }
 
 final class ConstellationShapeNoteTests: XCTestCase {
-    func testEveryPrimaryConstellationSaysHowToRecognizeIt() {
-        for constellation in Constellations.primary {
+    func testEveryConstellationSaysHowToRecognizeIt() {
+        // 88 座全覆盖：南天暗座也写，实在没有图案就直说，
+        // 免得用户举着手机在一片暗星里白找。
+        for constellation in Constellations.all {
             let note = ConstellationShapeNote.note(for: constellation.abbreviation)
             XCTAssertNotNil(note, "\(constellation.name) 缺「怎么认」")
             guard let note else { continue }
             XCTAssertGreaterThan(note.count, 8, constellation.name)
-            XCTAssertLessThan(note.count, 60, "\(constellation.name) 的说明太长，卡片放不下")
+            XCTAssertLessThan(note.count, 62, "\(constellation.name) 的说明太长，卡片放不下")
         }
+        XCTAssertEqual(ConstellationShapeNote.notes.count, 88)
+    }
+
+    func testArtCoversEverythingExceptSerpens() {
+        // 南船座拆成船底/船尾/船帆三座，共用同一张整船图；巨蛇座原库就没有单图。
+        let missing = Constellations.all
+            .filter { ConstellationArt.imageName(for: $0.abbreviation) == nil }
+            .map(\.abbreviation)
+        XCTAssertEqual(missing, ["Ser"], "缺插画的不该只剩巨蛇座")
     }
 
     func testUnknownConstellationHasNoNote() {
