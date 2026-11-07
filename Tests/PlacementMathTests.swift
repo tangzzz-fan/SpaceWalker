@@ -43,6 +43,16 @@ final class PlacementMathTests: XCTestCase {
         XCTAssertEqual(up.y, normal.y, accuracy: 0.0001)
     }
 
+    func testHorizontalSurfaceAcceptsFloorNormal() {
+        XCTAssertTrue(PlacementMath.isHorizontalSurface(normal: SIMD3(0, 1, 0)))
+        XCTAssertTrue(PlacementMath.isHorizontalSurface(normal: SIMD3(0, 0.8, 0.6)))
+    }
+
+    func testHorizontalSurfaceRejectsWalls() {
+        XCTAssertFalse(PlacementMath.isHorizontalSurface(normal: SIMD3(0.5, 0.01, 0.87)))
+        XCTAssertFalse(PlacementMath.isHorizontalSurface(normal: SIMD3(1, 0, 0)))
+    }
+
     func testDriftIsEuclideanDistance() {
         let drift = PlacementMath.drift(from: .zero, to: SIMD3(0.03, 0.04, 0))
         XCTAssertEqual(drift, 0.05, accuracy: 0.0001)

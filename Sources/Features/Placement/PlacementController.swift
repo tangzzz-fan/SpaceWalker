@@ -28,6 +28,7 @@ final class PlacementController {
     var onReplaceNeeded: ((Bool) -> Void)?
 
     private(set) var debugLine: String?
+    private(set) var anchorWorldPosition: SIMD3<Float>?
 
     var hasPlacement: Bool {
         cube != nil
@@ -81,6 +82,7 @@ final class PlacementController {
 
     func tick(center: CGPoint, now: TimeInterval = ProcessInfo.processInfo.systemUptime) {
         guard let content, let anchor, let reticle else { return }
+        anchorWorldPosition = anchor.position(relativeTo: nil)
 
         switch matrix.placementStrategy {
         case .unavailable:
@@ -229,8 +231,11 @@ final class PlacementController {
 
     private func hit(center: CGPoint, content: RealityViewCameraContent) -> CollisionCastHit? {
         content
-            .hitTest(point: center, in: Self.space, query: .nearest, mask: .all)
-            .first { $0.entity.name != PlacementFactory.reticleName }
+            .hitTest(point: center, in: Self.space, query: .all, mask: .all)
+            .first {
+                $0.entity.name != PlacementFactory.reticleName
+                    && PlacementMath.isHorizontalSurface(normal: $0.normal)
+            }
     }
 
     private func setSurface(_ available: Bool) {

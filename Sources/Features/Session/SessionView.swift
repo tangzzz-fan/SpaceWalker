@@ -15,7 +15,11 @@ struct SessionView: View {
     #endif
     @State private var stableSurfaceTicks = 0
     @State private var placementDebugLine: String?
+    @State private var probeLine: String?
     @State private var didAutoPlace = false
+    #if DEBUG
+    @State private var probe = ProbeRecorder()
+    #endif
 
     var body: some View {
         Group {
@@ -43,6 +47,9 @@ struct SessionView: View {
                 RealityView { content in
                     content.camera = .spatialTracking
                     placement.attach(content)
+                    #if DEBUG
+                    probe.attach(content)
+                    #endif
                 }
                 .coordinateSpace(.named(PlacementController.coordinateSpaceName))
                 .ignoresSafeArea()
@@ -65,6 +72,12 @@ struct SessionView: View {
             .onReceive(ticker) { _ in
                 placement.tick(center: center)
                 placementDebugLine = placement.debugLine
+                #if DEBUG
+                probeLine = probe.tick(
+                    now: ProcessInfo.processInfo.systemUptime,
+                    anchorPosition: placement.anchorWorldPosition
+                ).line
+                #endif
                 #if DEBUG
                 stableSurfaceTicks = store.state.placement.isSurfaceAvailable
                     ? stableSurfaceTicks + 1
@@ -170,10 +183,19 @@ struct SessionView: View {
                 Text("degraded: \(detail)")
                     .font(.caption2)
             }
+            if let probeLine {
+                Text(probeLine)
+                    .font(.caption2)
+                    .monospacedDigit()
+            }
             if let placementDebugLine {
                 Text(placementDebugLine)
                     .font(.caption2)
                     .monospacedDigit()
+            }
+            ShareLink(item: SessionLog.fileURL) {
+                Label("导出日志", systemImage: "square.and.arrow.up")
+                    .font(.caption2)
             }
         }
         .padding(8)

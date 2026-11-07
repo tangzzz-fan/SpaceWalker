@@ -24,6 +24,12 @@ enum PlacementMath {
         simd_quatf(from: SIMD3(0, 1, 0), to: surfaceNormal(normal))
     }
 
+    static let minimumSurfaceNormalY: Float = 0.7
+
+    static func isHorizontalSurface(normal: SIMD3<Float>) -> Bool {
+        surfaceNormal(normal).y >= minimumSurfaceNormalY
+    }
+
     static func drift(from initial: SIMD3<Float>, to current: SIMD3<Float>) -> Float {
         simd_distance(initial, current)
     }
