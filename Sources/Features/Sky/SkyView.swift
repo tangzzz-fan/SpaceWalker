@@ -74,7 +74,7 @@ struct SkyView: View {
             refreshTonight()
         }
         .onDisappear {
-            session.stopMotion()
+            session.pause()
             session.observer.disable()
         }
         .sheet(isPresented: $showsCredits) { creditsSheet }

@@ -13,6 +13,7 @@ final class SkySession {
     @ObservationIgnored private var lastDrag: CGSize = .zero
     @ObservationIgnored private var rigBeforePinch: SkyRig?
     @ObservationIgnored private var isPinching = false
+    @ObservationIgnored private var tasks: [Task<Void, Never>] = []
 
     init() {
         SessionLog.append("sky.session boot")
@@ -52,6 +53,19 @@ final class SkySession {
 
     func stopMotion() {
         attitude.stop()
+    }
+
+    /// 后台循环没有结构化的生命周期，必须自己收：`.task` 只取消 `load()`，
+    /// 里面 `Task { }` 建出来的是无主任务，页面走了它们还在按 80ms 转。
+    func track(_ task: Task<Void, Never>) {
+        tasks.append(task)
+    }
+
+    func pause() {
+        SessionLog.append("sky.pause tasks=\(tasks.count)")
+        tasks.forEach { $0.cancel() }
+        tasks.removeAll()
+        stopMotion()
     }
 
     /// 转屏会按高度比例改视场，捏合基准必须跟着走，

@@ -70,12 +70,12 @@ extension SkyView {
             showsFinder = true
         }
         if LaunchMode.dwellProbeEnabled(environment: ProcessInfo.processInfo.environment) {
-            Task {
+            session.track(Task {
                 while !Task.isCancelled {
                     stepDwell()
                     try? await Task.sleep(for: .milliseconds(80))
                 }
-            }
+            })
         }
         if let abbreviation = LaunchMode.regionPreview(environment: ProcessInfo.processInfo.environment),
            let region = ConstellationInfo.region(for: abbreviation, in: session.catalog?.stars ?? []) {
@@ -146,7 +146,7 @@ extension SkyView {
         }
         if LaunchMode.perfLogEnabled(environment: ProcessInfo.processInfo.environment) {
             let showsHUD = LaunchMode.fpsHUDEnabled(environment: ProcessInfo.processInfo.environment)
-            Task {
+            session.track(Task {
                 var loggedBudget = false
                 while !Task.isCancelled {
                     if !loggedBudget, scene.isReady {
@@ -160,7 +160,7 @@ extension SkyView {
                     if showsHUD { perfSummary = summary }
                     try? await Task.sleep(for: .seconds(1))
                 }
-            }
+            })
         }
     }
 

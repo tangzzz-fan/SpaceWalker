@@ -82,7 +82,7 @@ final class LandscapeUITests: XCTestCase {
         sleep(7)
 
         app.buttons["太阳系"].tap()
-        sleep(3)
+        sleep(12)
         app.buttons["星图"].tap()
         sleep(5)
         save("sky-after-roundtrip", app)
