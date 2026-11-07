@@ -66,6 +66,35 @@ final class SkyAttentionCandidatesTests: XCTestCase {
         XCTAssertTrue(names.contains("参宿"), "猎户座里应当有参宿，实际：\(names)")
     }
 
+    /// 轮廓顶点必须算在区域内。射线法对边界点的归属不稳定，没有边界容差时
+    /// 「对准轮廓上的亮星」会判成外面——猎户座 9 颗成员星只认 3 颗，天鹅座 5 颗只认 1 颗。
+    func testOutlineVerticesAreInside() throws {
+        let scene = try builtScene()
+        let catalog = try XCTUnwrap(StarCatalog.loadFromBundle(.main))
+        var byName: [String: Star] = [:]
+        for star in catalog.stars where !star.name.isEmpty {
+            if let existing = byName[star.name], existing.magnitude <= star.magnitude { continue }
+            byName[star.name] = star
+        }
+
+        var misses: [String] = []
+        for constellation in Constellations.all {
+            let vertices = constellation.outline.isEmpty
+                ? constellation.outlines.flatMap { $0 }
+                : constellation.outline
+            guard !vertices.isEmpty,
+                  let shape = scene.constellationShapes.first(where: { $0.key == constellation.abbreviation })
+            else { continue }
+            for name in vertices {
+                guard let star = byName[name] else { continue }
+                if !shape.contains(SkyPicker.direction(for: star)) {
+                    misses.append("\(constellation.abbreviation):\(name)")
+                }
+            }
+        }
+        XCTAssertTrue(misses.isEmpty, "轮廓顶点被判在区域外：\(misses.prefix(8))")
+    }
+
     /// 索引与渲染网格分开建：星表为空时索引也该是空数组而不是「没建过」。
     func testIndexBuiltEvenWithoutCatalog() {
         let scene = SkyScene()

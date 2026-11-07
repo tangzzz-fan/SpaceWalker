@@ -98,6 +98,9 @@ struct OutlineShape: Sendable {
     var rings: [[SIMD2<Float>]]
     /// 从中心到最远轮廓点的角距，用于粗筛。
     var radiusDegrees: Double
+    /// 边界容差（归一化坐标，1 = 半个视场）。轮廓顶点本身必须算在区域内，
+    /// 否则「对准轮廓上的亮星」会判成外面——射线法对边界点的归属不稳定。
+    static let edgeTolerance: Float = 0.02
 
     func contains(_ direction: SIMD3<Float>) -> Bool {
         let vector = simd_normalize(direction)
@@ -110,7 +113,10 @@ struct OutlineShape: Sendable {
         )
         guard abs(half.x) > 0.001, abs(half.y) > 0.001 else { return false }
         let point = SIMD2((degrees.x - origin.x) / half.x, (degrees.y - origin.y) / half.y)
-        return rings.contains { ConstellationFigureBuilder.contains(point, ring: $0) }
+        return rings.contains { ring in
+            ConstellationFigureBuilder.contains(point, ring: ring)
+                || ConstellationFigureBuilder.distance(point, to: ring) <= Self.edgeTolerance
+        }
     }
 }
 
@@ -200,6 +206,25 @@ enum ConstellationFigureBuilder {
             previous = index
         }
         return inside
+    }
+
+    /// 点到环的最短距离。顶点与边都算，用于边界容差。
+    static func distance(_ point: SIMD2<Float>, to ring: [SIMD2<Float>]) -> Float {
+        guard ring.count >= 2 else { return .greatestFiniteMagnitude }
+        var best = Float.greatestFiniteMagnitude
+        var previous = ring.count - 1
+        for index in ring.indices {
+            let a = ring[previous]
+            let b = ring[index]
+            let ab = b - a
+            let lengthSquared = simd_length_squared(ab)
+            let t = lengthSquared > 1e-9
+                ? max(0, min(1, simd_dot(point - a, ab) / lengthSquared))
+                : 0
+            best = min(best, simd_length(point - (a + ab * t)))
+            previous = index
+        }
+        return best
     }
 
     struct Frame {
