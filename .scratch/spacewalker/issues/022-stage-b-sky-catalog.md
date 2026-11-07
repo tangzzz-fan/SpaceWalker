@@ -24,22 +24,22 @@ ADR-0004 取消房间追踪。B 阶段改为设备姿态驱动的真实星图：
 - [x] 星空渲染：分桶网格、亮暗与颜色可见（模拟器截图）。
 - [x] 拖动旋转、重置视角、轻点选中、信息卡。
 - [x] 赤道坐标换算与分桶数学有单测（19 项）。
-- [ ] 真机：姿态跟随连续、俯仰到边界不翻面。
-- [ ] 真机：准星停留 0.6s 触发选中（当前只做轻点）。
+- [x] 真机：姿态跟随连续、俯仰到边界不翻面（修复见 `docs/gates/M2/sky-selection-2026-11-07.md`）。
+- [x] 真机：准星停留 0.6s 触发选中（转入 023）。
 - [ ] 真机：平均 ≥ 55fps，10 分钟无过热降频。
-- [ ] 命名星体逐个对准取回自身（模拟投影往返，至少覆盖 20 颗）。
+- [x] 命名星体逐个对准取回自身（`sky.pickProbe ok=288/288`，模拟器与真机各一次）。
 
 ## 测试缝
 
 1. `StarField.direction` / `position` / `bucketIndex` / `cubeSize` / `brightness` / `color`（纯函数）。
 2. `StarFieldBuilder.sphere` / `merge` / `buckets`（纯数据）。
-3. `SkyRig.aim` / `drag` / `orientation`（纯函数）。
+3. `SkyRig.drag` / `orientation`、`AttitudeMath.solve`、`SkyPicker.nearest`、`DwellSelector.update`（纯函数）。
 4. `AppRoute` 与 `LaunchMode.initialRoute`（纯函数）。
 
 ## 实现进展（2026-11-07）
 
-- 代码：`Sources/Features/Sky/`（星表、构建器、相机、场景、视图）+ `Sources/Resources/stars.json`（216KB）。
+- 代码：`Sources/Features/Sky/`（星表、构建器、姿态、拾取、场景、视图）+ `Sources/Resources/stars.json`（216KB）。
 - 星表生成：HYG v4.1 原始 32MB CSV → 过滤视星等 ≤ 5.5 且剔除太阳 → 2996 条，字段 `ra/dec/mag/ci/name/con`。
-- 模拟器：132 项单测 0 失败；星空渲染正常（截图 `022-sky.jpg`）。
-- 未做：准星停留触发、真机姿态校准、星座连线、时间与地点对齐。
-- 备注：`SkyRig` 目前只保留 yaw/pitch，未使用 roll；姿态映射 `(x, z, y)` 需要真机校准方向。
+- 姿态：完整四元数 + 重力自校验约定 + 67Hz 直写实体，换基为绕 X 轴 −90° 纯旋转；`(x, z, y)` 曾是反射矩阵，已废弃。
+- 模拟器：145 项单测 0 失败；星空渲染正常（截图 `022-sky.jpg`）。
+- 未做：星座连线、时间与地点对齐、10 分钟热稳定测试。
