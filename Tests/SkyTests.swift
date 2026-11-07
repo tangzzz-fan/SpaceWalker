@@ -309,6 +309,20 @@ final class DwellSelectorTests: XCTestCase {
         XCTAssertEqual(refire, sirius)
     }
 
+    func testMovingToNeighbourStartsNewDwell() {
+        var selector = DwellSelector()
+        for step in 0...6 {
+            _ = selector.update(candidate: sirius, at: Double(step) * 0.1)
+        }
+        XCTAssertNil(selector.update(candidate: vega, at: 0.7))
+
+        var hit: Star?
+        for step in 8...13 {
+            hit = selector.update(candidate: vega, at: Double(step) * 0.1) ?? hit
+        }
+        XCTAssertEqual(hit, vega)
+    }
+
     func testBriefLossDoesNotRearm() {
         var selector = DwellSelector()
         for step in 0...6 {

@@ -63,6 +63,13 @@ struct DwellSelector: Equatable, Sendable {
         lastTimestamp = timestamp
 
         guard isArmed else {
+            if let candidate, candidate != target {
+                isArmed = true
+                target = candidate
+                elapsed = 0
+                absentSince = nil
+                return nil
+            }
             guard candidate == nil else {
                 absentSince = nil
                 return nil

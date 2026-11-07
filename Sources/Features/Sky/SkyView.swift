@@ -129,6 +129,16 @@ struct SkyView: View {
             Text(observer.statusText)
                 .font(.caption2)
                 .foregroundStyle(observer.isOn ? .primary : .secondary)
+            if observer.isOn, !observer.hasHeading {
+                Button {
+                    calibrateFacingNorth()
+                } label: {
+                    Label("手机水平朝正北时点此", systemImage: "location.north.line")
+                        .font(.caption2)
+                }
+                .buttonStyle(.bordered)
+                .padding(.top, 2)
+            }
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 10)
@@ -252,6 +262,18 @@ struct SkyView: View {
         guard let direction = scene.renderedDirection(of: star) else { return 180 }
         let alignment = simd_dot(direction, scene.deviceForwardWorld)
         return acos(Double(min(max(alignment, -1), 1))) * 180 / .pi
+    }
+
+    private func calibrateFacingNorth() {
+        observer.calibrateAgainst(
+            starAzimuth: 0,
+            sceneAzimuth: Astronomy.sceneAzimuth(scene.deviceForwardWorld),
+            label: "正北"
+        )
+        alignmentStamp = ProcessInfo.processInfo.systemUptime
+        if let orientation = observer.fieldOrientation() {
+            scene.setField(orientation: orientation)
+        }
     }
 
     private func calibrate(using star: Star, azimuth: Double) {
