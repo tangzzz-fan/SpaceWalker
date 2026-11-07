@@ -258,6 +258,14 @@ struct SpaceView: View {
             .accessibilityLabel("重置视角")
 
             Button {
+                store.dispatch(.route(.tiangong))
+            } label: {
+                Image(systemName: "antenna.radiowaves.left.and.right")
+                    .frame(width: 28, height: 28)
+            }
+            .accessibilityLabel("天宫一号")
+
+            Button {
                 store.dispatch(.route(.sky))
             } label: {
                 Image(systemName: "sparkles")

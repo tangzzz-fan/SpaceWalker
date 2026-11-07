@@ -4,7 +4,11 @@ enum LaunchMode {
     static let environmentKey = "SPACEWALKER_MODE"
 
     static func initialRoute(environment: [String: String]) -> AppRoute {
-        environment[environmentKey] == "sky" ? .sky : .solarSystem
+        switch environment[environmentKey] {
+        case "sky": .sky
+        case "tiangong": .tiangong
+        default: .solarSystem
+        }
     }
 
     static func skyMotionEnabled(environment: [String: String]) -> Bool {
@@ -133,6 +137,10 @@ enum LaunchMode {
 
     static func groupPreview(environment: [String: String]) -> String? {
         environment["SPACEWALKER_GROUP"]
+    }
+
+    static func tiangongDistance(environment: [String: String]) -> Float? {
+        environment["SPACEWALKER_TG_DIST"].flatMap(Float.init)
     }
 
     static func asterismBrowserOnLaunch(environment: [String: String]) -> Bool {

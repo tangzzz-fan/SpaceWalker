@@ -92,6 +92,24 @@ final class LandscapeUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["星图"].exists)
     }
 
+    /// 切去天宫再回星空：会话由 ContentView 持有，页面销毁不该带走状态。
+    func testTiangongSessionSurvivesRouteRoundTrip() throws {
+        let app = XCUIApplication()
+        app.launchEnvironment = ["SPACEWALKER_MODE": "tiangong"]
+        app.launch()
+        XCTAssertTrue(app.wait(for: .runningForeground, timeout: 20))
+        sleep(5)
+        save("tiangong-entry", app)
+
+        app.buttons["太阳系"].tap()
+        sleep(4)
+        app.buttons["天宫一号"].tap()
+        sleep(4)
+        save("tiangong-after-roundtrip", app)
+
+        XCTAssertTrue(app.staticTexts["天宫一号"].exists)
+    }
+
     func testSolarSystemLandscape() throws {
         XCUIDevice.shared.orientation = .landscapeRight
         let app = XCUIApplication()

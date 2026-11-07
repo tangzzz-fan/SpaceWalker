@@ -3,6 +3,7 @@ import TGReduxKit
 enum AppRoute: Equatable, Sendable {
     case solarSystem
     case sky
+    case tiangong
 }
 
 struct AppState: State {
