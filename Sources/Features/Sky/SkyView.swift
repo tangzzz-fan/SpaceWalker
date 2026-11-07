@@ -210,6 +210,7 @@ struct SkyView: View {
                 Text(String(format: "高度 %.1f° · 方位 %.1f°（此刻）", horizontal.altitude, horizontal.azimuth))
                     .font(.caption2)
                     .foregroundStyle(.secondary)
+                alignmentButton(star: star, azimuth: horizontal.azimuth)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -223,6 +224,45 @@ struct SkyView: View {
                     .foregroundStyle(.secondary)
             }
             .padding(10)
+        }
+    }
+
+    private func alignmentButton(star: Star, azimuth: Double) -> some View {
+        let offset = aimOffset(for: star)
+        return VStack(alignment: .leading, spacing: 4) {
+            Button {
+                calibrate(using: star, azimuth: azimuth)
+            } label: {
+                Label("以该星校准方位", systemImage: "scope")
+                    .font(.caption)
+            }
+            .buttonStyle(.bordered)
+            .disabled(offset > 3)
+
+            if offset > 3 {
+                Text(String(format: "先把该星移到准星中心再校准（当前偏差 %.0f°）", offset))
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .padding(.top, 4)
+    }
+
+    private func aimOffset(for star: Star) -> Double {
+        guard let direction = scene.renderedDirection(of: star) else { return 180 }
+        let alignment = simd_dot(direction, scene.deviceForwardWorld)
+        return acos(Double(min(max(alignment, -1), 1))) * 180 / .pi
+    }
+
+    private func calibrate(using star: Star, azimuth: Double) {
+        observer.calibrateAgainst(
+            starAzimuth: azimuth,
+            sceneAzimuth: Astronomy.sceneAzimuth(scene.deviceForwardWorld),
+            label: star.name
+        )
+        alignmentStamp = ProcessInfo.processInfo.systemUptime
+        if let orientation = observer.fieldOrientation() {
+            scene.setField(orientation: orientation)
         }
     }
 

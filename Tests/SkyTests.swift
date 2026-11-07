@@ -433,6 +433,18 @@ final class AstronomyTests: XCTestCase {
         XCTAssertEqual(Double(placed.y), Double(star.y), accuracy: 0.0001)
     }
 
+    func testManualCalibrationPutsStarAtDeviceAzimuth() {
+        let starAzimuth = 210.0
+        let sceneAzimuth = 40.0
+        let offset = Astronomy.fieldRotationDegrees(trueHeading: starAzimuth, sceneAzimuth: sceneAzimuth)
+        let placed = Astronomy.yawRotation(degrees: offset).act(
+            Astronomy.worldDirection(altitude: 35, azimuth: starAzimuth)
+        )
+
+        XCTAssertEqual(Astronomy.sceneAzimuth(placed), sceneAzimuth, accuracy: 0.001)
+        XCTAssertEqual(Double(placed.y), sin(35 * .pi / 180), accuracy: 0.001)
+    }
+
     func testSceneAzimuthOfNorthIsZero() {
         XCTAssertEqual(Astronomy.sceneAzimuth(SIMD3(0, 0, -1)), 0, accuracy: 0.0001)
         XCTAssertEqual(Astronomy.sceneAzimuth(SIMD3(1, 0, 0)), 90, accuracy: 0.0001)

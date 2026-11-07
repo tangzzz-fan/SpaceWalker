@@ -22,6 +22,8 @@ final class SkyObserver: NSObject {
     private var headingIsTrueNorth = false
     private var headingAccuracy: Double = -1
     private var bestHeadingAccuracy: Double = .infinity
+    private var manualLabel: String?
+    private var lockedManually = false
     private var lockedWithMagneticNorth = false
     private var lockedAccuracy: Double = -1
     private var enabledAt: TimeInterval = 0
@@ -48,6 +50,9 @@ final class SkyObserver: NSObject {
                     return String(format: "今夜此刻 · 时间已对齐，磁力计精度 %.0f° 不足以定方位（试试画 8 字或离开金属）", bestHeadingAccuracy)
                 }
                 return "今夜此刻 · 时间已对齐，方位未校准"
+            }
+            if let manualLabel, lockedManually {
+                return "今夜此刻 · 已按 \(manualLabel) 校准方位"
             }
             if lockedWithMagneticNorth {
                 return String(format: "今夜此刻 · 磁北对齐（±%.0f°），远离金属可转真北", lockedAccuracy)
@@ -85,6 +90,8 @@ final class SkyObserver: NSObject {
         northOffsetDegrees = nil
         hasHeading = false
         lockedWithMagneticNorth = false
+        lockedManually = false
+        manualLabel = nil
         bestHeadingAccuracy = .infinity
         calibratingHeading = nil
     }
@@ -97,7 +104,27 @@ final class SkyObserver: NSObject {
         )
     }
 
+    func calibrateAgainst(starAzimuth: Double, sceneAzimuth: Double, label: String) {
+        guard stage == .ready else { return }
+        northOffsetDegrees = Astronomy.fieldRotationDegrees(trueHeading: starAzimuth, sceneAzimuth: sceneAzimuth)
+        lockedManually = true
+        manualLabel = label
+        lockedAccuracy = 0
+        lockedWithMagneticNorth = false
+        hasHeading = true
+        SessionLog.append(
+            String(
+                format: "sky.align manual star=%@ starAz=%.1f sceneAz=%.1f offset=%.1f",
+                label,
+                starAzimuth,
+                sceneAzimuth,
+                northOffsetDegrees ?? 0
+            )
+        )
+    }
+
     func calibrate(sceneAzimuth: Double) {
+        guard !lockedManually else { return }
         guard stage == .ready, let heading = calibratingHeading else { return }
         let waited = ProcessInfo.processInfo.systemUptime - enabledAt
         let firstLock = northOffsetDegrees == nil && (headingAccuracy <= Self.goodAccuracy || waited > Self.fallbackDelay)

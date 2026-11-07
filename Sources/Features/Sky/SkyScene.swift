@@ -137,6 +137,13 @@ final class SkyScene {
         return nil
     }
 
+    func renderedDirection(of star: Star) -> SIMD3<Float>? {
+        let world = field.convert(position: StarField.position(for: star), to: nil)
+        let length = simd_length(world)
+        guard length > 0.0001 else { return nil }
+        return world / length
+    }
+
     func pickDiagnostics(radius: CGFloat = 60) -> String {
         guard let content, viewSize.width > 0 else { return "sky.pickNear not-ready" }
         let center = CGPoint(x: viewSize.width / 2, y: viewSize.height / 2)
