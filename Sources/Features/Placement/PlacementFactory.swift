@@ -17,7 +17,7 @@ enum PlacementFactory {
     static func makeCube() -> Entity {
         let mesh = MeshResource.generateBox(size: PlacementMath.cubeHeight, cornerRadius: 0.006)
         let material = SimpleMaterial(
-            color: UIColor.systemTeal.withAlphaComponent(0.9),
+            color: UIColor.systemTeal,
             roughness: 0.4,
             isMetallic: false
         )

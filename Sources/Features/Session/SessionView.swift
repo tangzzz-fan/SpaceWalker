@@ -62,7 +62,8 @@ struct SessionView: View {
     }
 
     private var overlay: some View {
-        VStack(spacing: 10) {
+        VStack(spacing: 8) {
+            degradedBanner
             statusBanner
             diagnostics
         }
@@ -71,8 +72,26 @@ struct SessionView: View {
     }
 
     @ViewBuilder
+    private var degradedBanner: some View {
+        if let headline = store.state.session.matrix.headline {
+            VStack(spacing: 2) {
+                Text(headline)
+                    .font(.subheadline.weight(.semibold))
+                if let detail = store.state.session.matrix.detail {
+                    Text(detail)
+                        .font(.caption2)
+                }
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 8)
+            .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 12))
+        }
+    }
+
+    @ViewBuilder
     private var statusBanner: some View {
         let placementState = store.state.placement
+        let matrix = store.state.session.matrix
 
         if placementState.needsReplace {
             VStack(spacing: 8) {
@@ -93,8 +112,14 @@ struct SessionView: View {
                 .padding(.horizontal, 12)
                 .padding(.vertical, 6)
                 .background(.ultraThinMaterial, in: Capsule())
+        } else if matrix.placementStrategy == .unavailable {
+            Text("设备不支持放置")
+                .font(.subheadline)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 8)
+                .background(.ultraThinMaterial, in: Capsule())
         } else if placementState.isSurfaceAvailable {
-            Text("轻点放置")
+            Text(matrix.placementStrategy == .planeCenter ? "轻点按平面中心放置" : "轻点放置")
                 .font(.subheadline)
                 .padding(.horizontal, 14)
                 .padding(.vertical, 8)
@@ -122,6 +147,10 @@ struct SessionView: View {
                 Text("camera unauthorized")
                     .font(.caption2)
             }
+            if let detail = store.state.session.matrix.detail {
+                Text("degraded: \(detail)")
+                    .font(.caption2)
+            }
             if let placementDebugLine {
                 Text(placementDebugLine)
                     .font(.caption2)
@@ -143,8 +172,16 @@ struct SessionView: View {
         switch transition.command {
         case .start, .resume:
             bindPlacementCallbacks()
-            let outcome = await runner.start()
+            #if DEBUG
+            let forced = LaunchMode.forcedUnavailability(
+                environment: ProcessInfo.processInfo.environment
+            )
+            #else
+            let forced = SessionUnavailability()
+            #endif
+            let outcome = await runner.start(forcedUnavailability: forced)
             store.dispatch(.session(.reported(outcome)))
+            placement.apply(CapabilityMatrixBuilder.make(from: outcome))
         case .stop:
             await runner.stop()
         case .suspend, .none:

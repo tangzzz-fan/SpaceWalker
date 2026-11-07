@@ -8,14 +8,22 @@ final class SessionRunner {
     private let logger = Logger(subsystem: "com.tango.spacewalker", category: "session")
     private var isRunning = false
 
-    func start() async -> SessionOutcome {
+    func start(forcedUnavailability: SessionUnavailability = SessionUnavailability()) async -> SessionOutcome {
+        SessionLog.append(
+            "session.request anchors=\(Self.describe(SessionPlan.m0.anchors))"
+                + " scene=\(Self.describe(SessionPlan.m0.sceneUnderstanding))"
+                + " camera=\(SessionPlan.m0.camera.rawValue)"
+        )
+
         guard await cameraAccessGranted() else {
             logger.error("camera access denied or restricted")
-            return SessionPlan.outcome(
+            let outcome = SessionPlan.outcome(
                 for: SessionPlan.m0,
                 unavailability: SessionUnavailability(cameraAuthorized: false),
                 startedInMilliseconds: AppClock.elapsedMilliseconds()
             )
+            SessionLog.append("session.denied camera=unauthorized elapsedMs=\(outcome.startedInMilliseconds)")
+            return outcome
         }
 
         let unavailable = await session.run(Self.configuration(for: SessionPlan.m0))
@@ -23,8 +31,26 @@ final class SessionRunner {
 
         let outcome = SessionPlan.outcome(
             for: SessionPlan.m0,
-            unavailability: Self.unavailability(from: unavailable),
+            unavailability: Self.merge(
+                Self.unavailability(from: unavailable),
+                forcedUnavailability
+            ),
             startedInMilliseconds: AppClock.elapsedMilliseconds()
+        )
+
+        let matrix = CapabilityMatrixBuilder.make(from: outcome)
+        SessionLog.append(
+            "session.started elapsedMs=\(outcome.startedInMilliseconds)"
+                + " grantedAnchors=\(Self.describe(outcome.requirements.anchors))"
+                + " grantedScene=\(Self.describe(outcome.requirements.sceneUnderstanding))"
+                + " unavailableAnchors=\(Self.describe(outcome.unavailability.anchors))"
+                + " unavailableScene=\(Self.describe(outcome.unavailability.sceneUnderstanding))"
+                + " cameraAuthorized=\(outcome.unavailability.cameraAuthorized)"
+        )
+        SessionLog.append(
+            "session.matrix mode=\(matrix.mode.rawValue)"
+                + " reasons=\(matrix.reasons.map(\.rawValue).joined(separator: ","))"
+                + " strategy=\(matrix.placementStrategy.rawValue)"
         )
         logger.notice(
             """
@@ -66,6 +92,21 @@ final class SessionRunner {
         @unknown default:
             return false
         }
+    }
+
+    private static func merge(
+        _ base: SessionUnavailability,
+        _ forced: SessionUnavailability
+    ) -> SessionUnavailability {
+        SessionUnavailability(
+            anchors: base.anchors.union(forced.anchors),
+            sceneUnderstanding: base.sceneUnderstanding.union(forced.sceneUnderstanding),
+            cameraAuthorized: base.cameraAuthorized && forced.cameraAuthorized
+        )
+    }
+
+    private static func describe<T: RawRepresentable & Hashable>(_ set: Set<T>) -> String where T.RawValue == String {
+        set.map(\.rawValue).sorted().joined(separator: ",")
     }
 
     private static func configuration(

@@ -4,6 +4,7 @@ struct SessionState: State {
     var phase: SessionPhase = .idle
     var requirements = SessionPlan.m0
     var unavailability = SessionUnavailability()
+    var matrix = CapabilityMatrix.full
     var startedInMilliseconds: Int?
 
     var diagnosticLine: String? {
@@ -34,6 +35,7 @@ enum SessionReducer {
         case .reported(let outcome):
             state.requirements = outcome.requirements
             state.unavailability = outcome.unavailability
+            state.matrix = CapabilityMatrixBuilder.make(from: outcome)
             state.startedInMilliseconds = outcome.startedInMilliseconds
             if !outcome.isUsable {
                 state.phase = .failed

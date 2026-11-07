@@ -17,6 +17,29 @@ final class LaunchModeTests: XCTestCase {
         XCTAssertTrue(LaunchMode.autoPlaceEnabled(environment: ["SPACEWALKER_AUTOPLACE": "1"]))
     }
 
+    func testForcedDegradedIsOffByDefault() {
+        XCTAssertEqual(
+            LaunchMode.forcedUnavailability(environment: [:]),
+            SessionUnavailability()
+        )
+    }
+
+    func testForcedDegradedCollisionMarksSceneCapabilityMissing() {
+        let forced = LaunchMode.forcedUnavailability(
+            environment: ["SPACEWALKER_FORCE_DEGRADED": "collision"]
+        )
+        XCTAssertEqual(forced.sceneUnderstanding, [.collision])
+        XCTAssertTrue(forced.cameraAuthorized)
+    }
+
+    func testForcedDegradedAllDropsPlanesAndScene() {
+        let forced = LaunchMode.forcedUnavailability(
+            environment: ["SPACEWALKER_FORCE_DEGRADED": "all"]
+        )
+        XCTAssertEqual(forced.anchors, [.plane])
+        XCTAssertEqual(forced.sceneUnderstanding, [.collision, .occlusion, .shadow])
+    }
+
     func testUnknownModeKeepsSessionEntry() {
         let features = LaunchMode.enabledFeatures(environment: ["SPACEWALKER_MODE": "dome"])
         XCTAssertTrue(features.isEmpty)

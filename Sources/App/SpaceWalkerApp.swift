@@ -9,6 +9,7 @@ struct SpaceWalkerApp: App {
 
     init() {
         _ = AppClock.launchUptime
+        SessionLog.reset(context: SessionLog.deviceContext())
 
         let resolver = FeatureFlagResolver()
         let features = LaunchMode.enabledFeatures(environment: ProcessInfo.processInfo.environment)

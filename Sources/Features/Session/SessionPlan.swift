@@ -30,6 +30,7 @@ struct SessionUnavailability: Equatable, Sendable {
 }
 
 struct SessionOutcome: Equatable, Sendable {
+    var requested: SessionRequirements
     var requirements: SessionRequirements
     var unavailability: SessionUnavailability
     var startedInMilliseconds = 0
@@ -62,6 +63,7 @@ enum SessionPlan {
         startedInMilliseconds: Int = 0
     ) -> SessionOutcome {
         SessionOutcome(
+            requested: requirements,
             requirements: reduced(requirements, by: unavailability),
             unavailability: unavailability,
             startedInMilliseconds: startedInMilliseconds
