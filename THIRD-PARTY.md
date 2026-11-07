@@ -46,5 +46,7 @@
 
 | 包 | 用途 | 许可 |
 |---|---|---|
-| TGReduxKit | 单向数据流与状态切片 | 作者本地包，未随仓库分发 |
-| TGFeatureFlag | 功能开关 | 作者本地包，未随仓库分发 |
+| `Packages/TGReduxKit` | 单向数据流与状态切片 | MIT |
+| `Packages/TGFeatureFlag` | 功能开关 | MIT |
+
+两者为作者自研库，已裁剪后内嵌于仓库，仅保留 `Package.swift` 与源码。

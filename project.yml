@@ -28,9 +28,9 @@ schemes:
 
 packages:
   TGReduxKit:
-    path: "../Tango Vendor Packages/TGReduxKit"
+    path: "Packages/TGReduxKit"
   TGFeatureFlag:
-    path: "../Tango Vendor Packages/TGFeatureFlag"
+    path: "Packages/TGFeatureFlag"
 
 settings:
   base:

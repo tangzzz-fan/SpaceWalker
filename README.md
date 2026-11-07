@@ -33,16 +33,16 @@ xcodegen generate
 open SpaceWalker.xcodeproj
 ```
 
-工程使用两个本地 Swift Package，默认路径在上一级目录：
+两个依赖包已内嵌在 `Packages/`，clone 后不必额外准备：
 
-```yaml
-TGReduxKit:
-  path: "../Tango Vendor Packages/TGReduxKit"
-TGFeatureFlag:
-  path: "../Tango Vendor Packages/TGFeatureFlag"
-```
+| 目录 | 用途 | 许可 |
+|---|---|---|
+| `Packages/TGReduxKit` | 单向数据流、状态切片 | MIT |
+| `Packages/TGFeatureFlag` | 功能开关、调试面板 | MIT |
 
-克隆后请把 `project.yml` 里的 `packages` 改成你本地或远端仓库的地址，再重新 `xcodegen generate`。签名团队写在 `project.yml` 的 `DEVELOPMENT_TEAM`（当前 `UKXWZ3FS84`），换成你自己的即可；只改 pbxproj 会在下次生成时被覆盖。
+只保留 `Package.swift` 与 `Sources/`（各自上游仓库的 `.build` 有 247 MB，已剔除）。详见 `Packages/README.md`。
+
+签名团队写在 `project.yml` 的 `DEVELOPMENT_TEAM`（当前 `UKXWZ3FS84`），换成你自己的即可；只改 pbxproj 会在下次生成时被覆盖。
 
 真机安装：
 
@@ -91,6 +91,8 @@ SkyObserver(纬度/恒星时/航向) → field.orientation(地平旋转)
 |---|---|
 | `SPACEWALKER_MODE=sky\|prototype` | 启动路由 |
 | `SPACEWALKER_ALIGN=1` | 启动即开启定位与地平对齐 |
+| `SPACEWALKER_TIMEOFFSET=3` | 启动即把观测时刻偏移若干小时（±24） |
+| `SPACEWALKER_LAT=31.25 SPACEWALKER_LON=120.6` | 用模拟坐标代替定位（模拟器无定位时用） |
 | `SPACEWALKER_AIM=Ori` | 把指定星座移到视野中心 |
 | `SPACEWALKER_GROUP=参宿` | 定位并弹出分组卡 |
 | `SPACEWALKER_QUERY=参水猿` | 打开找星面板并预填查询 |
