@@ -77,3 +77,28 @@
 2. 真机帧率 ≥ 55fps。
 3. 「放进房间」在**有相机**的真机上进入与退回。
 4. 手势（拖动旋转 / 双指缩放 / 点选）与触觉反馈。
+
+## 第三轮：真机（iPhone 16 Pro / iOS 27.0）
+
+设备恢复连接后补测，四项全部有数：
+
+| 项 | 结果 | 日志/证据 |
+|---|---|---|
+| 首帧 | **965ms**（目标 ≤ 3s） | `space.firstFrame ms=965` |
+| 天空盒加载 | 575ms | `space.environment ready=1 elapsedMs=575` |
+| 帧率 | avg **60.1** / min 36.4–39.0 / hitches 0 | `probe.fps` |
+| 拾取往返 | **9/9** | `space.pick.roundtrip ok=9/9` |
+| AR 进入 | `permission.status authorized` → `session.started` → `mode=full` `anchors=3 scene=3 unavailable=0` | `dev-ar.png` 状态条 |
+| AR 退出 | `daysBefore=4.0 daysAfter=6.0`（AR 期间时间冻结，退出后只走 2s） | `space.ar.auto exit` |
+
+截图：`021-device-solar-system.jpg`、`021-device-ar-entry.jpg`。
+
+### 两个观察
+
+1. **AR 画面这次是黑的**：状态条显示 `RUNNING / anchors 3 / scene 3 / unavailable 0 / 60fps`，但相机背景全黑。会话与能力都正常，最可能是手机当时平放在桌面上、后摄被遮住。**未定性，需人工复测一次**（举起来对着房间）。
+2. **虚拟视图里露出 `漂移 0.0cm`**：漂移是 AR 概念，虚拟相机没有锚点，这行永远是 0，属于噪音。待修：虚拟模式隐藏该字段。
+
+### 仍未做
+
+- 手势（拖动旋转 / 双指缩放 / 点选）与触觉反馈：需人工。
+- 000 的 10 次体验记录：需人工。

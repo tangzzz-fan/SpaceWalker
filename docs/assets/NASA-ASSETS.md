@@ -14,6 +14,17 @@
 
 转换脚本未入库（一次性构建步骤）。若要重跑：用 CoreImage 读取 EXR，调整曝光后经 `CGImageDestination` 写 JPEG。
 
+## 已入库（第三方）
+
+| 用途 | 来源 | 文件 | 许可 | 处理 |
+|---|---|---|---|---|
+| 恒星数据 | HYG Database v4.1（astronexus） | `Sources/Resources/stars.json`（2996 条，216KB） | **CC BY-SA 4.0** | 原始 `hygdata_v41.csv`（32MB）→ 过滤视星等 ≤ 5.5、剔除太阳 → 只保留 `ra/dec/mag/ci/name/con` |
+
+原始下载：`https://raw.githubusercontent.com/astronexus/HYG-Database/main/hyg/CURRENT/hygdata_v41.csv`
+许可：`https://raw.githubusercontent.com/astronexus/HYG-Database/main/hyg/CURRENT/LICENSE`
+
+**CC BY-SA 的传染性要记住**：`stars.json` 是该库的衍生物，必须以同一许可分发并署名。应用内「数据来源」面板已声明；若将来要改成闭源专有数据，必须换源，不能只改文案。
+
 ## 使用约束
 
 - 不使用 NASA 标识（"肉丸"与"蠕虫"均为受保护标识），不得暗示 NASA 背书。
