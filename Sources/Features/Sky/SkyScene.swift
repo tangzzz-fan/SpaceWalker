@@ -13,6 +13,9 @@ final class SkyScene {
     private var cameraEntity: Entity?
     /// 垂直视场角。默认 60°，和人眼一支手臂看出去的宽度接近。
     private(set) var fieldOfView: Float = SkyScene.defaultFieldOfView
+    /// 当前方向下的「默认视场」：竖屏 60°，转横屏后按高度比例变成 31°。
+    /// 双击复位要回到这个值，而不是死板的 60°——否则横屏一复位就缩一半。
+    private(set) var baseFieldOfView: Float = SkyScene.defaultFieldOfView
     private var nodes: [Star] = []
     private var field = Entity()
     private var constellationNode: Entity?
@@ -68,7 +71,12 @@ final class SkyScene {
         // 否则一横过来整片星空缩成一半，像被人拉远了。捏合缩放同样按比例带过去。
         let flipped = (previous.width < previous.height) != (size.width < size.height)
         guard flipped, previous.height > 1 else { return }
-        setFieldOfView(fieldOfView * Float(size.height / previous.height))
+        let ratio = Float(size.height / previous.height)
+        baseFieldOfView = min(
+            Self.maxFieldOfView,
+            max(Self.minFieldOfView, baseFieldOfView * ratio)
+        )
+        setFieldOfView(fieldOfView * ratio)
     }
 
     func build(catalog: StarCatalog) {

@@ -204,9 +204,11 @@ struct SkyView: View {
         // 放到 95° 之后很难再捏回 60°。
         .simultaneousGesture(
             TapGesture(count: 2).onEnded {
-                scene.setFieldOfView(SkyScene.defaultFieldOfView)
-                zoomBase = SkyScene.defaultFieldOfView
-                SessionLog.append("sky.fov reset")
+                // 复位到「这个方向下的默认」，不是死板的 60°：
+                // 横屏保尺度后默认是 31°，回到 60° 等于又缩了一半。
+                scene.setFieldOfView(scene.baseFieldOfView)
+                zoomBase = scene.baseFieldOfView
+                SessionLog.append(String(format: "sky.fov reset value=%.1f", scene.baseFieldOfView))
             }
         )
         .simultaneousGesture(

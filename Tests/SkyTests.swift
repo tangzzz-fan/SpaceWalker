@@ -2007,6 +2007,7 @@ final class SkyFieldOfViewTests: XCTestCase {
 
         scene.resize(CGSize(width: 874, height: 402))
         XCTAssertEqual(scene.fieldOfView, 60 * 402 / 778, accuracy: 0.1)
+        XCTAssertEqual(scene.baseFieldOfView, 60 * 402 / 778, accuracy: 0.1, "横屏双击该回到 31°，不是 60°")
 
         let portraitScale = 60.0 / 778
         let landscapeScale = Double(scene.fieldOfView) / 402
@@ -2014,6 +2015,7 @@ final class SkyFieldOfViewTests: XCTestCase {
 
         scene.resize(CGSize(width: 402, height: 778))
         XCTAssertEqual(scene.fieldOfView, SkyScene.defaultFieldOfView, accuracy: 0.2, "转回去要回到原视场")
+        XCTAssertEqual(scene.baseFieldOfView, SkyScene.defaultFieldOfView, accuracy: 0.2, "双击复位的基准也要跟着回来")
     }
 
     func testSameOrientationResizeDoesNotTouchFieldOfView() {
