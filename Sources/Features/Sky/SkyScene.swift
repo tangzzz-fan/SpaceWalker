@@ -250,22 +250,6 @@ final class SkyScene {
         constellation(at: viewDirectionInField)
     }
 
-    /// 某个星座的几何中心方向，用于对准与调试。
-    func direction(forConstellation abbreviation: String) -> SIMD3<Float>? {
-        guard let constellation = Constellations.all.first(where: { $0.abbreviation == abbreviation })
-        else { return nil }
-        let names = Set(constellation.lines.flatMap { [$0.first, $0.second] })
-        var sum = SIMD3<Float>(0, 0, 0)
-        var count = 0
-        for name in names {
-            guard let position = constellationPositions[name] else { continue }
-            sum += simd_normalize(position)
-            count += 1
-        }
-        guard count > 0, simd_length(sum) > 0.001 else { return nil }
-        return simd_normalize(sum)
-    }
-
     /// 临时点亮一个星座的轮廓：即使总开关关着，也让用户看见自己指着的那块。
     func highlightConstellation(_ abbreviation: String?) {
         guard abbreviation != constellationHighlightID else { return }
@@ -573,6 +557,9 @@ final class SkyScene {
 
     func setAttitude(_ orientation: simd_quatf) {
         isAttitudeDriven = true
+        // 真机上姿态回调是 67Hz 直写，会在一帧内把 aim 覆盖掉。
+        // 039 修过 apply(rig:) 的同款问题，这里漏了同一个守卫。
+        guard !aimLocked else { return }
         root.orientation = orientation
     }
 

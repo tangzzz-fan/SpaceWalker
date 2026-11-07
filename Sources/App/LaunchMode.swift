@@ -102,12 +102,6 @@ enum LaunchMode {
         environment["SPACEWALKER_FPS"] == "1"
     }
 
-    /// 把星图对准指定星座（缩写，如 Ori），用于模拟器无陀螺仪时的验证。
-    static func aimConstellation(environment: [String: String]) -> String? {
-        guard let raw = environment["SPACEWALKER_AIM"], !raw.isEmpty, raw != "0" else { return nil }
-        return raw
-    }
-
     static func fengshenTarget(environment: [String: String]) -> String? {
         guard let raw = environment["SPACEWALKER_FENGSHEN"],
               !raw.isEmpty, raw != "0"

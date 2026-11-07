@@ -926,15 +926,6 @@ struct SkyView: View {
                 }
             }
         }
-        if let abbreviation = LaunchMode.aimConstellation(environment: ProcessInfo.processInfo.environment) {
-            for _ in 0..<60 where scene.direction(forConstellation: abbreviation) == nil {
-                try? await Task.sleep(for: .milliseconds(50))
-            }
-            if let direction = scene.direction(forConstellation: abbreviation) {
-                scene.aim(at: direction)
-                SessionLog.append("sky.aim constellation=\(abbreviation)")
-            }
-        }
         if LaunchMode.finderPreviewEnabled(environment: ProcessInfo.processInfo.environment)
             || LaunchMode.tourPreviewEnabled(environment: ProcessInfo.processInfo.environment)
             || LaunchMode.fengshenTarget(environment: ProcessInfo.processInfo.environment) != nil {
