@@ -26,10 +26,12 @@ struct SkyView: View {
                     reality
                         .onAppear {
                             session.resize(proxy.size)
+                            syncInterfaceOrientation()
                             logLayout(proxy.size)
                         }
                         .onChange(of: proxy.size) { _, size in
                             session.resize(size)
+                            syncInterfaceOrientation()
                             logLayout(size)
                         }
                 }
@@ -103,6 +105,15 @@ struct SkyView: View {
                 onPickGroup: { group in focus(group: group) }
             )
         }
+    }
+
+    /// 画布随界面方向旋转，设备姿态不转——两者差多少，星空就补多少。
+    func syncInterfaceOrientation() {
+        guard let windowScene = UIApplication.shared.connectedScenes
+            .compactMap({ $0 as? UIWindowScene })
+            .first
+        else { return }
+        session.setInterfaceOrientation(windowScene.interfaceOrientation)
     }
 
     var reality: some View {

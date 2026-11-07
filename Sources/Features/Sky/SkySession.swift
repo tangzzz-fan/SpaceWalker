@@ -1,5 +1,6 @@
 import Foundation
 import RealityKit
+import UIKit
 import simd
 import SwiftUI
 
@@ -89,15 +90,32 @@ final class SkySession {
         zoomBase = scene.fieldOfView
     }
 
-    /// 定位后必须交还控制权：否则姿态被锁、拖动又被禁，画面就冻死了。
+    /// 跟随时跳转只写偏移、不动输入源——否则一转手机目标就跑了。
+    /// 手动态跳转直接落朝向。
     func aim(at direction: SIMD3<Float>) {
         guard let aimed = scene.aim(at: direction) else { return }
         rig = aimed
-        setFollowsAttitude(false)
+    }
+
+    /// 界面方向：竖屏 0，横屏 ±90°。画布转了，星空得反着补回来。
+    func setInterfaceOrientation(_ orientation: UIInterfaceOrientation) {
+        let angle: Float
+        switch orientation {
+        case .landscapeLeft: angle = -.pi / 2
+        case .landscapeRight: angle = .pi / 2
+        case .portraitUpsideDown: angle = .pi
+        default: angle = 0
+        }
+        scene.setInterfaceRoll(angle)
+        SessionLog.append(String(format: "sky.orient angle=%.0f", angle * 180 / .pi))
     }
 
     func setFollowsAttitude(_ value: Bool) {
         followsAttitude = value
+        if !isManual, let base = scene.attitudeBase {
+            scene.captureAimDelta(base: base)
+            scene.setAttitude(base)
+        }
         scene.setSource(isManual ? .manual : .attitude)
         SessionLog.append("sky.mode follow=\(value ? 1 : 0) manual=\(isManual ? 1 : 0)")
     }

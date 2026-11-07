@@ -51,6 +51,12 @@ final class SkyScene {
     /// 谁在驱动朝向。两把锁（aimLocked / isAttitudeDriven）会互相堵死：
     /// 定位后锁住姿态，而姿态可用时又禁掉拖动，画面就冻住了。
     var source: InputSource = .manual
+    /// 跳转产生的偏移，写在星空坐标系里：跟随姿态时也要能「把某个方向摆到屏幕中心」。
+    var aimDelta = simd_quatf(ix: 0, iy: 0, iz: 0, r: 1)
+    /// 界面方向造成的画布旋转。竖屏 0，横屏 ±90°。
+    var interfaceRoll: Float = 0
+    /// 最近一次设备姿态推出的场景朝向，跳转偏移与界面补偿都以它为基准。
+    var attitudeBase: simd_quatf?
 
     var starCount: Int {
         nodes.count

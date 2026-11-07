@@ -210,8 +210,13 @@ extension SkyScene {
             yaw: yaw,
             pitch: min(max(pitch, SkyRig.pitchRange.lowerBound), SkyRig.pitchRange.upperBound)
         )
-        root.orientation = rig.orientation
-        source = .manual
+        if source == .attitude, let base = attitudeBase {
+            // 跟随中跳转：不动 base，把差量写成偏移，姿态继续驱动。
+            aimDelta = base.inverse * (interfaceCompensation.inverse * rig.orientation)
+            setAttitude(base)
+        } else {
+            root.orientation = rig.orientation
+        }
         return rig
     }
 
@@ -219,9 +224,29 @@ extension SkyScene {
         self.source = source
     }
 
+    /// 画布的「上」跟着界面方向转，设备坐标系的「上」不转。
+    /// 不补偿的话，横屏后左右转头会变成画面上下动——用户看到的就是这个。
+    var interfaceCompensation: simd_quatf {
+        simd_quatf(angle: -interfaceRoll, axis: SIMD3<Float>(0, 0, 1))
+    }
+
     func setAttitude(_ orientation: simd_quatf) {
+        attitudeBase = orientation
         guard source == .attitude else { return }
-        root.orientation = orientation
+        root.orientation = interfaceCompensation * orientation * aimDelta
+    }
+
+    func setInterfaceRoll(_ radians: Float) {
+        guard abs(radians - interfaceRoll) > 0.001 else { return }
+        interfaceRoll = radians
+        if let base = attitudeBase, source == .attitude {
+            setAttitude(base)
+        }
+    }
+
+    /// 切到跟随时保持画面不跳：把当前朝向折成偏移量。
+    func captureAimDelta(base: simd_quatf) {
+        aimDelta = base.inverse * (interfaceCompensation.inverse * root.orientation)
     }
 
     func apply(rig: SkyRig) {

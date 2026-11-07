@@ -1969,12 +1969,14 @@ final class SkyAimTests: XCTestCase {
         XCTAssertEqual(SkyPicker.offsetDegrees(scene.viewDirectionInField, direction), 0, accuracy: 0.01)
     }
 
-    /// 定位必须把输入源切回手动，否则姿态被锁、拖动被禁，画面会冻死。
-    func testAimSwitchesSourceToManual() {
+    /// 手动态定位就落在手动；跟随时定位只写偏移（另见 SkyAttitudeFrameTests）。
+    func testAimInManualStaysManual() {
         let scene = SkyScene()
-        scene.setSource(.attitude)
+        scene.setSource(.manual)
         _ = scene.aim(at: target())
         XCTAssertEqual(scene.source, .manual)
+        let centered = simd_normalize(scene.viewDirectionInField)
+        XCTAssertEqual(SkyPicker.offsetDegrees(centered, target()), 0, accuracy: 0.5)
     }
 
     func testAttitudeSourceIgnoresManualRig() {
@@ -2075,5 +2077,56 @@ final class SkyFieldOfViewTests: XCTestCase {
         XCTAssertTrue(orientations.contains("UIInterfaceOrientationPortrait"))
         XCTAssertTrue(orientations.contains("UIInterfaceOrientationLandscapeLeft"))
         XCTAssertTrue(orientations.contains("UIInterfaceOrientationLandscapeRight"))
+    }
+}
+
+@MainActor
+final class SkyAttitudeFrameTests: XCTestCase {
+    private func target() -> SIMD3<Float> {
+        simd_normalize(SIMD3<Float>(0.3, 0.2, -1))
+    }
+
+    /// 跟随时跳转：目标要落在屏幕中心，而且输入源不能被切成手动。
+    func testAimWhileFollowingCentersTargetWithoutLeavingFollow() {
+        let scene = SkyScene()
+        scene.setSource(.attitude)
+        let upright = simd_quatf(ix: 0, iy: 0, iz: 0, r: 1)
+        scene.setAttitude(upright)
+
+        _ = scene.aim(at: target())
+
+        XCTAssertEqual(scene.source, .attitude, "跟随时跳转不该切走输入源")
+        let centered = simd_normalize(scene.viewDirectionInField)
+        XCTAssertEqual(SkyPicker.offsetDegrees(centered, target()), 0, accuracy: 0.5)
+    }
+
+    /// 跳转偏移必须跟着姿态走：设备转一点，目标也跟着偏，而不是钉死在屏幕上。
+    func testAimOffsetKeepsFollowingAttitude() {
+        let scene = SkyScene()
+        scene.setSource(.attitude)
+        scene.setAttitude(simd_quatf(ix: 0, iy: 0, iz: 0, r: 1))
+        _ = scene.aim(at: target())
+        let before = simd_normalize(scene.viewDirectionInField)
+
+        let turned = simd_quatf(angle: 0.2, axis: SIMD3<Float>(0, 1, 0))
+        scene.setAttitude(turned)
+        let after = simd_normalize(scene.viewDirectionInField)
+
+        XCTAssertGreaterThan(SkyPicker.offsetDegrees(before, after), 5, "姿态变化后视线应当跟着动")
+    }
+
+    /// 界面方向补偿：世界「上」必须落到画布的「上」，否则横屏左右多头会变成上下动。
+    func testInterfaceRollMapsWorldUpOntoScreenUp() {
+        let scene = SkyScene()
+        scene.setSource(.attitude)
+        scene.setAttitude(simd_quatf(ix: 0, iy: 0, iz: 0, r: 1))
+        let up = SIMD3<Float>(0, 1, 0)
+
+        XCTAssertEqual(scene.root.orientation.act(up).y, 1, accuracy: 0.001, "竖屏：世界上就是画布上")
+
+        scene.setInterfaceRoll(.pi / 2)
+        let rolled = scene.root.orientation.act(up)
+        XCTAssertEqual(abs(rolled.x), 1, accuracy: 0.001, "横屏：世界上应落到画布的长轴方向")
+        XCTAssertEqual(rolled.y, 0, accuracy: 0.001)
     }
 }

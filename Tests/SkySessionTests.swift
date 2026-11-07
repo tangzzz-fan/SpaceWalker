@@ -9,11 +9,11 @@ final class SkySessionTests: XCTestCase {
         XCTAssertTrue(session.followsAttitude)
     }
 
-    func testAimHandsControlBackToManual() {
+    /// 定位不该偷偷改用户意图：跟随时跳转后仍然跟随，只是多了一个朝向偏移。
+    func testAimKeepsTheFollowIntent() {
         let session = SkySession()
         session.aim(at: SIMD3<Float>(0, 0, -1))
-        XCTAssertFalse(session.followsAttitude, "定位之后必须交还控制权，否则姿态与拖动互相堵死")
-        XCTAssertTrue(session.isManual)
+        XCTAssertTrue(session.followsAttitude)
     }
 
     func testToggleReturnsToFollowing() {
