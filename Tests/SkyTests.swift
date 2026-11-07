@@ -1008,6 +1008,34 @@ final class SkyGroupTests: XCTestCase {
     }
 }
 
+final class TimeScrubTests: XCTestCase {
+    func testSiderealAdvancesFifteenDegreesPerHour() {
+        let base = Date(timeIntervalSince1970: 1_768_000_000)
+        let first = Astronomy.localSiderealDegrees(
+            julianDay: Astronomy.julianDay(base),
+            longitude: 116.4
+        )
+        let second = Astronomy.localSiderealDegrees(
+            julianDay: Astronomy.julianDay(base.addingTimeInterval(3600)),
+            longitude: 116.4
+        )
+        XCTAssertEqual(Astronomy.normalized(second - first), 15.041, accuracy: 0.02)
+    }
+
+    func testTwelveHourShiftMovesSiderealHalfTurn() {
+        let base = Date(timeIntervalSince1970: 1_768_000_000)
+        let first = Astronomy.localSiderealDegrees(
+            julianDay: Astronomy.julianDay(base),
+            longitude: 120.6
+        )
+        let later = Astronomy.localSiderealDegrees(
+            julianDay: Astronomy.julianDay(base.addingTimeInterval(12 * 3600)),
+            longitude: 120.6
+        )
+        XCTAssertEqual(Astronomy.normalized(later - first), 180.5, accuracy: 0.5)
+    }
+}
+
 final class SkySeasonTests: XCTestCase {
     private func stars() throws -> [Star] {
         try XCTUnwrap(StarCatalog.loadFromBundle(.main)).stars

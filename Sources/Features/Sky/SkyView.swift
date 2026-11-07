@@ -15,6 +15,7 @@ struct SkyView: View {
     @State private var selectedGroup: SkyGroup?
     @State private var groups: [SkyGroup] = []
     @State private var tonight: [TonightPick] = []
+    @State private var timeOffset: Double = 0
     @State private var motionActive = false
     @State private var showsCredits = false
     @State private var showsConstellations = true
@@ -166,6 +167,9 @@ struct SkyView: View {
             Text(observer.statusText)
                 .font(.caption2)
                 .foregroundStyle(observer.isOn ? .primary : .secondary)
+            if observer.stage == .ready {
+                timeScrubber
+            }
             if let region = currentRegion {
                 Button {
                     infoRegion = region
@@ -206,6 +210,41 @@ struct SkyView: View {
             return "\(stars.count) 颗恒星 · \(stars.filter(\.isSelectable).count) 颗可选中 · \(Constellations.all.count) 个星座"
         }
         return String(format: "%.1f°N %.1f°E · 恒星时 %.1f°", latitude, longitude, sidereal)
+    }
+
+    private var timeScrubber: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "clock.arrow.circlepath")
+                .font(.caption2)
+            Slider(value: $timeOffset, in: -12...12, step: 0.5)
+                .controlSize(.mini)
+                .frame(width: 140)
+            Text(timeOffsetLabel)
+                .font(.caption2.monospacedDigit())
+                .frame(width: 46, alignment: .leading)
+            Button {
+                timeOffset = 0
+            } label: {
+                Image(systemName: "arrow.counterclockwise")
+                    .font(.caption2)
+            }
+            .buttonStyle(.plain)
+            .opacity(timeOffset == 0 ? 0.3 : 1)
+            .accessibilityLabel("时间回到此刻")
+        }
+        .padding(.top, 2)
+        .onChange(of: timeOffset) { _, value in
+            observer.setTimeOffset(hours: value)
+            applyAlignment()
+            refreshTonight()
+        }
+    }
+
+    private var timeOffsetLabel: String {
+        if abs(timeOffset) < 0.01 {
+            return "此刻"
+        }
+        return String(format: "%+.1f h", timeOffset)
     }
 
     private var hintBar: some View {

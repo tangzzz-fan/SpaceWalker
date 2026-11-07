@@ -35,6 +35,7 @@ final class SkyObserver: NSObject {
     private(set) var longitude: Double?
     private(set) var northOffsetDegrees: Double?
     private(set) var hasHeading = false
+    private(set) var timeOffsetHours: Double = 0
 
     var isOn: Bool {
         stage != .off
@@ -99,9 +100,17 @@ final class SkyObserver: NSObject {
     func currentSiderealDegrees() -> Double? {
         guard let longitude else { return nil }
         return Astronomy.localSiderealDegrees(
-            julianDay: Astronomy.julianDay(Date()),
+            julianDay: Astronomy.julianDay(shiftedNow()),
             longitude: longitude
         )
+    }
+
+    func shiftedNow() -> Date {
+        Date().addingTimeInterval(timeOffsetHours * 3600)
+    }
+
+    func setTimeOffset(hours: Double) {
+        timeOffsetHours = min(max(hours, -24), 24)
     }
 
     func calibrateAgainst(starAzimuth: Double, sceneAzimuth: Double, label: String) {
