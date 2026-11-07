@@ -29,11 +29,18 @@ Exceptions and third-party content:
    (CC BY-SA 4.0), not MIT. Redistribution of that file, or of a modified
    version of it, must keep the same license and attribution.
 
-2. Sources/Resources/galaxy-equirect.jpg is derived from NASA/Goddard Space
+2. Sources/Resources/asterisms.json is derived from the Stellarium "chinese"
+   sky culture and is licensed under Creative Commons Attribution-ShareAlike
+   (CC BY-SA), not MIT. The upstream sky culture declares that license for its
+   text and lines separately from the AGPL-3.0 repository that hosts it.
+   Redistribution of that file, or of a modified version of it, must keep the
+   same license and attribution.
+
+3. Sources/Resources/galaxy-equirect.jpg is derived from NASA/Goddard Space
    Flight Center Scientific Visualization Studio "Deep Star Maps 2020".
    NASA content is generally not subject to copyright in the United States.
 
-3. Constellation lines, constellation figures, Chinese star names, and all
+4. Constellation lines, constellation figures, Chinese star names, and all
    interface copy are original works of this project, licensed under MIT.
 
 See THIRD-PARTY.md for details.
