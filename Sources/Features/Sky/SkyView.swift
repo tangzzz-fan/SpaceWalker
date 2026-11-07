@@ -7,19 +7,14 @@ struct SkyView: View {
     @Environment(Store<AppState, AppAction>.self) private var store
     @Environment(\.verticalSizeClass) private var verticalSizeClass
 
-    @State private var scene = SkyScene()
+    var session: SkySession
+
+    private var scene: SkyScene { session.scene }
     @State private var catalog: StarCatalog?
-    @State private var rig = SkyRig()
-    @State private var attitude = DeviceAttitude()
-    @State private var lastDrag: CGSize = .zero
-    @State private var zoomBase: Float = SkyScene.defaultFieldOfView
-    @State private var isPinching = false
-    @State private var rigBeforePinch: SkyRig?
     @State private var selected: Star?
     @State private var selectedGroup: SkyGroup?
     @State private var groups: [SkyGroup] = []
     @State private var tonight: [TonightPick] = []
-    @State private var motionActive = false
     @State private var showsCredits = false
     @State private var showsConstellations = true
     @State private var showsAsterisms = false
@@ -50,14 +45,11 @@ struct SkyView: View {
                 GeometryReader { proxy in
                     reality
                         .onAppear {
-                            scene.resize(proxy.size)
+                            session.resize(proxy.size)
                             logLayout(proxy.size)
                         }
                         .onChange(of: proxy.size) { _, size in
-                            scene.resize(size)
-                            // 转屏会按高度比例改视场，捏合的基准跟着走，
-                            // 否则下次捏合会从旧值开始跳一下。
-                            zoomBase = scene.fieldOfView
+                            session.resize(size)
                             logLayout(size)
                         }
                 }
@@ -102,7 +94,7 @@ struct SkyView: View {
             refreshTonight()
         }
         .onDisappear {
-            attitude.stop()
+            session.stopMotion()
             observer.disable()
         }
         .sheet(isPresented: $showsCredits) { creditsSheet }
@@ -143,30 +135,18 @@ struct SkyView: View {
             if LaunchMode.perfLogEnabled(environment: ProcessInfo.processInfo.environment) {
                 perf.attach(content)
             }
-            scene.apply(rig: rig)
+            session.applyRig()
         } update: { _ in
-            scene.apply(rig: rig)
+            session.applyRig()
         }
         .coordinateSpace(name: SkyScene.coordinateSpaceName)
         .gesture(
             DragGesture(minimumDistance: 4)
                 .onChanged { value in
-                    // 捏合时两根手指也有位移，不挡掉就会「缩放顺带把天空推走」。
-                    guard !motionActive, !isPinching else {
-                        lastDrag = value.translation
-                        return
-                    }
-                    if lastDrag == .zero { rigBeforePinch = rig }
-                    scene.releaseAim()
-                    rig.drag(
-                        deltaX: Float(value.translation.width - lastDrag.width),
-                        deltaY: Float(value.translation.height - lastDrag.height)
-                    )
-                    lastDrag = value.translation
+                    session.drag(to: value.translation)
                 }
                 .onEnded { _ in
-                    lastDrag = .zero
-                    rigBeforePinch = nil
+                    session.endDrag()
                 }
         )
         // 双指捏合改视场角。人放在星空上叫「看全」，不是在缩放图片：
@@ -174,37 +154,17 @@ struct SkyView: View {
         .simultaneousGesture(
             MagnifyGesture()
                 .onChanged { value in
-                    if !isPinching {
-                        isPinching = true
-                        // 捏合被识别前，拖动已经按两指的位移把天空推了一段。
-                        // 退回捏合前的姿态，缩放就只改视场，不动朝向。
-                        if let snapshot = rigBeforePinch {
-                            rig = snapshot
-                            scene.apply(rig: snapshot)
-                            lastDrag = .zero
-                        }
-                    }
-                    scene.setFieldOfView(zoomBase / Float(value.magnification))
+                    session.magnify(value.magnification)
                 }
                 .onEnded { _ in
-                    isPinching = false
-                    zoomBase = scene.fieldOfView
-                    lastDrag = .zero
-                    SessionLog.append(String(
-                        format: "sky.zoom fov=%.1f rig=%.2f,%.2f",
-                        scene.fieldOfView, rig.yaw, rig.pitch
-                    ))
+                    session.endMagnify()
                 }
         )
         // 双击回到默认视场。缩放没有「复位」就等于没有退出键，
         // 放到 95° 之后很难再捏回 60°。
         .simultaneousGesture(
             TapGesture(count: 2).onEnded {
-                // 复位到「这个方向下的默认」，不是死板的 60°：
-                // 横屏保尺度后默认是 31°，回到 60° 等于又缩了一半。
-                scene.setFieldOfView(scene.baseFieldOfView)
-                zoomBase = scene.baseFieldOfView
-                SessionLog.append(String(format: "sky.fov reset value=%.1f", scene.baseFieldOfView))
+                session.resetZoom()
             }
         )
         .simultaneousGesture(
@@ -352,7 +312,7 @@ struct SkyView: View {
     }
 
     private var compactSubtitle: String {
-        if !motionActive {
+        if !session.isMotionActive {
             return "拖动旋转"
         }
         guard observer.stage == .ready,
@@ -402,7 +362,7 @@ struct SkyView: View {
             Text(skySubtitle)
                 .font(.caption)
                 .foregroundStyle(.secondary)
-            Text(motionActive ? "姿态跟随 · 转动手机环顾" : "拖动旋转（无陀螺仪时的降级）")
+            Text(session.isMotionActive ? "姿态跟随 · 转动手机环顾" : "拖动旋转（无陀螺仪时的降级）")
                 .font(.caption2)
                 .foregroundStyle(.secondary)
             Text(observer.statusText)
@@ -514,10 +474,9 @@ struct SkyView: View {
 
     private var hintBar: some View {
         HStack(spacing: 8) {
-            if !motionActive {
+            if !session.isMotionActive {
                 Button {
-                    scene.releaseAim()
-                    rig = SkyRig()
+                    session.resetOrientation()
                 } label: {
                     Image(systemName: "arrow.counterclockwise")
                         .frame(width: 28, height: 28)
@@ -667,7 +626,7 @@ struct SkyView: View {
     private func focus(group: SkyGroup) {
         let stars = catalog?.stars ?? []
         guard let direction = SkyGroupIndex.anchor(group, stars: stars) else { return }
-        if let aimed = scene.aim(at: direction) { rig = aimed }
+        session.aim(at: direction)
         if group.isDrawable, !showsAsterisms {
             showsAsterisms = true
             scene.setAsterismsVisible(true)
@@ -1103,7 +1062,7 @@ struct SkyView: View {
                     try? await Task.sleep(for: .milliseconds(50))
                 }
                 if let direction = scene.direction(forPattern: id) {
-                    if let aimed = scene.aim(at: direction) { rig = aimed }
+                    session.aim(at: direction)
                     SessionLog.append("sky.aim pattern=\(id)")
                 }
             }
@@ -1140,8 +1099,7 @@ struct SkyView: View {
             for _ in 0..<40 where !scene.isReady {
                 try? await Task.sleep(for: .milliseconds(50))
             }
-            scene.setFieldOfView(fov)
-            zoomBase = scene.fieldOfView
+            session.setFieldOfView(fov)
             SessionLog.append(String(format: "sky.fov value=%.1f", scene.fieldOfView))
         }
         if let abbreviation = LaunchMode.aimTarget(environment: ProcessInfo.processInfo.environment),
@@ -1162,8 +1120,8 @@ struct SkyView: View {
                 for _ in 0..<40 where !scene.isReady {
                     try? await Task.sleep(for: .milliseconds(50))
                 }
-                if let center, let aimed = scene.aim(at: center) {
-                    rig = aimed
+                if let center {
+                    session.aim(at: center)
                 }
                 SessionLog.append("sky.aim target=\(abbreviation) stars=\(members.count)")
             }
@@ -1221,15 +1179,12 @@ struct SkyView: View {
 
     private func startMotion() {
         guard LaunchMode.skyMotionEnabled(environment: ProcessInfo.processInfo.environment) else { return }
-        guard !attitude.isAvailable else { return }
-        attitude.start { orientation in
-            scene.setAttitude(orientation)
+        session.startMotion {
             if observer.calibrate(sceneAzimuth: Astronomy.sceneAzimuth(scene.viewDirectionInField)) {
                 refreshField()
             }
             stepDwell()
         }
-        motionActive = attitude.isAvailable
     }
 
     private func toggleAlignment() {

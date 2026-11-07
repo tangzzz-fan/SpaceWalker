@@ -3,6 +3,7 @@ import TGReduxKit
 
 struct ContentView: View {
     @Environment(Store<AppState, AppAction>.self) private var store
+    @State private var skySession = SkySession()
 
     private var mode: LaunchMode.AppMode {
         LaunchMode.mode(environment: ProcessInfo.processInfo.environment)
@@ -20,7 +21,7 @@ struct ContentView: View {
                 case .solarSystem:
                     SpaceView()
                 case .sky:
-                    SkyView()
+                    SkyView(session: skySession)
                 }
             }
         }
