@@ -21,13 +21,24 @@ enum TiangongScale {
 enum TiangongModel {
     static let totalLength: Float = 10.4
     static let maxDiameter: Float = 3.35
-    static let labLength: Float = 6.2
-    static let resourceLength: Float = 4.2
-    static let resourceDiameter: Float = 2.8
-    static let wingLength: Float = 6.0
-    static let wingWidth: Float = 2.0
+    /// 实验舱（含非密封后锥段）轴向长度。
+    static let labLength: Float = 6.4
+    /// 资源舱轴向尺寸。
+    static let resourceLength: Float = 3.2
+    static let resourceDiameter: Float = 2.775
+    /// 对接机构占掉的长度：10.4 − 6.4 − 3.2 = 0.8。
+    static let dockingPortLength: Float = 0.8
+    /// 电池翼展开后**总跨度**（含舱体），一手数据 18.405 m。单翼长度由此反推。
+    static let wingSpan: Float = 18.405
+    /// 单翼宽度没有一手数据，取视觉合理值，不进任何界面文案。
+    static let wingWidth: Float = 2.5
     static let shenzhouLength: Float = 9.0
     static let shenzhouDiameter: Float = 2.8
+
+    /// 单翼长度 =（总跨度 − 舱体最大直径）/ 2。
+    static var wingLength: Float {
+        (wingSpan - maxDiameter) / 2
+    }
 }
 
 enum TiangongModuleID: String, CaseIterable, Equatable, Sendable, Identifiable {
@@ -52,16 +63,17 @@ enum TiangongModuleID: String, CaseIterable, Equatable, Sendable, Identifiable {
     static let dismantlable: [TiangongModuleID] = [.lab, .resource, .leftWing, .rightWing]
 
     /// 卡片文案放在模型层，便于「禁词扫描」这类测试直接遍历。
+    /// 数字全部从常量插值，避免文案与几何各写一份。
     var detail: String {
         switch self {
         case .lab:
-            "前段舱体，前端为对接口 · 真实长约 6.2 m"
+            "前段密封舱 + 非密封后锥段 · 轴向 \(TiangongFormat.meters(TiangongModel.labLength))"
         case .resource:
-            "后段舱体，太阳翼挂在这里 · 真实长约 4.2 m"
+            "后段柱状非密封舱，太阳翼挂这里 · Ø\(TiangongFormat.meters(TiangongModel.resourceDiameter)) × \(TiangongFormat.meters(TiangongModel.resourceLength))"
         case .leftWing, .rightWing:
-            "单翼真实约 6.0 m × 2.0 m"
+            "两翼展开总跨度 \(TiangongFormat.meters(TiangongModel.wingSpan))"
         case .shenzhou:
-            "对接任务的飞船 · 全长约 9.0 m"
+            "对接任务的飞船 · 全长 \(TiangongFormat.meters(TiangongModel.shenzhouLength))"
         }
     }
 }
@@ -75,7 +87,7 @@ struct TiangongLayout {
     static let labCenter = SIMD3<Float>(0, 0, labLengthDisplay / 2)
     static let resourceCenter = SIMD3<Float>(0, 0, -resourceLengthDisplay / 2)
 
-    static let dockingPortZ = labLengthDisplay
+    static let dockingPortZ = labLengthDisplay + TiangongScale.display(TiangongModel.dockingPortLength)
 
     /// 整机（含待对接的神舟）包围盒中心。相机绕它转，否则模型会偏出画面。
     static let center: SIMD3<Float> = {
@@ -91,7 +103,7 @@ struct TiangongLayout {
         return SIMD3(id == .leftWing ? -x : x, 0, resourceCenter.z)
     }
 
-    static let shenzhouCenter = SIMD3<Float>(0, 0, dockingPortZ + 0.35)
+    static let shenzhouCenter = SIMD3<Float>(0, 0, dockingPortZ + 0.42)
 
     static func restPosition(_ id: TiangongModuleID) -> SIMD3<Float> {
         switch id {
@@ -104,9 +116,8 @@ struct TiangongLayout {
 
     /// 整机在 X/Z 上的包围盒，用于「落在 1m 桌面内」的断言。
     static var footprint: (width: Float, length: Float) {
-        let wingTip = abs(wingCenter(.leftWing).x) + TiangongScale.display(TiangongModel.wingLength) / 2
-        let length = TiangongScale.display(TiangongModel.totalLength)
-        return (wingTip * 2, length)
+        (TiangongScale.display(TiangongModel.wingSpan),
+         TiangongScale.display(TiangongModel.totalLength))
     }
 }
 
@@ -131,5 +142,17 @@ enum TiangongDisassembly {
 
     static func isDismantlable(_ id: TiangongModuleID) -> Bool {
         TiangongModuleID.dismantlable.contains(id)
+    }
+}
+
+enum TiangongFormat {
+    /// 去掉小数尾零的米数：6.400 → "6.4 m"，18.405 → "18.405 m"。
+    static func meters(_ value: Float) -> String {
+        var text = String(format: "%.3f", value)
+        while text.contains("."), text.hasSuffix("0") {
+            text.removeLast()
+        }
+        if text.hasSuffix(".") { text.removeLast() }
+        return text + " m"
     }
 }

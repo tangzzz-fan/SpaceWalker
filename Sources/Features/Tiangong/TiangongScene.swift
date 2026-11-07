@@ -63,6 +63,32 @@ final class TiangongScene {
         }
     }
 
+    /// 拖动时把屏幕位移映射到世界位移，需要相机的右/上基向量。
+    func cameraBasis() -> (right: SIMD3<Float>, up: SIMD3<Float>) {
+        guard let cameraEntity else { return (SIMD3(1, 0, 0), SIMD3(0, 1, 0)) }
+        let forward = simd_normalize(TiangongLayout.center - cameraEntity.position)
+        var right = simd_cross(forward, SIMD3<Float>(0, 1, 0))
+        if simd_length(right) < 1e-4 { right = SIMD3(1, 0, 0) }
+        right = simd_normalize(right)
+        return (right, simd_cross(right, forward))
+    }
+
+    func position(of id: TiangongModuleID) -> SIMD3<Float>? {
+        moduleNodes[id]?.position
+    }
+
+    func setPosition(_ position: SIMD3<Float>, for id: TiangongModuleID) {
+        moduleNodes[id]?.position = position
+    }
+
+    /// 排斥：沿判定给的方向弹开一点，让「装不进去」有可见的方向感。
+    func push(_ id: TiangongModuleID, direction: SIMD3<Float>, distance: Float = 0.05) {
+        guard let node = moduleNodes[id] else { return }
+        var transform = node.transform
+        transform.translation = node.position + simd_normalize(direction) * distance
+        node.move(to: transform, relativeTo: node.parent, duration: 0.18, timingFunction: .easeOut)
+    }
+
     func screenPoint(for id: TiangongModuleID) -> CGPoint? {
         guard let content, let node = moduleNodes[id] else { return nil }
         return content.project(point: node.position(relativeTo: nil), to: Self.space)
@@ -244,7 +270,7 @@ final class TiangongScene {
 
 struct TiangongRig: Equatable, Sendable {
     static let pitchRange: ClosedRange<Float> = -0.9...1.1
-    static let distanceRange: ClosedRange<Float> = 0.55...3.0
+    static let distanceRange: ClosedRange<Float> = 0.55...4.5
     static let yawSensitivity: Float = 0.006
     static let pitchSensitivity: Float = 0.005
 
@@ -252,7 +278,7 @@ struct TiangongRig: Equatable, Sendable {
     var pitch: Float = 0.28
     var distance: Float
 
-    init(yaw: Float = 1.15, pitch: Float = 0.32, distance: Float = 2.7) {
+    init(yaw: Float = 1.15, pitch: Float = 0.32, distance: Float = 3.3) {
         self.yaw = yaw
         self.pitch = pitch
         self.distance = distance

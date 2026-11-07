@@ -9,6 +9,9 @@ struct TiangongView: View {
     @State private var environment: RealityViewEnvironment?
     @State private var probeLine: String?
     @State private var showsHistory = false
+    @State private var dragMode: DragMode = .none
+
+    private enum DragMode { case none, orbit, module }
 
     var body: some View {
         ZStack {
@@ -82,18 +85,39 @@ struct TiangongView: View {
             session.applyRig()
         }
         .coordinateSpace(name: "tiangong")
+        .background(
+            GeometryReader { proxy in
+                Color.clear
+                    .onAppear { session.viewSize = proxy.size }
+                    .onChange(of: proxy.size) { _, size in session.viewSize = size }
+            }
+        )
         .gesture(orbitGesture)
         .simultaneousGesture(zoomGesture)
         .simultaneousGesture(selectGesture)
     }
 
+    /// 按下时先判定这次手势归谁：按在已分离的模块上是拖模块，否则转相机。
+    /// 判定只做一次，中途不切换——否则拖到一半相机会跟着转。
     private var orbitGesture: some Gesture {
-        DragGesture(minimumDistance: 6)
+        DragGesture(minimumDistance: 4)
             .onChanged { value in
-                session.rotate(translation: value.translation)
+                if dragMode == .none {
+                    dragMode = session.beginModuleDrag(at: value.startLocation) ? .module : .orbit
+                }
+                switch dragMode {
+                case .module: session.dragModule(translation: value.translation)
+                case .orbit: session.rotate(translation: value.translation)
+                case .none: break
+                }
             }
             .onEnded { _ in
-                session.endDrag()
+                switch dragMode {
+                case .module: session.endModuleDrag()
+                case .orbit: session.endDrag()
+                case .none: break
+                }
+                dragMode = .none
             }
     }
 
@@ -172,9 +196,7 @@ struct TiangongView: View {
     }
 
     private func formatted(_ meters: Float) -> String {
-        let text = String(format: "%.2f", meters)
-        let trimmed = text.hasSuffix("0") ? String(text.dropLast()) : text
-        return trimmed + " m"
+        TiangongFormat.meters(meters)
     }
 
     private var controlBar: some View {

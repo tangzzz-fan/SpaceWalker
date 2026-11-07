@@ -133,3 +133,70 @@ final class TiangongDisassemblyTests: XCTestCase {
         XCTAssertEqual(TiangongLayout.restPosition(.lab), first)
     }
 }
+
+final class TiangongAssemblyTests: XCTestCase {
+    private let target = TiangongLayout.restPosition(.lab)
+
+    func testSnapsAtExactPosition() {
+        XCTAssertEqual(
+            TiangongAssembly.verdict(module: .lab, at: target, port: .lab),
+            .snap(target)
+        )
+    }
+
+    /// 三种单条件缺失各一条，缺一不通过。
+    func testRejectsWrongPort() {
+        guard case .reject(.wrongPort, _) = TiangongAssembly.verdict(module: .lab, at: target, port: .resource) else {
+            return XCTFail("错误接口必须被拒绝")
+        }
+    }
+
+    func testRejectsTooFar() {
+        let far = target + SIMD3<Float>(0, 0, TiangongAssembly.distanceTolerance * 1.5)
+        guard case .reject(.tooFar, let push) = TiangongAssembly.verdict(module: .lab, at: far, port: .lab) else {
+            return XCTFail("超距必须被拒绝")
+        }
+        XCTAssertEqual(simd_length(push), 1, accuracy: 0.001, "排斥方向必须是单位向量")
+    }
+
+    func testRejectsBadAngle() {
+        guard case .reject(.badAngle, _) = TiangongAssembly.verdict(
+            module: .lab,
+            at: target,
+            angleDegrees: TiangongAssembly.angleTolerance + 1,
+            port: .lab
+        ) else {
+            return XCTFail("超角必须被拒绝")
+        }
+    }
+
+    /// 容差边界：刚好在内通过，刚好在外拒绝。
+    func testToleranceBoundary() {
+        let inside = target + SIMD3<Float>(0, 0, TiangongAssembly.distanceTolerance * 0.99)
+        if case .reject = TiangongAssembly.verdict(module: .lab, at: inside, port: .lab) {
+            XCTFail("容差内应当吸附")
+        }
+
+        let outside = target + SIMD3<Float>(0, 0, TiangongAssembly.distanceTolerance * 1.01)
+        if case .snap = TiangongAssembly.verdict(module: .lab, at: outside, port: .lab) {
+            XCTFail("容差外不该吸附")
+        }
+    }
+
+    /// 同一输入两次结果一致：判定里不许有随机或物理。
+    func testVerdictIsDeterministic() {
+        let position = target + SIMD3<Float>(0.01, 0, 0)
+        let first = TiangongAssembly.verdict(module: .lab, at: position, port: .lab)
+        for _ in 0..<20 {
+            XCTAssertEqual(TiangongAssembly.verdict(module: .lab, at: position, port: .lab), first)
+        }
+    }
+
+    /// 1pt 对应的世界长度随距离线性变化，与视场成正比。
+    func testMetersPerPointScalesWithDistance() {
+        let near = TiangongAssembly.metersPerPoint(distance: 1, fieldOfViewDegrees: 50, screenHeight: 852)
+        let far = TiangongAssembly.metersPerPoint(distance: 3, fieldOfViewDegrees: 50, screenHeight: 852)
+        XCTAssertEqual(far / near, 3, accuracy: 0.001)
+        XCTAssertEqual(TiangongAssembly.metersPerPoint(distance: 1, fieldOfViewDegrees: 50, screenHeight: 0), 0)
+    }
+}
