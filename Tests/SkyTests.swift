@@ -184,6 +184,115 @@ final class AttitudeMathTests: XCTestCase {
     }
 }
 
+final class SkyPickerTests: XCTestCase {
+    private func star(_ ra: Double, _ dec: Double, _ mag: Double, _ name: String) -> Star {
+        Star(rightAscensionHours: ra, declinationDegrees: dec, magnitude: mag, colorIndex: 0, name: name, constellation: "")
+    }
+
+    func testNearestKeepsOnlyPrefilterWindow() {
+        let sirius = star(6.753, -16.72, -1.44, "Sirius")
+        let far = star(6.753, -11.72, 1.0, "FiveDegreesNorth")
+        let near = star(6.753, -15.72, 3.0, "OneDegreeNorth")
+
+        let result = SkyPicker.nearest(to: SkyPicker.direction(for: sirius), in: [sirius, far, near])
+
+        XCTAssertEqual(result.first, sirius)
+        XCTAssertTrue(result.contains(near))
+        XCTAssertFalse(result.contains(far))
+    }
+
+    func testNearestSkipsUnnamedAndFaintStars() {
+        let sirius = star(6.753, -16.72, -1.44, "Sirius")
+        let unnamed = star(6.753, -16.72, 0.5, "")
+        let faint = star(6.753, -16.72, 5.2, "Faint")
+
+        let result = SkyPicker.nearest(to: SkyPicker.direction(for: sirius), in: [unnamed, faint, sirius])
+
+        XCTAssertEqual(result, [sirius])
+    }
+
+    func testNearestPrefersBrighterAtSamePosition() {
+        let bright = star(14.660, -60.83, -0.01, "Rigil Kentaurus")
+        let faint = star(14.660, -60.84, 1.35, "Toliman")
+
+        let result = SkyPicker.nearest(to: SkyPicker.direction(for: bright), in: [faint, bright])
+
+        XCTAssertEqual(result.first, bright)
+    }
+
+    func testNearestRejectsZeroDirection() {
+        XCTAssertTrue(SkyPicker.nearest(to: .zero, in: [star(0, 0, 1, "A")]).isEmpty)
+    }
+}
+
+final class DwellSelectorTests: XCTestCase {
+    private let sirius = Star(rightAscensionHours: 6.753, declinationDegrees: -16.72, magnitude: -1.44, colorIndex: 0, name: "Sirius", constellation: "CMa")
+    private let vega = Star(rightAscensionHours: 18.616, declinationDegrees: 38.78, magnitude: 0.03, colorIndex: 0, name: "Vega", constellation: "Lyr")
+
+    func testCommitAfterThresholdOnly() {
+        var selector = DwellSelector()
+        var commits: [Star] = []
+
+        for step in 0...5 {
+            if let hit = selector.update(candidate: sirius, at: Double(step) * 0.1) {
+                commits.append(hit)
+            }
+        }
+        XCTAssertTrue(commits.isEmpty)
+        XCTAssertEqual(selector.progress, 5.0 / 6.0, accuracy: 0.001)
+
+        XCTAssertEqual(selector.update(candidate: sirius, at: 0.6), sirius)
+    }
+
+    func testSwitchTargetRestartsTimer() {
+        var selector = DwellSelector()
+        _ = selector.update(candidate: sirius, at: 0)
+        _ = selector.update(candidate: sirius, at: 0.3)
+        XCTAssertGreaterThan(selector.progress, 0)
+
+        _ = selector.update(candidate: vega, at: 0.4)
+        XCTAssertEqual(selector.progress, 0, accuracy: 0.0001)
+        XCTAssertNil(selector.update(candidate: vega, at: 0.5))
+    }
+
+    func testLosingTargetDecaysProgress() {
+        var selector = DwellSelector()
+        _ = selector.update(candidate: sirius, at: 0)
+        _ = selector.update(candidate: sirius, at: 0.3)
+        let peak = selector.progress
+
+        _ = selector.update(candidate: nil, at: 0.4)
+        XCTAssertLessThan(selector.progress, peak)
+        _ = selector.update(candidate: nil, at: 0.5)
+        _ = selector.update(candidate: nil, at: 0.6)
+        XCTAssertEqual(selector.progress, 0, accuracy: 0.0001)
+    }
+
+    func testCommitRequiresLeavingTargetBeforeRefire() {
+        var selector = DwellSelector()
+        for step in 0...6 {
+            _ = selector.update(candidate: sirius, at: Double(step) * 0.1)
+        }
+        XCTAssertNil(selector.update(candidate: sirius, at: 0.7))
+
+        _ = selector.update(candidate: nil, at: 0.8)
+        XCTAssertEqual(selector.progress, 0, accuracy: 0.0001)
+
+        var refire: Star?
+        for step in 9...15 {
+            refire = selector.update(candidate: sirius, at: Double(step) * 0.1) ?? refire
+        }
+        XCTAssertEqual(refire, sirius)
+    }
+
+    func testLongStallDoesNotJumpProgress() {
+        var selector = DwellSelector()
+        _ = selector.update(candidate: sirius, at: 0)
+        _ = selector.update(candidate: sirius, at: 0.9)
+        XCTAssertEqual(selector.progress, DwellSelector.maximumStep / DwellSelector.required, accuracy: 0.0001)
+    }
+}
+
 final class AppRouteTests: XCTestCase {
     func testRouteSwitchIsReduced() {
         var state = AppState()

@@ -7,16 +7,28 @@ import SwiftUI
 final class SkyScene {
     static let coordinateSpaceName = "sky"
     static let space = NamedCoordinateSpace.named(coordinateSpaceName)
-    static let pickThreshold: CGFloat = 44
 
     private(set) var root = Entity()
     private var content: RealityViewCameraContent?
     private var nodes: [Star] = []
     private var isBuilt = false
+    private var viewSize: CGSize = .zero
     private(set) var isAttitudeDriven = false
 
     var starCount: Int {
         nodes.count
+    }
+
+    var selectableCount: Int {
+        nodes.filter(\.isSelectable).count
+    }
+
+    var isReady: Bool {
+        content != nil && !nodes.isEmpty && viewSize.width > 0
+    }
+
+    func resize(_ size: CGSize) {
+        viewSize = size
     }
 
     func build(catalog: StarCatalog) {
@@ -67,16 +79,73 @@ final class SkyScene {
         guard let content else { return nil }
         var best: (star: Star, distance: CGFloat)?
 
-        for star in nodes {
-            let world = root.convert(position: StarField.position(for: star), to: nil)
-            guard let projected = content.project(point: world, to: Self.space) else { continue }
+        for star in nodes where star.isSelectable {
+            guard let projected = project(star, in: content) else { continue }
             let distance = hypot(projected.x - point.x, projected.y - point.y)
-            guard distance <= Self.pickThreshold else { continue }
+            guard distance <= SkyPicker.crosshairRadius else { continue }
             if best == nil || distance < best!.distance {
                 best = (star, distance)
             }
         }
         return best?.star
+    }
+
+    func pickAtCenter() -> Star? {
+        guard let content, viewSize.width > 0 else { return nil }
+        let forward = root.orientation.inverse.act(SIMD3<Float>(0, 0, -1))
+        let center = CGPoint(x: viewSize.width / 2, y: viewSize.height / 2)
+
+        for star in SkyPicker.nearest(to: forward, in: nodes) {
+            guard let projected = project(star, in: content) else { continue }
+            if hypot(projected.x - center.x, projected.y - center.y) <= SkyPicker.crosshairRadius {
+                return star
+            }
+        }
+        return nil
+    }
+
+    func pickRoundtrip() -> String {
+        guard let content, viewSize.width > 0 else {
+            return "sky.pickProbe skipped=not-ready"
+        }
+        let saved = root.orientation
+        defer { root.orientation = saved }
+
+        let targets = nodes.filter(\.isSelectable)
+        var passed = 0
+        var failures: [String] = []
+
+        for star in targets {
+            let direction = SkyPicker.direction(for: star)
+            root.orientation = simd_quatf(from: direction, to: SIMD3<Float>(0, 0, -1))
+            guard let hit = pickAtCenter() else {
+                failures.append("\(star.name):none")
+                continue
+            }
+            if hit == star || SkyPicker.angularDistance(hit, star) < 0.05 {
+                passed += 1
+            } else {
+                failures.append("\(star.name)->\(hit.name)")
+            }
+        }
+
+        let detail = failures.prefix(5).joined(separator: ",")
+        let axis = content.project(point: SIMD3<Float>(0, 0, -StarField.sphereRadius), to: Self.space)
+        return String(
+            format: "sky.pickProbe ok=%d/%d axis=%.0f,%.0f view=%.0f,%.0f failed=%@",
+            passed,
+            targets.count,
+            axis?.x ?? -1,
+            axis?.y ?? -1,
+            viewSize.width,
+            viewSize.height,
+            detail
+        )
+    }
+
+    private func project(_ star: Star, in content: RealityViewCameraContent) -> CGPoint? {
+        let world = root.convert(position: StarField.position(for: star), to: nil)
+        return content.project(point: world, to: Self.space)
     }
 
     private func uiColor(_ rgb: SIMD3<Float>, brightness: Float) -> UIColor {

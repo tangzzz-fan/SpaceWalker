@@ -30,3 +30,6 @@ fastlane/test_output
 
 # 真机构建输出
 build/
+
+# 模拟器构建输出
+build-sim/

@@ -9,7 +9,7 @@ final class DeviceAttitude {
 
     private let manager = CMMotionManager()
     private let reportsRate = ProcessInfo.processInfo.environment["SPACEWALKER_MOTIONLOG"] == "1"
-    private var sink: ((simd_quatf) -> Void)?
+    private var sink: (@MainActor (simd_quatf) -> Void)?
     private var smoothed: simd_quatf?
     private var lastTimestamp: TimeInterval = 0
     private var windowStart: TimeInterval = 0
@@ -17,7 +17,7 @@ final class DeviceAttitude {
     private var convention: AttitudeMath.Convention?
     private(set) var isAvailable = false
 
-    func start(sink: @escaping (simd_quatf) -> Void) {
+    func start(sink: @escaping @MainActor (simd_quatf) -> Void) {
         self.sink = sink
         guard manager.isDeviceMotionAvailable else {
             SessionLog.append("sky.motion unavailable")

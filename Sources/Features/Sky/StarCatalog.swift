@@ -12,6 +12,10 @@ struct Star: Equatable, Sendable {
     var isNamed: Bool {
         !name.isEmpty
     }
+
+    var isSelectable: Bool {
+        isNamed && magnitude <= StarField.selectableMagnitudeLimit
+    }
 }
 
 struct StarCatalog: Equatable, Sendable {
@@ -68,6 +72,7 @@ struct StarCatalog: Equatable, Sendable {
 enum StarField {
     static let sphereRadius: Float = 50
     static let magnitudeLimit: Double = 5.5
+    static let selectableMagnitudeLimit: Double = 4.5
     static let bucketEdges: [Double] = [-1.5, 0, 1, 2, 3, 4, 4.5]
 
     static func direction(

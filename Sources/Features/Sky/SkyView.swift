@@ -1,6 +1,7 @@
 import RealityKit
 import SwiftUI
 import TGReduxKit
+import UIKit
 
 struct SkyView: View {
     @Environment(Store<AppState, AppAction>.self) private var store
@@ -13,14 +14,18 @@ struct SkyView: View {
     @State private var selected: Star?
     @State private var motionActive = false
     @State private var showsCredits = false
+    @State private var dwell = DwellSelector()
+    @State private var hud = DwellHUD()
 
     var body: some View {
         ZStack {
             Color.black.ignoresSafeArea()
 
             if catalog != nil {
-                GeometryReader { _ in
+                GeometryReader { proxy in
                     reality
+                        .onAppear { scene.resize(proxy.size) }
+                        .onChange(of: proxy.size) { _, size in scene.resize(size) }
                 }
             } else {
                 ProgressView()
@@ -43,7 +48,10 @@ struct SkyView: View {
             .padding(.bottom, 18)
         }
         .preferredColorScheme(.dark)
-        .task { await load() }
+        .task {
+            await load()
+            await runPickProbe()
+        }
         .onDisappear { attitude.stop() }
         .sheet(isPresented: $showsCredits) { creditsSheet }
     }
@@ -78,6 +86,8 @@ struct SkyView: View {
                 .onEnded { value in
                     let hit = scene.pick(at: value.location)
                     selected = hit
+                    dwell.reset()
+                    hud.show(0)
                     SessionLog.append("sky.select name=\(hit?.name ?? "none") mag=\(hit?.magnitude ?? 0)")
                 }
         )
@@ -88,6 +98,7 @@ struct SkyView: View {
             Circle()
                 .stroke(.white.opacity(0.55), lineWidth: 1)
                 .frame(width: 44, height: 44)
+            DwellRing(hud: hud)
             Circle()
                 .fill(.white.opacity(0.75))
                 .frame(width: 3, height: 3)
@@ -221,7 +232,44 @@ struct SkyView: View {
         guard !attitude.isAvailable else { return }
         attitude.start { orientation in
             scene.setAttitude(orientation)
+            stepDwell()
         }
         motionActive = attitude.isAvailable
+    }
+
+    private func stepDwell() {
+        guard scene.isReady else { return }
+        let now = ProcessInfo.processInfo.systemUptime
+        let hit = dwell.update(candidate: scene.pickAtCenter(), at: now)
+        hud.show(dwell.progress)
+        guard let hit else { return }
+        selected = hit
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        SessionLog.append(String(format: "sky.dwell name=%@ mag=%.2f", hit.name, hit.magnitude))
+    }
+
+    private func runPickProbe() async {
+        guard LaunchMode.pickProbeEnabled(environment: ProcessInfo.processInfo.environment) else { return }
+        for _ in 0..<40 where !scene.isReady {
+            try? await Task.sleep(for: .milliseconds(50))
+        }
+        guard scene.isReady else {
+            SessionLog.append("sky.pickProbe skipped=not-ready")
+            return
+        }
+        SessionLog.append(scene.pickRoundtrip())
+    }
+}
+
+private struct DwellRing: View {
+    var hud: DwellHUD
+
+    var body: some View {
+        Circle()
+            .trim(from: 0, to: hud.progress)
+            .stroke(.white, style: StrokeStyle(lineWidth: 2, lineCap: .round))
+            .rotationEffect(.degrees(-90))
+            .frame(width: 41, height: 41)
+            .opacity(hud.progress > 0.01 ? 0.95 : 0)
     }
 }
