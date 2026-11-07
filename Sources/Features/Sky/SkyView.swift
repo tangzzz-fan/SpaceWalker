@@ -13,6 +13,7 @@ struct SkyView: View {
     @State var showsCredits = false
     @State var fengshenFocus: AsterismFocus?
     @State var showsFinder = false
+    @State var showsAsterismBrowser = false
     @State var hud = DwellHUD()
     @State var perfSummary: ProbeSummary?
     @State var diagnosticsStamp: TimeInterval = 0
@@ -78,6 +79,13 @@ struct SkyView: View {
         .onDisappear {
             session.pause()
             session.observer.disable()
+        }
+        .sheet(isPresented: $showsAsterismBrowser) {
+            AsterismBrowserView { name in
+                if let group = SkyGroupIndex.group(forAsterism: name, in: session.groups) {
+                    focus(group: group)
+                }
+            }
         }
         .sheet(isPresented: $showsCredits) { creditsSheet }
         .sheet(item: $session.infoRegion) { region in

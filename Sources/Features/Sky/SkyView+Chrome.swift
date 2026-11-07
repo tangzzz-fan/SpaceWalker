@@ -342,8 +342,15 @@ extension SkyView {
             .accessibilityLabel("星座连线、轮廓与星群")
 
             if store.state.flags.cultureEnabled {
-                Button {
-                    session.showsAsterisms.toggle()
+                Menu {
+                    Toggle(isOn: $session.showsAsterisms) {
+                        Label("显示星官连线", systemImage: "circle.grid.3x3")
+                    }
+                    Button {
+                        showsAsterismBrowser = true
+                    } label: {
+                        Label("浏览星官", systemImage: "list.bullet")
+                    }
                 } label: {
                     Label("星官", systemImage: "circle.grid.3x3")
                         .font(.caption2)
@@ -351,7 +358,7 @@ extension SkyView {
                         .fixedSize()
                         .foregroundStyle(session.showsAsterisms ? Color(red: 0.94, green: 0.82, blue: 0.56) : .primary)
                 }
-                .accessibilityLabel("中国星官连线")
+                .accessibilityLabel("中国星官连线与目录")
             }
 
             Button {

@@ -22,6 +22,9 @@ extension SkyView {
                 )
             )
         }
+        if LaunchMode.asterismBrowserOnLaunch(environment: ProcessInfo.processInfo.environment) {
+            showsAsterismBrowser = true
+        }
         startMotion()
         if let location = LaunchMode.simulatedLocation(environment: ProcessInfo.processInfo.environment) {
             session.observer.applySimulatedLocation(latitude: location.latitude, longitude: location.longitude)

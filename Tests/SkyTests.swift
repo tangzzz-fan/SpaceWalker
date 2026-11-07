@@ -2207,3 +2207,23 @@ final class AsterismIndexTests: XCTestCase {
         XCTAssertTrue(misses.isEmpty, "指到自身中心却认不出：\(misses.prefix(6))")
     }
 }
+
+final class AsterismBrowseTests: XCTestCase {
+    func testQuadrantsCoverEveryMansionOnce() {
+        let all = MansionQuadrant.allCases.flatMap { $0.mansions }
+        XCTAssertEqual(all.count, 28)
+        XCTAssertEqual(Set(all).count, 28)
+        let catalog = Set(AsterismCatalog.all.filter(\.isMansion).map { $0.mansion })
+        XCTAssertEqual(catalog, Set(all))
+    }
+
+    func testSectionsCoverEveryAsterism() {
+        let sections = AsterismBrowse.sections(from: AsterismCatalog.all)
+        let covered = sections.flatMap(\.items)
+        XCTAssertEqual(covered.count, AsterismCatalog.all.count)
+        XCTAssertEqual(Set(covered.map(\.id)).count, AsterismCatalog.all.count)
+        XCTAssertEqual(sections.first?.title, MansionQuadrant.azure.rawValue)
+        XCTAssertEqual(sections.first?.items.count, 7)
+        XCTAssertEqual(sections.last?.title, "其他星官")
+    }
+}

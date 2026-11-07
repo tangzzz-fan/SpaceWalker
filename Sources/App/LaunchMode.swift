@@ -146,6 +146,10 @@ enum LaunchMode {
         environment["SPACEWALKER_GROUP"]
     }
 
+    static func asterismBrowserOnLaunch(environment: [String: String]) -> Bool {
+        environment["SPACEWALKER_ASTERISMS"] == "1"
+    }
+
     static func autoAREnabled(environment: [String: String]) -> Bool {
         environment["SPACEWALKER_AUTOAR"] == "1"
     }
