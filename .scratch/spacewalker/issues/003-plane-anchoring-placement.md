@@ -38,3 +38,4 @@ M0 的关键路径：把虚拟内容稳定地放到真实桌面上。本 ticket 
 - 待人工：木桌与地板各 3 次并测偏差 < 5cm；绕桌一周 ≤ 20cm；遮挡相机 5 秒后的重新放置提示。
 - 能力前提：会话必须显式申请 `.plane`，否则 `AnchorEntity(plane:)` 永不锚定；`.collision` 提供真实表面命中，`.occlusion` 已申请但效果未验证。
 - 调试开关：`SPACEWALKER_AUTOPLACE=1`（仅 DEBUG）在表面稳定 2s 后自动放置，用于无人工点击的门禁取证。
+- 待核：立方体边长按 0.08m 生成，但真机截图的观感偏大（广角近距放大 + 无参照物）。需人工用卷尺量一次；若确实不是 8cm，先查 `MeshResource.generateBox(size:)` 的尺寸语义。
