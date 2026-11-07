@@ -105,18 +105,36 @@ extension SkyScene {
         return best?.star
     }
 
-    func pickAtCenter() -> Star? {
-        guard let content, viewSize.width > 0 else { return nil }
-        let forward = viewDirectionInField
-        let center = CGPoint(x: viewSize.width / 2, y: viewSize.height / 2)
+    struct Candidates: Equatable {
+        var star: Star?
+        var constellation: Constellation?
+        var pattern: SkyPattern?
+    }
 
-        for star in SkyPicker.nearest(to: forward, in: nodes) {
-            guard let projected = project(star, in: content) else { continue }
-            if hypot(projected.x - center.x, projected.y - center.y) <= SkyPicker.crosshairRadius {
-                return star
-            }
+    /// 沿视线取候选。点环传中心方向；B 阶段的视锥选中传视锥内的若干方向，
+    /// 共用这一个入口——视锥没有屏幕点，接口只能以方向为单位。
+    func candidates(along direction: SIMD3<Float>) -> Candidates {
+        Candidates(
+            star: selectableStar(along: direction),
+            constellation: constellation(at: direction),
+            pattern: pattern(at: direction)
+        )
+    }
+
+    func pickAtCenter() -> Star? {
+        candidates(along: viewDirectionInField).star
+    }
+
+    private func selectableStar(along direction: SIMD3<Float>) -> Star? {
+        guard viewSize.height > 1 else { return nil }
+        guard let star = SkyPicker.nearest(to: direction, in: nodes, limit: 1).first else { return nil }
+        // 十字线半径是屏幕点，换成角度才能与视场无关。视场 60°、高 852pt 时，
+        // 22pt 约等于 1.55°；改用角度判定后，捏合缩放不会让命中范围跟着变。
+        let tolerance = Double(fieldOfView) * Double(SkyPicker.crosshairRadius) / Double(viewSize.height)
+        guard SkyPicker.offsetDegrees(SkyPicker.direction(for: star), direction) <= tolerance else {
+            return nil
         }
-        return nil
+        return star
     }
 
     func renderedDirection(of star: Star) -> SIMD3<Float>? {
