@@ -19,6 +19,8 @@ struct TiangongView: View {
                 reality(environment)
             }
 
+            labelLayer
+
             VStack(alignment: .leading, spacing: 0) {
                 topBar
                 Spacer(minLength: 0)
@@ -41,6 +43,31 @@ struct TiangongView: View {
         }
         .sheet(isPresented: $showsHistory) {
             TiangongHistorySheet()
+        }
+    }
+
+    /// 部件名常驻在投影位置上。几何只到「示意」的程度，命名交给标签，
+    /// 用户至少能回答「这是哪一段」——062 的降级方案。
+    private var labelLayer: some View {
+        // TimelineView 自己按 0.1s 刷新，不把锚点写回 @State——
+        // 写回状态会让整个 body 重建，RealityView 跟着重算，画面会闪。
+        TimelineView(.periodic(from: .now, by: 0.1)) { _ in
+            let anchors = session.labelAnchors()
+            ZStack {
+                ForEach(TiangongModuleID.allCases) { id in
+                    if let point = anchors[id] {
+                        Text(id.title)
+                            .font(.caption2.weight(.medium))
+                            .foregroundStyle(.primary)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 3)
+                            .background(.ultraThinMaterial, in: Capsule())
+                            .overlay(Capsule().stroke(.white.opacity(0.12), lineWidth: 0.5))
+                            .position(x: point.x, y: point.y - 24)
+                    }
+                }
+            }
+            .allowsHitTesting(false)
         }
     }
 

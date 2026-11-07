@@ -44,10 +44,6 @@ final class TiangongScene {
         let position = rig.cameraPosition() + TiangongLayout.center
         cameraEntity.position = position
         cameraEntity.look(at: TiangongLayout.center, from: position, relativeTo: nil)
-        SessionLog.append(String(
-            format: "tiangong.cam p=%.2f,%.2f,%.2f d=%.2f",
-            cameraEntity.position.x, cameraEntity.position.y, cameraEntity.position.z, rig.distance
-        ))
     }
 
     func screenPoint(for id: TiangongModuleID) -> CGPoint? {

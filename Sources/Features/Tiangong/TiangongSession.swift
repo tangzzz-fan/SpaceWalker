@@ -54,6 +54,17 @@ final class TiangongSession {
         lastMagnification = 1
     }
 
+    /// 常驻标签的锚点。062 的结论：几何本身认不出，靠标签把「这是什么」补上。
+    func labelAnchors() -> [TiangongModuleID: CGPoint] {
+        var anchors: [TiangongModuleID: CGPoint] = [:]
+        for id in TiangongModuleID.allCases {
+            if let point = scene.screenPoint(for: id) {
+                anchors[id] = point
+            }
+        }
+        return anchors
+    }
+
     func pick(at point: CGPoint) {
         let hit = scene.pick(at: point)
         selected = hit
