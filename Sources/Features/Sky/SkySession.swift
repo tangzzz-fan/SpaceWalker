@@ -14,6 +14,31 @@ final class SkySession {
     @ObservationIgnored private var rigBeforePinch: SkyRig?
     @ObservationIgnored private var isPinching = false
 
+    init() {
+        SessionLog.append("sky.session boot")
+    }
+
+    var catalog: StarCatalog?
+    var selected: Star?
+    var selectedGroup: SkyGroup?
+    var groups: [SkyGroup] = []
+    var tonight: [TonightPick] = []
+    var showsConstellations = true
+    var showsAsterisms = false
+    var showsOutlines = false
+    var showsPatterns = false
+    var identifiedConstellation: Constellation?
+    var identifiedPattern: SkyPattern?
+    var guide: Star?
+    var guideVector: GuideVector?
+    var currentRegion: SkyRegion?
+    var infoRegion: ConstellationRegion?
+    var regionStamp: TimeInterval = 0
+    var attention = AttentionArbiter()
+    var observer = SkyObserver()
+    var perf = SkyPerformanceProbe()
+    var tonightStamp: TimeInterval = 0
+
     var isMotionActive: Bool { attitude.isAvailable }
 
     func startMotion(_ onUpdate: @escaping @MainActor () -> Void) {

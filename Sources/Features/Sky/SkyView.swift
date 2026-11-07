@@ -7,41 +7,21 @@ struct SkyView: View {
     @Environment(Store<AppState, AppAction>.self) private var store
     @Environment(\.verticalSizeClass) private var verticalSizeClass
 
-    var session: SkySession
+    @Bindable var session: SkySession
 
     private var scene: SkyScene { session.scene }
-    @State private var catalog: StarCatalog?
-    @State private var selected: Star?
-    @State private var selectedGroup: SkyGroup?
-    @State private var groups: [SkyGroup] = []
-    @State private var tonight: [TonightPick] = []
     @State private var showsCredits = false
-    @State private var showsConstellations = true
-    @State private var showsAsterisms = false
-    @State private var showsOutlines = false
-    @State private var showsPatterns = false
-    @State private var identifiedConstellation: Constellation?
-    @State private var identifiedPattern: SkyPattern?
     @State private var fengshenFocus: AsterismFocus?
     @State private var showsFinder = false
-    @State private var guide: Star?
-    @State private var guideVector: GuideVector?
-    @State private var currentRegion: SkyRegion?
-    @State private var infoRegion: ConstellationRegion?
-    @State private var regionStamp: TimeInterval = 0
-    @State private var attention = AttentionArbiter()
     @State private var hud = DwellHUD()
-    @State private var observer = SkyObserver()
-    @State private var perf = SkyPerformanceProbe()
     @State private var perfSummary: ProbeSummary?
     @State private var diagnosticsStamp: TimeInterval = 0
-    @State private var tonightStamp: TimeInterval = 0
 
     var body: some View {
         ZStack {
             Color.black.ignoresSafeArea()
 
-            if catalog != nil {
+            if session.catalog != nil {
                 GeometryReader { proxy in
                     reality
                         .onAppear {
@@ -71,52 +51,52 @@ struct SkyView: View {
             await load()
             await runPickProbe()
         }
-        .onChange(of: showsConstellations) { _, visible in
+        .onChange(of: session.showsConstellations) { _, visible in
             scene.setConstellationsVisible(visible)
         }
-        .onChange(of: showsAsterisms) { _, visible in
+        .onChange(of: session.showsAsterisms) { _, visible in
             scene.setAsterismsVisible(visible)
         }
-        .onChange(of: showsOutlines) { _, visible in
+        .onChange(of: session.showsOutlines) { _, visible in
             scene.setSilhouettesVisible(visible)
         }
-        .onChange(of: showsPatterns) { _, visible in
+        .onChange(of: session.showsPatterns) { _, visible in
             scene.setPatternsVisible(visible)
             if !visible {
-                identifiedPattern = nil
+                session.identifiedPattern = nil
             }
         }
-        .onChange(of: selectedGroup) { _, group in
+        .onChange(of: session.selectedGroup) { _, group in
             scene.highlightAsterism(group?.asterismID)
         }
-        .onChange(of: observer.stage) { _, _ in
+        .onChange(of: session.observer.stage) { _, _ in
             refreshField()
             refreshTonight()
         }
         .onDisappear {
             session.stopMotion()
-            observer.disable()
+            session.observer.disable()
         }
         .sheet(isPresented: $showsCredits) { creditsSheet }
-        .sheet(item: $infoRegion) { region in
-            ConstellationInfoView(region: region, stars: catalog?.stars ?? []) { star in
+        .sheet(item: $session.infoRegion) { region in
+            ConstellationInfoView(region: region, stars: session.catalog?.stars ?? []) { star in
                 startGuide(to: star)
             }
         }
         .sheet(item: $fengshenFocus) { target in
             FengshenBoardView(focusAsterism: target.id) { asterism in
                 fengshenFocus = nil
-                if let group = SkyGroupIndex.group(forAsterism: asterism, in: groups) {
+                if let group = SkyGroupIndex.group(forAsterism: asterism, in: session.groups) {
                     focus(group: group)
                 }
             }
         }
         .sheet(isPresented: $showsFinder) {
             StarFinderView(
-                stars: catalog?.stars ?? [],
+                stars: session.catalog?.stars ?? [],
                 initialQuery: LaunchMode.finderQuery(environment: ProcessInfo.processInfo.environment),
-                tonight: tonight,
-                referenceDate: observer.shiftedNow(),
+                tonight: session.tonight,
+                referenceDate: session.observer.shiftedNow(),
                 initialTour: LaunchMode.tourPreviewEnabled(environment: ProcessInfo.processInfo.environment),
                 initialFengshen: LaunchMode.fengshenTarget(environment: ProcessInfo.processInfo.environment),
                 onPick: { star in startGuide(to: star) },
@@ -128,12 +108,12 @@ struct SkyView: View {
     private var reality: some View {
         RealityView { content in
             content.environment = .default
-            guard let catalog else { return }
+            guard let catalog = session.catalog else { return }
             scene.build(catalog: catalog)
             content.add(scene.root)
             scene.attach(content)
             if LaunchMode.perfLogEnabled(environment: ProcessInfo.processInfo.environment) {
-                perf.attach(content)
+                session.perf.attach(content)
             }
             session.applyRig()
         } update: { _ in
@@ -171,9 +151,9 @@ struct SkyView: View {
             SpatialTapGesture(coordinateSpace: .named(SkyScene.coordinateSpaceName))
                 .onEnded { value in
                     let hit = scene.pick(at: value.location)
-                    selected = hit
-                    selectedGroup = nil
-                    attention.resetStar()
+                    session.selected = hit
+                    session.selectedGroup = nil
+                    session.attention.resetStar()
                     hud.show(0)
                     SessionLog.append("sky.select name=\(hit?.name ?? "none") mag=\(hit?.magnitude ?? 0)")
                 }
@@ -235,19 +215,19 @@ struct SkyView: View {
 
     @ViewBuilder
     private var activeCards: some View {
-        if let guide {
+        if let guide = session.guide {
             guideBar(guide)
         }
-        if let constellation = identifiedConstellation {
+        if let constellation = session.identifiedConstellation {
             constellationBadge(constellation)
         }
-        if let pattern = identifiedPattern {
+        if let pattern = session.identifiedPattern {
             patternBadge(pattern)
         }
-        if let selectedGroup {
+        if let selectedGroup = session.selectedGroup {
             groupCard(selectedGroup)
         }
-        if let selected {
+        if let selected = session.selected {
             starCard(selected)
         }
     }
@@ -277,7 +257,7 @@ struct SkyView: View {
                     .font(.caption2)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
-                if observer.isOn, !observer.hasHeading {
+                if session.observer.isOn, !session.observer.hasHeading {
                     Button {
                         calibrateFacingNorth()
                     } label: {
@@ -287,7 +267,7 @@ struct SkyView: View {
                     .buttonStyle(.borderless)
                     .accessibilityLabel("手机水平朝正北时点此")
                 }
-                if let region = currentRegion {
+                if let region = session.currentRegion {
                     Button {
                         openRegion(region)
                     } label: {
@@ -302,7 +282,7 @@ struct SkyView: View {
                     .accessibilityLabel("当前天区 \(region.title)，查看来头")
                 }
             }
-            if observer.stage == .ready {
+            if session.observer.stage == .ready {
                 timeScrubber
             }
         }
@@ -315,23 +295,23 @@ struct SkyView: View {
         if !session.isMotionActive {
             return "拖动旋转"
         }
-        guard observer.stage == .ready,
-              let latitude = observer.latitude,
-              let longitude = observer.longitude,
-              let sidereal = observer.currentSiderealDegrees()
+        guard session.observer.stage == .ready,
+              let latitude = session.observer.latitude,
+              let longitude = session.observer.longitude,
+              let sidereal = session.observer.currentSiderealDegrees()
         else {
             return "姿态跟随"
         }
         let base = String(format: "%.1f°N %.1f°E · 恒星时 %.1f°", latitude, longitude, sidereal)
-        return observer.clock.isNow ? base : "\(base) · \(timeOffsetLabel)"
+        return session.observer.clock.isNow ? base : "\(base) · \(timeOffsetLabel)"
     }
 
     private func openRegion(_ region: SkyRegion) {
         switch region {
         case .constellation(let info):
-            infoRegion = info
+            session.infoRegion = info
         case .pattern(let pattern):
-            identifiedPattern = pattern
+            session.identifiedPattern = pattern
         }
     }
 
@@ -365,13 +345,13 @@ struct SkyView: View {
             Text(session.isMotionActive ? "姿态跟随 · 转动手机环顾" : "拖动旋转（无陀螺仪时的降级）")
                 .font(.caption2)
                 .foregroundStyle(.secondary)
-            Text(observer.statusText)
+            Text(session.observer.statusText)
                 .font(.caption2)
-                .foregroundStyle(observer.isOn ? .primary : .secondary)
-            if observer.stage == .ready {
+                .foregroundStyle(session.observer.isOn ? .primary : .secondary)
+            if session.observer.stage == .ready {
                 timeScrubber
             }
-            if let region = currentRegion {
+            if let region = session.currentRegion {
                 Button {
                     openRegion(region)
                 } label: {
@@ -385,7 +365,7 @@ struct SkyView: View {
                 .foregroundStyle(.secondary)
                 .padding(.top, 2)
             }
-            if observer.isOn, !observer.hasHeading {
+            if session.observer.isOn, !session.observer.hasHeading {
                 Button {
                     calibrateFacingNorth()
                 } label: {
@@ -409,16 +389,16 @@ struct SkyView: View {
     }
 
     private var skySubtitle: String {
-        guard observer.stage == .ready,
-              let latitude = observer.latitude,
-              let longitude = observer.longitude,
-              let sidereal = observer.currentSiderealDegrees()
+        guard session.observer.stage == .ready,
+              let latitude = session.observer.latitude,
+              let longitude = session.observer.longitude,
+              let sidereal = session.observer.currentSiderealDegrees()
         else {
-            let stars = catalog?.stars ?? []
+            let stars = session.catalog?.stars ?? []
             return "\(stars.count) 颗恒星 · \(stars.filter(\.isSelectable).count) 颗可选中 · \(Constellations.all.count) 个星座 · \(AsterismCatalog.all.count) 个星官"
         }
         let base = String(format: "%.1f°N %.1f°E · 恒星时 %.1f°", latitude, longitude, sidereal)
-        return observer.clock.isNow ? base : "\(base) · \(timeOffsetLabel)"
+        return session.observer.clock.isNow ? base : "\(base) · \(timeOffsetLabel)"
     }
 
     private var timeScrubber: some View {
@@ -427,7 +407,7 @@ struct SkyView: View {
                 .font(.caption2)
             Slider(value: timeOffsetBinding, in: -12...12) { editing in
                 guard !editing else { return }
-                tonightStamp = 0
+                session.tonightStamp = 0
                 refreshTonight()
             }
             .controlSize(.mini)
@@ -436,7 +416,7 @@ struct SkyView: View {
                 .font(.caption2.monospacedDigit())
                 .frame(width: 52, alignment: .leading)
             Button {
-                observer.resetClock()
+                session.observer.resetClock()
                 refreshField()
                 refreshTonight()
             } label: {
@@ -444,7 +424,7 @@ struct SkyView: View {
                     .font(.caption2)
             }
             .buttonStyle(.plain)
-            .opacity(observer.clock.isNow ? 0.3 : 1)
+            .opacity(session.observer.clock.isNow ? 0.3 : 1)
             .accessibilityLabel("时间回到此刻")
         }
         .padding(.top, 2)
@@ -452,9 +432,9 @@ struct SkyView: View {
 
     private var timeOffsetBinding: Binding<Double> {
         Binding(
-            get: { observer.timeOffsetHours },
+            get: { session.observer.timeOffsetHours },
             set: { hours in
-                observer.setTimeOffset(hours: hours)
+                session.observer.setTimeOffset(hours: hours)
                 refreshField()
                 refreshTonight()
             }
@@ -462,8 +442,8 @@ struct SkyView: View {
     }
 
     private var timeOffsetLabel: String {
-        let hours = observer.timeOffsetHours
-        if observer.clock.isNow {
+        let hours = session.observer.timeOffsetHours
+        if session.observer.clock.isNow {
             return "此刻"
         }
         let minutes = Int((hours * 60).rounded())
@@ -497,22 +477,22 @@ struct SkyView: View {
             .accessibilityLabel("搜索并定位一颗星")
 
             Menu {
-                Toggle(isOn: $showsConstellations) {
+                Toggle(isOn: $session.showsConstellations) {
                     Label("星座连线", systemImage: "link")
                 }
-                Toggle(isOn: $showsOutlines) {
+                Toggle(isOn: $session.showsOutlines) {
                     Label("星座轮廓", systemImage: "square.on.circle")
                 }
                 Divider()
-                Toggle(isOn: $showsPatterns) {
+                Toggle(isOn: $session.showsPatterns) {
                     Label("星群（大三角）", systemImage: "triangle")
                 }
             } label: {
                 Label(
                     "星座",
-                    systemImage: showsPatterns
+                    systemImage: session.showsPatterns
                         ? "triangle"
-                        : (showsConstellations ? "link" : (showsOutlines ? "square.on.circle" : "link.badge.plus"))
+                        : (session.showsConstellations ? "link" : (session.showsOutlines ? "square.on.circle" : "link.badge.plus"))
                 )
                 .font(.caption2)
                 .lineLimit(1)
@@ -521,20 +501,20 @@ struct SkyView: View {
             .accessibilityLabel("星座连线、轮廓与星群")
 
             Button {
-                showsAsterisms.toggle()
+                session.showsAsterisms.toggle()
             } label: {
                 Label("星官", systemImage: "circle.grid.3x3")
                     .font(.caption2)
                     .lineLimit(1)
                     .fixedSize()
-                    .foregroundStyle(showsAsterisms ? Color(red: 0.94, green: 0.82, blue: 0.56) : .primary)
+                    .foregroundStyle(session.showsAsterisms ? Color(red: 0.94, green: 0.82, blue: 0.56) : .primary)
             }
             .accessibilityLabel("中国星官连线")
 
             Button {
                 toggleAlignment()
             } label: {
-                Label("今夜", systemImage: observer.isOn ? "location.fill" : "location")
+                Label("今夜", systemImage: session.observer.isOn ? "location.fill" : "location")
                     .font(.caption2)
                     .lineLimit(1)
                     .fixedSize()
@@ -566,13 +546,13 @@ struct SkyView: View {
         HStack(spacing: 12) {
             Image(systemName: "location.north.fill")
                 .font(.title3)
-                .rotationEffect(.degrees(guideVector?.arrowDegrees ?? 0))
+                .rotationEffect(.degrees(session.guideVector?.arrowDegrees ?? 0))
                 .frame(width: 34, height: 34)
 
             VStack(alignment: .leading, spacing: 2) {
                 Text("前往 \(ChineseStarNames.chinese(for: star.name) ?? star.name)")
                     .font(.subheadline.weight(.medium))
-                Text(guideVector?.instruction ?? "转动手机寻找…")
+                Text(session.guideVector?.instruction ?? "转动手机寻找…")
                     .font(.caption2)
                     .foregroundStyle(.secondary)
             }
@@ -580,8 +560,8 @@ struct SkyView: View {
             Spacer()
 
             Button {
-                guide = nil
-                guideVector = nil
+                session.guide = nil
+                session.guideVector = nil
             } label: {
                 Image(systemName: "xmark.circle.fill")
                     .foregroundStyle(.secondary)
@@ -594,48 +574,48 @@ struct SkyView: View {
     }
 
     private func startGuide(to star: Star) {
-        guide = star
-        guideVector = scene.guideVector(to: star)
-        selected = nil
-        selectedGroup = nil
-        attention.resetStar()
+        session.guide = star
+        session.guideVector = scene.guideVector(to: star)
+        session.selected = nil
+        session.selectedGroup = nil
+        session.attention.resetStar()
         hud.show(0)
         SessionLog.append("sky.guide start=\(star.name)")
     }
 
     private func refreshTonight() {
-        guard observer.stage == .ready,
-              let latitude = observer.latitude,
-              let longitude = observer.longitude,
-              !groups.isEmpty
+        guard session.observer.stage == .ready,
+              let latitude = session.observer.latitude,
+              let longitude = session.observer.longitude,
+              !session.groups.isEmpty
         else {
-            tonight = []
+            session.tonight = []
             return
         }
         let now = ProcessInfo.processInfo.systemUptime
-        guard now - tonightStamp > 0.4 else { return }
-        tonightStamp = now
-        tonight = SkySeason.rank(
-            groups: groups,
-            stars: catalog?.stars ?? [],
+        guard now - session.tonightStamp > 0.4 else { return }
+        session.tonightStamp = now
+        session.tonight = SkySeason.rank(
+            groups: session.groups,
+            stars: session.catalog?.stars ?? [],
             latitude: latitude,
             longitude: longitude
         )
     }
 
     private func focus(group: SkyGroup) {
-        let stars = catalog?.stars ?? []
+        let stars = session.catalog?.stars ?? []
         guard let direction = SkyGroupIndex.anchor(group, stars: stars) else { return }
         session.aim(at: direction)
-        if group.isDrawable, !showsAsterisms {
-            showsAsterisms = true
+        if group.isDrawable, !session.showsAsterisms {
+            session.showsAsterisms = true
             scene.setAsterismsVisible(true)
         }
-        selectedGroup = group
-        selected = nil
-        guide = nil
-        guideVector = nil
-        attention.resetStar()
+        session.selectedGroup = group
+        session.selected = nil
+        session.guide = nil
+        session.guideVector = nil
+        session.attention.resetStar()
         hud.show(0)
         SessionLog.append("sky.group focus=\(group.id) members=\(group.memberCount)")
     }
@@ -656,9 +636,9 @@ struct SkyView: View {
                         .foregroundStyle(.secondary)
                     Spacer(minLength: 6)
                     Button {
-                        infoRegion = ConstellationInfo.region(
+                        session.infoRegion = ConstellationInfo.region(
                             for: constellation.abbreviation,
-                            in: catalog?.stars ?? []
+                            in: session.catalog?.stars ?? []
                         )
                     } label: {
                         Image(systemName: "book.closed")
@@ -687,8 +667,8 @@ struct SkyView: View {
         .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16))
         .overlay(alignment: .topTrailing) {
             Button {
-                identifiedConstellation = nil
-                attention.dismiss(.constellation(constellation.abbreviation))
+                session.identifiedConstellation = nil
+                session.attention.dismiss(.constellation(constellation.abbreviation))
             } label: {
                 Image(systemName: "xmark.circle.fill")
                     .foregroundStyle(.secondary)
@@ -725,8 +705,8 @@ struct SkyView: View {
         .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16))
         .overlay(alignment: .topTrailing) {
             Button {
-                identifiedPattern = nil
-                attention.dismiss(.pattern(pattern.id))
+                session.identifiedPattern = nil
+                session.attention.dismiss(.pattern(pattern.id))
             } label: {
                 Image(systemName: "xmark.circle.fill")
                     .foregroundStyle(.secondary)
@@ -736,7 +716,7 @@ struct SkyView: View {
     }
 
     private func groupCard(_ group: SkyGroup) -> some View {
-        let stars = catalog?.stars ?? []
+        let stars = session.catalog?.stars ?? []
         let members = SkyGroupIndex.members(group, stars: stars)
         let brightest = SkyGroupIndex.brightest(group, stars: stars)
         return VStack(alignment: .leading, spacing: 6) {
@@ -782,7 +762,7 @@ struct SkyView: View {
                 Text("最佳观赏 \(SkySeason.label(months))")
                     .font(.caption2)
                     .foregroundStyle(.secondary)
-                if let latitude = observer.latitude, let sidereal = observer.currentSiderealDegrees() {
+                if let latitude = session.observer.latitude, let sidereal = session.observer.currentSiderealDegrees() {
                     let horizontal = Astronomy.horizontal(
                         rightAscensionHours: coordinate.rightAscension,
                         declinationDegrees: coordinate.declination,
@@ -797,9 +777,9 @@ struct SkyView: View {
             HStack(spacing: 6) {
                 ForEach(members, id: \.name) { member in
                     Button {
-                        selected = member
-                        selectedGroup = nil
-                        attention.resetStar()
+                        session.selected = member
+                        session.selectedGroup = nil
+                        session.attention.resetStar()
                         hud.show(0)
                     } label: {
                         Text(StarDisplay.make(for: member).title)
@@ -829,7 +809,7 @@ struct SkyView: View {
         .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16))
         .overlay(alignment: .topTrailing) {
             Button {
-                selectedGroup = nil
+                session.selectedGroup = nil
             } label: {
                 Image(systemName: "xmark.circle.fill")
                     .foregroundStyle(.secondary)
@@ -840,7 +820,7 @@ struct SkyView: View {
 
     private func starCard(_ star: Star) -> some View {
         let display = StarDisplay.make(for: star)
-        let nearby = SkyPicker.nearby(to: star, in: catalog?.stars ?? [])
+        let nearby = SkyPicker.nearby(to: star, in: session.catalog?.stars ?? [])
         return VStack(alignment: .leading, spacing: 6) {
             HStack(alignment: .firstTextBaseline, spacing: 6) {
                 Text(display.title)
@@ -907,8 +887,8 @@ struct SkyView: View {
                         .foregroundStyle(.secondary)
                     ForEach(nearby, id: \.name) { item in
                         Button {
-                            selected = item
-                            attention.resetStar()
+                            session.selected = item
+                            session.attention.resetStar()
                             hud.show(0)
                             SessionLog.append("sky.nearby pick=\(item.name)")
                         } label: {
@@ -933,7 +913,7 @@ struct SkyView: View {
         .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16))
         .overlay(alignment: .topTrailing) {
             Button {
-                selected = nil
+                session.selected = nil
             } label: {
                 Image(systemName: "xmark.circle.fill")
                     .foregroundStyle(.secondary)
@@ -968,7 +948,7 @@ struct SkyView: View {
     }
 
     private func calibrateFacingNorth() {
-        observer.calibrateAgainst(
+        session.observer.calibrateAgainst(
             starAzimuth: 0,
             sceneAzimuth: Astronomy.sceneAzimuth(scene.viewDirectionInField),
             label: "正北"
@@ -977,7 +957,7 @@ struct SkyView: View {
     }
 
     private func calibrate(using star: Star, azimuth: Double) {
-        observer.calibrateAgainst(
+        session.observer.calibrateAgainst(
             starAzimuth: azimuth,
             sceneAzimuth: Astronomy.sceneAzimuth(scene.viewDirectionInField),
             label: star.name
@@ -1011,11 +991,11 @@ struct SkyView: View {
 
     @MainActor
     private func load() async {
-        if catalog == nil {
+        if session.catalog == nil {
             let started = ProcessInfo.processInfo.systemUptime
             let loaded = StarCatalog.loadFromBundle()
-            catalog = loaded
-            groups = SkyGroupIndex.groups(stars: loaded?.stars ?? [])
+            session.catalog = loaded
+            session.groups = SkyGroupIndex.groups(stars: loaded?.stars ?? [])
             refreshTonight()
             SessionLog.append(
                 String(
@@ -1027,34 +1007,34 @@ struct SkyView: View {
         }
         startMotion()
         if let location = LaunchMode.simulatedLocation(environment: ProcessInfo.processInfo.environment) {
-            observer.applySimulatedLocation(latitude: location.latitude, longitude: location.longitude)
-        } else if LaunchMode.autoAlignEnabled(environment: ProcessInfo.processInfo.environment), !observer.isOn {
-            observer.enable()
+            session.observer.applySimulatedLocation(latitude: location.latitude, longitude: location.longitude)
+        } else if LaunchMode.autoAlignEnabled(environment: ProcessInfo.processInfo.environment), !session.observer.isOn {
+            session.observer.enable()
         }
         if let hours = LaunchMode.timeOffsetHours(environment: ProcessInfo.processInfo.environment) {
-            observer.setTimeOffset(hours: hours)
+            session.observer.setTimeOffset(hours: hours)
             refreshField()
         }
         if LaunchMode.asterismsEnabled(environment: ProcessInfo.processInfo.environment) {
-            showsAsterisms = true
+            session.showsAsterisms = true
             scene.setAsterismsVisible(true)
         }
         if LaunchMode.outlinesEnabled(environment: ProcessInfo.processInfo.environment) {
-            showsOutlines = true
+            session.showsOutlines = true
             scene.setSilhouettesVisible(true)
         }
         if LaunchMode.allLayersEnabled(environment: ProcessInfo.processInfo.environment) {
-            showsConstellations = true
-            showsOutlines = true
-            showsAsterisms = true
-            showsPatterns = true
+            session.showsConstellations = true
+            session.showsOutlines = true
+            session.showsAsterisms = true
+            session.showsPatterns = true
             scene.setConstellationsVisible(true)
             scene.setSilhouettesVisible(true)
             scene.setAsterismsVisible(true)
             scene.setPatternsVisible(true)
         }
         if let raw = LaunchMode.patternPreview(environment: ProcessInfo.processInfo.environment) {
-            showsPatterns = true
+            session.showsPatterns = true
             scene.setPatternsVisible(true)
             let id = raw == "1" ? SkyPatternCatalog.all.first?.id : raw
             if let id {
@@ -1081,16 +1061,16 @@ struct SkyView: View {
             }
         }
         if let abbreviation = LaunchMode.regionPreview(environment: ProcessInfo.processInfo.environment),
-           let region = ConstellationInfo.region(for: abbreviation, in: catalog?.stars ?? []) {
-            currentRegion = .constellation(region)
+           let region = ConstellationInfo.region(for: abbreviation, in: session.catalog?.stars ?? []) {
+            session.currentRegion = .constellation(region)
             try? await Task.sleep(for: .seconds(2))
-            infoRegion = region
+            session.infoRegion = region
         }
         if let title = LaunchMode.groupPreview(environment: ProcessInfo.processInfo.environment),
-           let stars = catalog?.stars {
-            let groups = SkyGroupIndex.groups(stars: stars)
-            if let group = groups.first(where: { $0.title == title })
-                ?? SkyGroupIndex.search(groups, query: title).first {
+           let stars = session.catalog?.stars {
+            let matched = SkyGroupIndex.groups(stars: stars)
+            if let group = matched.first(where: { $0.title == title })
+                ?? SkyGroupIndex.search(matched, query: title).first {
                 try? await Task.sleep(for: .milliseconds(600))
                 focus(group: group)
             }
@@ -1103,7 +1083,7 @@ struct SkyView: View {
             SessionLog.append(String(format: "sky.fov value=%.1f", scene.fieldOfView))
         }
         if let abbreviation = LaunchMode.aimTarget(environment: ProcessInfo.processInfo.environment),
-           let stars = catalog?.stars {
+           let stars = session.catalog?.stars {
             // 用骨架星求中心，不用该星座的全部成员：仙后座有几十颗暗成员，
             // 平均下来会偏出 W 一大截，截图里形状就不居中了。
             let keys = Set(
@@ -1133,16 +1113,16 @@ struct SkyView: View {
             for _ in 0..<40 where !scene.isReady {
                 try? await Task.sleep(for: .milliseconds(50))
             }
-            identifiedConstellation = constellation
+            session.identifiedConstellation = constellation
             scene.highlightConstellation(abbreviation)
             SessionLog.append("sky.constellation preview=\(abbreviation)")
         }
         if let name = LaunchMode.starPreview(environment: ProcessInfo.processInfo.environment),
-           let star = catalog?.stars.first(where: { $0.name == name }) {
-            selected = star
+           let star = session.catalog?.stars.first(where: { $0.name == name }) {
+            session.selected = star
         }
         if let target = LaunchMode.guideTarget(environment: ProcessInfo.processInfo.environment) {
-            let stars = catalog?.stars ?? []
+            let stars = session.catalog?.stars ?? []
             if let star = stars.first(where: { $0.name == target }) {
                 startGuide(to: star)
             }
@@ -1156,7 +1136,7 @@ struct SkyView: View {
                         loggedBudget = true
                         SessionLog.append(scene.budget())
                     }
-                    let summary = perf.tick(
+                    let summary = session.perf.tick(
                         now: ProcessInfo.processInfo.systemUptime,
                         layers: layerLabel
                     )
@@ -1170,17 +1150,17 @@ struct SkyView: View {
     /// 当前点亮了哪几层，写进 `sky.perf`，掉帧时能对上号。
     private var layerLabel: String {
         var parts: [String] = []
-        if showsConstellations { parts.append("line") }
-        if showsOutlines { parts.append("outline") }
-        if showsAsterisms { parts.append("asterism") }
-        if showsPatterns { parts.append("pattern") }
+        if session.showsConstellations { parts.append("line") }
+        if session.showsOutlines { parts.append("outline") }
+        if session.showsAsterisms { parts.append("asterism") }
+        if session.showsPatterns { parts.append("pattern") }
         return parts.isEmpty ? "none" : parts.joined(separator: "+")
     }
 
     private func startMotion() {
         guard LaunchMode.skyMotionEnabled(environment: ProcessInfo.processInfo.environment) else { return }
         session.startMotion {
-            if observer.calibrate(sceneAzimuth: Astronomy.sceneAzimuth(scene.viewDirectionInField)) {
+            if session.observer.calibrate(sceneAzimuth: Astronomy.sceneAzimuth(scene.viewDirectionInField)) {
                 refreshField()
             }
             stepDwell()
@@ -1188,18 +1168,18 @@ struct SkyView: View {
     }
 
     private func toggleAlignment() {
-        if observer.isOn {
-            observer.disable()
+        if session.observer.isOn {
+            session.observer.disable()
             SessionLog.append("sky.align off")
         } else {
-            observer.enable()
+            session.observer.enable()
         }
         refreshField()
         refreshTonight()
     }
 
     private func refreshField() {
-        guard let orientation = observer.fieldOrientation() else {
+        guard let orientation = session.observer.fieldOrientation() else {
             scene.setField(orientation: simd_quatf(ix: 0, iy: 0, iz: 0, r: 1))
             return
         }
@@ -1207,9 +1187,9 @@ struct SkyView: View {
     }
 
     private func horizontal(for star: Star) -> Astronomy.Horizontal? {
-        guard observer.stage == .ready,
-              let latitude = observer.latitude,
-              let sidereal = observer.currentSiderealDegrees()
+        guard session.observer.stage == .ready,
+              let latitude = session.observer.latitude,
+              let sidereal = session.observer.currentSiderealDegrees()
         else {
             return nil
         }
@@ -1224,10 +1204,10 @@ struct SkyView: View {
     private func stepDwell() {
         guard scene.isReady else { return }
         let frameNow = ProcessInfo.processInfo.systemUptime
-        if frameNow - regionStamp > 0.5 {
-            regionStamp = frameNow
+        if frameNow - session.regionStamp > 0.5 {
+            session.regionStamp = frameNow
             let region = scene.currentRegion()
-            if region?.key != currentRegion?.key {
+            if region?.key != session.currentRegion?.key {
                 SessionLog.append(
                     String(
                         format: "sky.region name=%@ distance=%.1f",
@@ -1236,15 +1216,15 @@ struct SkyView: View {
                     )
                 )
             }
-            currentRegion = region
+            session.currentRegion = region
         }
-        if let target = guide {
+        if let target = session.guide {
             let vector = scene.guideVector(to: target)
-            guideVector = vector
+            session.guideVector = vector
             guard let vector, vector.isAligned else { return }
-            selected = target
-            guide = nil
-            guideVector = nil
+            session.selected = target
+            session.guide = nil
+            session.guideVector = nil
             UIImpactFeedbackGenerator(style: .rigid).impactOccurred()
             SessionLog.append("sky.guide arrived=\(target.name)")
             return
@@ -1258,12 +1238,12 @@ struct SkyView: View {
             SessionLog.append(scene.pickDiagnostics())
         }
 
-        let step = attention.step(
+        let step = session.attention.step(
             now: now,
             candidates: AttentionArbiter.Candidates(
                 star: candidates.star,
                 constellation: candidates.constellation?.abbreviation,
-                pattern: showsPatterns ? candidates.pattern?.id : nil
+                pattern: session.showsPatterns ? candidates.pattern?.id : nil
             )
         )
         react(to: step, candidates: candidates)
@@ -1282,14 +1262,14 @@ struct SkyView: View {
                 case .star, .none:
                     scene.highlightConstellation(nil)
                     scene.highlightPattern(nil)
-                    identifiedConstellation = nil
-                    identifiedPattern = nil
+                    session.identifiedConstellation = nil
+                    session.identifiedPattern = nil
                 }
             case .confirmed(let target):
                 switch target {
                 case .star(let star):
-                    selected = star
-                    selectedGroup = nil
+                    session.selected = star
+                    session.selectedGroup = nil
                     UIImpactFeedbackGenerator(style: .light).impactOccurred()
                     SessionLog.append(
                         String(
@@ -1300,13 +1280,13 @@ struct SkyView: View {
                         )
                     )
                 case .constellation(let key):
-                    selected = nil
-                    identifiedConstellation = candidates.constellation
+                    session.selected = nil
+                    session.identifiedConstellation = candidates.constellation
                     UIImpactFeedbackGenerator(style: .soft).impactOccurred()
                     SessionLog.append("sky.constellation dwell=\(key)")
                 case .pattern(let id):
-                    selected = nil
-                    identifiedPattern = candidates.pattern
+                    session.selected = nil
+                    session.identifiedPattern = candidates.pattern
                     UIImpactFeedbackGenerator(style: .soft).impactOccurred()
                     SessionLog.append("sky.pattern dwell=\(id)")
                 }
@@ -1317,10 +1297,10 @@ struct SkyView: View {
     private func runPickProbe() async {
         guard LaunchMode.pickProbeEnabled(environment: ProcessInfo.processInfo.environment) else { return }
         for _ in 0..<60 {
-            let alignmentSettled = !observer.isOn
-                || observer.stage == .ready
-                || observer.stage == .denied
-                || observer.stage == .unavailable
+            let alignmentSettled = !session.observer.isOn
+                || session.observer.stage == .ready
+                || session.observer.stage == .denied
+                || session.observer.stage == .unavailable
             if scene.isReady, alignmentSettled { break }
             try? await Task.sleep(for: .milliseconds(50))
         }

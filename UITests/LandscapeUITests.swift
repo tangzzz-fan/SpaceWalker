@@ -66,6 +66,30 @@ final class LandscapeUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["人马座"].exists)
     }
 
+    /// 切走再回来：会话由路由层持有，页面销毁不该带走选中与图层。
+    /// 生命周期由 `sky.session boot` 在 session.log 里的条数裁定（应为 1 条）。
+    func testSkyStateSurvivesRouteRoundTrip() throws {
+        let app = XCUIApplication()
+        app.launchEnvironment = [
+            "SPACEWALKER_MODE": "sky",
+            "SPACEWALKER_LAYERS": "1",
+            "SPACEWALKER_AIM": "Ori",
+            "SPACEWALKER_CONSTELLATION": "Ori",
+            "SPACEWALKER_SKYMOTION": "0",
+        ]
+        app.launch()
+        XCTAssertTrue(app.wait(for: .runningForeground, timeout: 20))
+        sleep(7)
+
+        app.buttons["太阳系"].tap()
+        sleep(3)
+        app.buttons["星图"].tap()
+        sleep(5)
+        save("sky-after-roundtrip", app)
+
+        XCTAssertTrue(app.staticTexts["星图"].exists)
+    }
+
     func testSolarSystemLandscape() throws {
         XCUIDevice.shared.orientation = .landscapeRight
         let app = XCUIApplication()
