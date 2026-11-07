@@ -106,11 +106,12 @@ struct StarDisplay: Equatable, Sendable {
 
     var fengshenLine: String? {
         guard let asterism else { return nil }
-        if let mansion = asterism.mansion, let entry = FengshenInfo.entry(forMansion: mansion) {
-            return "封神 \(entry.lord) · \(entry.person)"
+        let lords = FengshenInfo.lords(forAsterism: asterism.name)
+        if lords.count == 1 {
+            return "封神 \(lords[0].title) · \(lords[0].person)"
         }
-        if asterism.name == "北斗" {
-            return "封神 北斗七星君"
+        if lords.count > 1 {
+            return "封神 \(lords.count) 位星君"
         }
         return nil
     }

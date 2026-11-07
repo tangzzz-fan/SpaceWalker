@@ -13,7 +13,9 @@ struct StarFinderView: View {
     @State private var constellation: StarFinder.ConstellationGroup?
     @State private var showsAllChinese = false
     @State private var tour: TonightTour?
+    @State private var showsFengshen = false
     private let startsWithTour: Bool
+    private let fengshenTarget: String?
 
     init(
         stars: [Star],
@@ -21,6 +23,7 @@ struct StarFinderView: View {
         tonight: [TonightPick] = [],
         referenceDate: Date = Date(),
         initialTour: Bool = false,
+        initialFengshen: String? = nil,
         onPick: @escaping (Star) -> Void,
         onPickGroup: @escaping (SkyGroup) -> Void
     ) {
@@ -32,6 +35,7 @@ struct StarFinderView: View {
         self.onPickGroup = onPickGroup
         _query = State(initialValue: initialQuery)
         startsWithTour = initialTour
+        fengshenTarget = initialFengshen
     }
 
     private var results: [StarFinder.Hit] {
@@ -73,10 +77,21 @@ struct StarFinderView: View {
                         Button("关闭") { dismiss() }
                     }
                 }
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        showsFengshen = true
+                    } label: {
+                        Label("封神星榜", systemImage: "scroll")
+                    }
+                    .accessibilityLabel("封神星榜")
+                }
             }
             .searchable(text: $query, placement: .navigationBarDrawer(displayMode: .always), prompt: "星名 / 中文名 / 星座")
         }
         .task {
+            if fengshenTarget != nil, !showsFengshen {
+                showsFengshen = true
+            }
             guard startsWithTour, tour == nil else { return }
             tour = TonightTour.build(picks: tonight, date: referenceDate)
         }
@@ -85,6 +100,15 @@ struct StarFinderView: View {
                 self.tour = nil
                 onPickGroup(group)
                 dismiss()
+            }
+        }
+        .sheet(isPresented: $showsFengshen) {
+            FengshenBoardView(
+                initialDepartment: initialFengshenDepartment,
+                initialQuery: initialFengshenQuery
+            ) { asterism in
+                showsFengshen = false
+                locate(asterism: asterism)
             }
         }
     }
@@ -371,6 +395,23 @@ struct StarFinderView: View {
 
     private func pick(_ star: Star) {
         onPick(star)
+        dismiss()
+    }
+
+    private var initialFengshenDepartment: String? {
+        guard let fengshenTarget, FengshenInfo.departments.contains(fengshenTarget) else { return nil }
+        return fengshenTarget
+    }
+
+    private var initialFengshenQuery: String {
+        guard let fengshenTarget, fengshenTarget != "1", initialFengshenDepartment == nil else { return "" }
+        return fengshenTarget
+    }
+
+    private func locate(asterism: String) {
+        let groups = SkyGroupIndex.groups(stars: stars)
+        guard let group = SkyGroupIndex.group(forAsterism: asterism, in: groups) else { return }
+        onPickGroup(group)
         dismiss()
     }
 }

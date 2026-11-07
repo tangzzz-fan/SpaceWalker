@@ -63,6 +63,14 @@ enum LaunchMode {
         environment["SPACEWALKER_TOUR"] == "1"
     }
 
+    /// 「1」只打开星榜；写部门名直接进该部；写别的词按关键词检索。
+    static func fengshenTarget(environment: [String: String]) -> String? {
+        guard let raw = environment["SPACEWALKER_FENGSHEN"],
+              !raw.isEmpty, raw != "0"
+        else { return nil }
+        return raw
+    }
+
     static func finderQuery(environment: [String: String]) -> String {
         environment["SPACEWALKER_QUERY"] ?? ""
     }

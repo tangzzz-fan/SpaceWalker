@@ -104,6 +104,7 @@ struct SkyView: View {
                 tonight: tonight,
                 referenceDate: observer.shiftedNow(),
                 initialTour: LaunchMode.tourPreviewEnabled(environment: ProcessInfo.processInfo.environment),
+                initialFengshen: LaunchMode.fengshenTarget(environment: ProcessInfo.processInfo.environment),
                 onPick: { star in startGuide(to: star) },
                 onPickGroup: { group in focus(group: group) }
             )
@@ -706,7 +707,8 @@ struct SkyView: View {
             scene.setAsterismsVisible(true)
         }
         if LaunchMode.finderPreviewEnabled(environment: ProcessInfo.processInfo.environment)
-            || LaunchMode.tourPreviewEnabled(environment: ProcessInfo.processInfo.environment) {
+            || LaunchMode.tourPreviewEnabled(environment: ProcessInfo.processInfo.environment)
+            || LaunchMode.fengshenTarget(environment: ProcessInfo.processInfo.environment) != nil {
             showsFinder = true
         }
         if let abbreviation = LaunchMode.regionPreview(environment: ProcessInfo.processInfo.environment),

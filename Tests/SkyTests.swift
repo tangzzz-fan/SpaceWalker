@@ -766,28 +766,66 @@ final class CompanionTests: XCTestCase {
 }
 
 final class FengshenTests: XCTestCase {
-    func testTwentyEightMansionsAreAllPresent() {
-        XCTAssertEqual(FengshenInfo.table.count, 28)
-        for symbol in TwentyEightMansions.groups {
-            for mansion in symbol.mansions {
-                XCTAssertNotNil(FengshenInfo.table[mansion], "\(mansion) 宿缺少封神名号")
-            }
-        }
+    func testBoardMatchesSourceNumbers() {
+        XCTAssertEqual(FengshenInfo.all.count, 369)
+        XCTAssertEqual(FengshenInfo.all.filter(\.isLocatable).count, 43)
+        XCTAssertEqual(Set(FengshenInfo.all.map(\.id)).count, 369)
+        XCTAssertEqual(FengshenInfo.departments.count, 15)
     }
 
-    func testEightMansionsBelongToWaterOrFireDepartment() {
-        let assigned = FengshenInfo.table.values.filter { $0.department != nil }
+    func testDepartmentAndGroupCounts() {
+        let counts = Dictionary(grouping: FengshenInfo.all, by: \.department)
+            .mapValues(\.count)
+        XCTAssertEqual(counts["斗部"], 289)
+        XCTAssertEqual(counts["雷部"], 25)
+        XCTAssertEqual(counts["太岁部"], 12)
+        XCTAssertEqual(counts["瘟部"], 7)
+        XCTAssertEqual(counts["痘部"], 7)
+        XCTAssertEqual(counts["三山五岳"], 6)
+        XCTAssertEqual(counts["财部"], 5)
+
+        let groups = Dictionary(grouping: FengshenInfo.all, by: \.group)
+            .mapValues(\.count)
+        XCTAssertEqual(groups["群星"], 115)
+        XCTAssertEqual(groups["天罡三十六"], 36)
+        XCTAssertEqual(groups["地煞七十二"], 72)
+        XCTAssertEqual(groups["九曜"], 9)
+        XCTAssertEqual(groups["二十八宿"], 28)
+        XCTAssertEqual(groups["五斗星官"], 28)
+        XCTAssertEqual(groups["二十四天君"], 24)
+        XCTAssertEqual(groups["日直众星"], 10)
+        XCTAssertEqual(groups["五方主痘正神"], 5)
+    }
+
+    func testTwentyEightMansionsAreAllPresent() {
+        for symbol in TwentyEightMansions.groups {
+            for mansion in symbol.mansions {
+                XCTAssertNotNil(FengshenInfo.entry(forMansion: mansion), "\(mansion) 宿缺少封神名号")
+            }
+        }
+        XCTAssertEqual(FengshenInfo.lords(forAsterism: "角宿").count, 1)
+    }
+
+    func testEightMansionsAlsoServeWaterOrFire() {
+        let assigned = FengshenInfo.all.filter { $0.alsoServes != nil }
         XCTAssertEqual(assigned.count, 8)
-        let fire = assigned.filter { $0.department == "火部" }.map(\.mansion).sorted()
-        let water = assigned.filter { $0.department == "水部" }.map(\.mansion).sorted()
+        let fire = assigned.filter { $0.alsoServes == "火部" }.compactMap(\.mansion).sorted()
+        let water = assigned.filter { $0.alsoServes == "水部" }.compactMap(\.mansion).sorted()
         XCTAssertEqual(fire, ["室", "尾", "翼", "觜"])
         XCTAssertEqual(water, ["参", "壁", "箕", "轸"])
     }
 
     func testMansionLookupFromFullName() {
-        XCTAssertEqual(FengshenInfo.entry(forMansion: "参宿")?.lord, "参水猿")
+        XCTAssertEqual(FengshenInfo.entry(forMansion: "参宿")?.title, "参水猿")
         XCTAssertEqual(FengshenInfo.entry(forMansion: "参宿")?.person, "孙祥")
         XCTAssertNil(FengshenInfo.entry(forMansion: "五车"))
+    }
+
+    func testEveryLocatableLordPointsAtARealAsterism() {
+        let names = Set(AsterismCatalog.all.map(\.name))
+        for lord in FengshenInfo.all where lord.isLocatable {
+            XCTAssertTrue(names.contains(lord.asterism ?? ""), "\(lord.title) 指向不存在的星官：\(lord.asterism ?? "nil")")
+        }
     }
 
     func testStarCardLine() {
@@ -801,7 +839,41 @@ final class FengshenTests: XCTestCase {
             rightAscensionHours: 11.06, declinationDegrees: 61.75, magnitude: 1.81,
             colorIndex: 1.1, name: "Dubhe", constellation: "UMa"
         )
-        XCTAssertEqual(StarDisplay.make(for: dubhe).fengshenLine, "封神 北斗七星君")
+        XCTAssertEqual(StarDisplay.make(for: dubhe).fengshenLine, "封神 9 位星君")
+    }
+
+    func testSearchHitsTitlePersonAndDepartment() {
+        XCTAssertEqual(FengshenInfo.search("角木蛟").first?.person, "柏林")
+        XCTAssertEqual(FengshenInfo.search("闻仲").first?.title, "九天应元雷神普化天尊")
+        XCTAssertEqual(FengshenInfo.search("天魁星").first?.person, "高衍")
+        XCTAssertTrue(FengshenInfo.search("斗部").count > 200)
+        XCTAssertTrue(FengshenInfo.search("").isEmpty)
+    }
+
+    func testEveryDepartmentHasANote() {
+        for department in FengshenInfo.departments {
+            XCTAssertNotNil(FengshenInfo.departmentNotes[department], department)
+        }
+        XCTAssertEqual(FengshenInfo.departmentNotes.count, FengshenInfo.departments.count)
+    }
+
+    func testLocateResolvesAsterismToGroup() throws {
+        let stars = try XCTUnwrap(StarCatalog.loadFromBundle(.main)).stars
+        let groups = SkyGroupIndex.groups(stars: stars)
+        XCTAssertEqual(SkyGroupIndex.group(forAsterism: "角宿", in: groups)?.title, "角宿")
+        XCTAssertEqual(SkyGroupIndex.group(forAsterism: "北斗", in: groups)?.title, "北斗")
+        XCTAssertEqual(SkyGroupIndex.group(forAsterism: "斗宿", in: groups)?.title, "斗宿")
+        XCTAssertNil(SkyGroupIndex.group(forAsterism: "不存在的官", in: groups))
+    }
+
+    func testAsterismGroupsCarryFengshenTitles() throws {
+        let stars = try XCTUnwrap(StarCatalog.loadFromBundle(.main)).stars
+        let groups = SkyGroupIndex.groups(stars: stars)
+        let byTitle = Dictionary(groups.map { ($0.title, $0) }, uniquingKeysWith: { first, _ in first })
+        XCTAssertEqual(byTitle["参宿"]?.fengshenTitles, ["参水猿"])
+        XCTAssertEqual(byTitle["北斗"]?.fengshenTitles.count, 9)
+        XCTAssertEqual(byTitle["北斗"]?.fengshenLine, "封神 9 位星君")
+        XCTAssertNil(byTitle["猎户座"]?.fengshenLine)
     }
 }
 
@@ -1202,9 +1274,7 @@ final class TonightTourTests: XCTestCase {
                 id: "constellation:\(title)",
                 kind: .constellation,
                 title: title,
-                starNames: Array(repeating: "S", count: members),
-                fengshenLord: nil,
-                fengshenPerson: nil
+                starNames: Array(repeating: "S", count: members)
             ),
             altitude: altitude,
             azimuth: azimuth,
@@ -1321,7 +1391,7 @@ final class SkySeasonTests: XCTestCase {
     func testAltitudeDrivesScore() {
         let group = SkyGroup(
             id: "constellation:Test", kind: .constellation, title: "测试",
-            starNames: [], fengshenLord: nil, fengshenPerson: nil
+            starNames: []
         )
         let low = TonightPick(group: group, altitude: 15, azimuth: 90, bestMonths: [1, 2, 3], magnitude: 0)
         let high = TonightPick(group: group, altitude: 75, azimuth: 180, bestMonths: [1, 2, 3], magnitude: 0)

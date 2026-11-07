@@ -130,13 +130,13 @@ struct ConstellationInfoView: View {
         }
     }
 
-    private var fengshenEntries: [FengshenMansion] {
+    private var fengshenEntries: [FengshenLord] {
         var seen = Set<String>()
-        var entries: [FengshenMansion] = []
+        var entries: [FengshenLord] = []
         for hit in chineseStars {
             guard let mansion = StarDisplay.make(for: hit.star).asterism?.mansion,
                   let entry = FengshenInfo.entry(forMansion: mansion),
-                  seen.insert(entry.mansion).inserted
+                  seen.insert(entry.id).inserted
             else { continue }
             entries.append(entry)
         }
@@ -148,15 +148,15 @@ struct ConstellationInfoView: View {
             Text("封神")
                 .font(.caption)
                 .foregroundStyle(.secondary)
-            ForEach(fengshenEntries, id: \.mansion) { entry in
+            ForEach(fengshenEntries) { entry in
                 HStack(alignment: .firstTextBaseline, spacing: 6) {
-                    Text(entry.lord)
+                    Text(entry.title)
                         .font(.callout)
                     Text(entry.person)
                         .font(.callout)
                         .foregroundStyle(.secondary)
-                    if let department = entry.department {
-                        Text(department)
+                    if let alsoServes = entry.alsoServes {
+                        Text(alsoServes)
                             .font(.caption2)
                             .padding(.horizontal, 6)
                             .padding(.vertical, 1)

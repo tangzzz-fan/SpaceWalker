@@ -31,10 +31,14 @@ struct SkyGroup: Identifiable, Equatable, Sendable {
     var kind: SkyGroupKind
     var title: String
     var starNames: [String]
-    var fengshenLord: String?
+    var fengshenTitles: [String] = []
     var fengshenPerson: String?
     var lineCount: Int = 0
     var asterismID: String?
+
+    var fengshenLord: String? {
+        fengshenTitles.first
+    }
 
     var memberCount: Int {
         starNames.count
@@ -49,8 +53,11 @@ struct SkyGroup: Identifiable, Equatable, Sendable {
     }
 
     var fengshenLine: String? {
-        guard let lord = fengshenLord, let person = fengshenPerson else { return nil }
-        return "封神 \(lord) · \(person)"
+        guard !fengshenTitles.isEmpty else { return nil }
+        if fengshenTitles.count == 1, let person = fengshenPerson {
+            return "封神 \(fengshenTitles[0]) · \(person)"
+        }
+        return "封神 \(fengshenTitles.count) 位星君"
     }
 }
 
@@ -72,7 +79,7 @@ enum SkyGroupIndex {
                 .filter(\.isSelectable)
                 .sorted { $0.magnitude < $1.magnitude }
             guard !chosen.isEmpty else { continue }
-            let entry = FengshenInfo.entry(forMansion: asterism.name)
+            let lords = FengshenInfo.lords(forAsterism: asterism.name)
             let lineCount = asterism.lines.reduce(0) { total, line in
                 let resolved = line.filter { byHIP[$0] != nil }.count
                 return total + max(resolved - 1, 0)
@@ -80,11 +87,11 @@ enum SkyGroupIndex {
             result.append(
                 SkyGroup(
                     id: "asterism:\(asterism.id)",
-                    kind: asterism.isMansion || entry != nil ? .mansion : .asterism,
+                    kind: asterism.isMansion || !lords.isEmpty ? .mansion : .asterism,
                     title: asterism.name,
                     starNames: chosen.map(\.name),
-                    fengshenLord: entry?.lord,
-                    fengshenPerson: entry?.person,
+                    fengshenTitles: lords.map(\.title),
+                    fengshenPerson: lords.count == 1 ? lords[0].person : nil,
                     lineCount: lineCount,
                     asterismID: asterism.id
                 )
@@ -101,9 +108,7 @@ enum SkyGroupIndex {
                     id: "constellation:\(constellation.abbreviation)",
                     kind: .constellation,
                     title: constellation.name,
-                    starNames: members.map(\.name),
-                    fengshenLord: nil,
-                    fengshenPerson: nil
+                    starNames: members.map(\.name)
                 )
             )
         }
@@ -120,9 +125,7 @@ enum SkyGroupIndex {
                     id: "curated:\(title)",
                     kind: .curated,
                     title: title,
-                    starNames: members.map(\.name),
-                    fengshenLord: nil,
-                    fengshenPerson: nil
+                    starNames: members.map(\.name)
                 )
             )
         }
@@ -155,7 +158,7 @@ enum SkyGroupIndex {
             var best: Int?
             if group.title == query {
                 best = 0
-            } else if group.fengshenLord == query {
+            } else if group.fengshenTitles.contains(query) {
                 best = 0
             } else if group.title.hasPrefix(query) {
                 best = 1
@@ -163,7 +166,7 @@ enum SkyGroupIndex {
                 best = 1
             } else if group.title.contains(query) {
                 best = 2
-            } else if let lord = group.fengshenLord, lord.contains(query) {
+            } else if group.fengshenTitles.contains(where: { $0.contains(query) }) {
                 best = 3
             } else if group.starNames.contains(where: {
                 ChineseStarNames.chinese(for: $0)?.contains(query) == true
@@ -183,6 +186,11 @@ enum SkyGroupIndex {
             }
             .prefix(limit)
             .map(\.group)
+    }
+
+    /// 把星官名解析成分组，供封神星榜等入口跳转。
+    static func group(forAsterism name: String, in groups: [SkyGroup]) -> SkyGroup? {
+        groups.first { $0.title == name } ?? search(groups, query: name).first
     }
 
     static func anchor(_ group: SkyGroup, stars: [Star]) -> SIMD3<Float>? {
