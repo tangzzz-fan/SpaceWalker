@@ -157,28 +157,46 @@ final class TiangongScene {
     }
 
     private func addLab() {
-        let mesh = MeshResource.generateCylinder(
-            height: TiangongLayout.labLengthDisplay,
-            radius: TiangongScale.display(TiangongModel.maxDiameter) / 2
-        )
-        let entity = ModelEntity(
-            mesh: mesh,
+        let seal = ModelEntity(
+            mesh: MeshResource.generateCylinder(
+                height: TiangongLayout.labSealDisplay,
+                radius: TiangongScale.display(TiangongModel.maxDiameter) / 2
+            ),
             materials: [SimpleMaterial(color: UIColor(white: 0.82, alpha: 1), roughness: 0.55, isMetallic: true)]
         )
-        entity.orientation = simd_quatf(angle: .pi / 2, axis: SIMD3(1, 0, 0))
+        seal.orientation = simd_quatf(angle: .pi / 2, axis: SIMD3(1, 0, 0))
+
+        let lab = Entity()
+        lab.addChild(seal)
+
+        // 前端的非密封后锥段：参考图上舱体在这里收细，再接到对接环。
+        let cone = ModelEntity(
+            mesh: MeshResource.generateCone(
+                height: TiangongLayout.labConeDisplay,
+                radius: TiangongScale.display(TiangongModel.maxDiameter) / 2
+            ),
+            materials: [SimpleMaterial(color: UIColor(white: 0.7, alpha: 1), roughness: 0.6, isMetallic: true)]
+        )
+        // 锥尖朝 +Z（朝向神舟那一侧）；用 +π/2 会反过来，参考图上两艘飞行器的锥尖是相对的。
+        cone.orientation = simd_quatf(angle: -.pi / 2, axis: SIMD3(1, 0, 0))
+        cone.position = SIMD3(0, 0, TiangongLayout.labSealDisplay / 2 + TiangongLayout.labConeDisplay / 2)
+        lab.addChild(cone)
 
         let port = ModelEntity(
             mesh: MeshResource.generateCylinder(
                 height: 0.012,
-                radius: TiangongScale.display(TiangongModel.maxDiameter) / 2 * 0.55
+                radius: TiangongScale.display(TiangongModel.maxDiameter) / 2 * 0.42
             ),
             materials: [SimpleMaterial(color: UIColor(white: 0.35, alpha: 1), roughness: 0.4, isMetallic: true)]
         )
         port.orientation = simd_quatf(angle: .pi / 2, axis: SIMD3(1, 0, 0))
-        port.position = SIMD3(0, 0, TiangongLayout.labLengthDisplay / 2)
-        entity.addChild(port)
+        port.position = SIMD3(
+            0, 0,
+            TiangongLayout.labSealDisplay + TiangongLayout.labConeDisplay - TiangongLayout.labCenter.z
+        )
+        lab.addChild(port)
 
-        register(.lab, entity)
+        register(.lab, lab)
     }
 
     private func addResource() {
@@ -216,29 +234,56 @@ final class TiangongScene {
         register(id, entity)
     }
 
+    /// 神舟三舱，按参考图从前往后：轨道舱（对接端）→ 返回舱（钟形，锥尖朝天宫）→ 推进舱（带两片翼）。
     private func addShenzhou() {
         let holder = Entity()
-        let body = ModelEntity(
-            mesh: MeshResource.generateCylinder(
-                height: TiangongScale.display(TiangongModel.shenzhouLength) * 0.62,
-                radius: TiangongScale.display(TiangongModel.shenzhouDiameter) / 2
-            ),
-            materials: [SimpleMaterial(color: UIColor(white: 0.9, alpha: 1), roughness: 0.4, isMetallic: false)]
+        let length = TiangongScale.display(TiangongModel.shenzhouLength)
+        let radius = TiangongScale.display(TiangongModel.shenzhouDiameter) / 2
+
+        let orbitalLength = TiangongScale.display(TiangongModel.shenzhouOrbitalLength)
+        let capsuleLength = TiangongScale.display(TiangongModel.shenzhouCapsuleLength)
+        let serviceLength = TiangongScale.display(TiangongModel.shenzhouServiceLength)
+
+        let orbital = ModelEntity(
+            mesh: MeshResource.generateCylinder(height: orbitalLength, radius: radius * 0.74),
+            materials: [SimpleMaterial(color: UIColor(white: 0.88, alpha: 1), roughness: 0.45, isMetallic: false)]
         )
-        body.orientation = simd_quatf(angle: .pi / 2, axis: SIMD3(1, 0, 0))
-        body.position = SIMD3(0, 0, -TiangongScale.display(TiangongModel.shenzhouLength) * 0.19)
-        holder.addChild(body)
+        orbital.orientation = simd_quatf(angle: .pi / 2, axis: SIMD3(1, 0, 0))
+        orbital.position = SIMD3(0, 0, -length / 2 + orbitalLength / 2)
+        holder.addChild(orbital)
 
         let capsule = ModelEntity(
-            mesh: MeshResource.generateCone(
-                height: TiangongScale.display(TiangongModel.shenzhouLength) * 0.34,
-                radius: TiangongScale.display(TiangongModel.shenzhouDiameter) / 2
-            ),
+            mesh: MeshResource.generateCone(height: capsuleLength, radius: radius),
             materials: [SimpleMaterial(color: UIColor(white: 0.75, alpha: 1), roughness: 0.5, isMetallic: false)]
         )
-        capsule.orientation = simd_quatf(angle: -(.pi / 2), axis: SIMD3(1, 0, 0))
-        capsule.position = SIMD3(0, 0, TiangongScale.display(TiangongModel.shenzhouLength) * 0.29)
+        capsule.orientation = simd_quatf(angle: -.pi / 2, axis: SIMD3(1, 0, 0))
+        capsule.position = SIMD3(0, 0, -length / 2 + orbitalLength + capsuleLength / 2)
         holder.addChild(capsule)
+
+        let service = ModelEntity(
+            mesh: MeshResource.generateCylinder(height: serviceLength, radius: radius),
+            materials: [SimpleMaterial(color: UIColor(white: 0.6, alpha: 1), roughness: 0.6, isMetallic: true)]
+        )
+        service.orientation = simd_quatf(angle: .pi / 2, axis: SIMD3(1, 0, 0))
+        service.position = SIMD3(0, 0, length / 2 - serviceLength / 2)
+        holder.addChild(service)
+
+        for sign in [Float(-1), 1] {
+            let wing = ModelEntity(
+                mesh: MeshResource.generateBox(
+                    width: 0.004,
+                    height: TiangongScale.display(TiangongModel.shenzhouWingLength),
+                    depth: TiangongScale.display(TiangongModel.shenzhouWingWidth)
+                ),
+                materials: [SimpleMaterial(color: UIColor(red: 0.10, green: 0.15, blue: 0.32, alpha: 1), roughness: 0.35, isMetallic: false)]
+            )
+            wing.position = SIMD3(
+                0,
+                sign * (radius + TiangongScale.display(TiangongModel.shenzhouWingLength) / 2),
+                service.position.z
+            )
+            holder.addChild(wing)
+        }
 
         register(.shenzhou, holder)
     }

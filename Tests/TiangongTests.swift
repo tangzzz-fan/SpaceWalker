@@ -22,7 +22,8 @@ final class TiangongScaleTests: XCTestCase {
 
     func testCabinsAreAdjacentAtOrigin() {
         let gap = TiangongLayout.labCenter.z - TiangongLayout.resourceCenter.z
-        let expected = TiangongLayout.labLengthDisplay / 2 + TiangongLayout.resourceLengthDisplay / 2
+        // 实验舱中心现在落在密封舱的一半处（锥段在它前面），不再是整段的一半。
+        let expected = TiangongLayout.labSealDisplay / 2 + TiangongLayout.resourceLengthDisplay / 2
         XCTAssertEqual(gap, expected, accuracy: 0.0001, "两舱应首尾相接")
     }
 

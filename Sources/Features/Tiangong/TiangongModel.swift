@@ -21,8 +21,12 @@ enum TiangongScale {
 enum TiangongModel {
     static let totalLength: Float = 10.4
     static let maxDiameter: Float = 3.35
-    /// 实验舱（含非密封后锥段）轴向长度。
+    /// 实验舱轴向长度，含前端的非密封后锥段。
     static let labLength: Float = 6.4
+    /// 锥段长度：参考图上它约占实验舱的 1/4，是舱体最显著的外形特征之一。
+    static let labConeLength: Float = 1.6
+    /// 密封舱 = 实验舱总长 − 锥段。
+    static var labSealLength: Float { labLength - labConeLength }
     /// 资源舱轴向尺寸。
     static let resourceLength: Float = 3.2
     static let resourceDiameter: Float = 2.775
@@ -34,6 +38,15 @@ enum TiangongModel {
     static let wingWidth: Float = 2.5
     static let shenzhouLength: Float = 9.0
     static let shenzhouDiameter: Float = 2.8
+    /// 神舟三舱：轨道舱 / 返回舱（钟形）/ 推进舱。长度按参考图比例分配。
+    static let shenzhouOrbitalLength: Float = 2.6
+    static let shenzhouCapsuleLength: Float = 2.6
+    static var shenzhouServiceLength: Float {
+        shenzhouLength - shenzhouOrbitalLength - shenzhouCapsuleLength
+    }
+    /// 推进舱两侧太阳翼（参考图上神舟也有两片，我之前漏做）。
+    static let shenzhouWingLength: Float = 1.6
+    static let shenzhouWingWidth: Float = 2.4
 
     /// 单翼长度 =（总跨度 − 舱体最大直径）/ 2。
     static var wingLength: Float {
@@ -81,10 +94,14 @@ enum TiangongModuleID: String, CaseIterable, Equatable, Sendable, Identifiable {
 /// 装配位姿：展示坐标（米）。沿 +Z 指向飞行方向，太阳翼沿 ±X 展开。
 struct TiangongLayout {
     static let labLengthDisplay = TiangongScale.display(TiangongModel.labLength)
+    static let labSealDisplay = TiangongScale.display(TiangongModel.labSealLength)
+    static let labConeDisplay = TiangongScale.display(TiangongModel.labConeLength)
     static let resourceLengthDisplay = TiangongScale.display(TiangongModel.resourceLength)
 
     /// 两舱首尾相接于 z = 0：实验舱在前（+Z），资源舱在后（−Z）。
-    static let labCenter = SIMD3<Float>(0, 0, labLengthDisplay / 2)
+    /// 实验舱自己再分两段：密封舱在前、锥段在其中，锥段朝 +Z 收细后接对接环。
+    static let labCenter = SIMD3<Float>(0, 0, labSealDisplay / 2)
+    static let labConeCenter = SIMD3<Float>(0, 0, labSealDisplay + labConeDisplay / 2)
     static let resourceCenter = SIMD3<Float>(0, 0, -resourceLengthDisplay / 2)
 
     static let dockingPortZ = labLengthDisplay + TiangongScale.display(TiangongModel.dockingPortLength)
