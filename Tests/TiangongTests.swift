@@ -244,6 +244,69 @@ final class TiangongSceneSegmentationTests: XCTestCase {
             XCTAssertEqual(angles[index] - angles[index - 1], expected, accuracy: 0.001)
         }
     }
+    /// 三角形预算（FR-C-07 的 L3 上限）。计数要递归——网格大多挂在子节点上。
+    func testSceneStaysWithinTriangleBudget() {
+        let scene = TiangongScene()
+        scene.build()
+        XCTAssertGreaterThan(scene.triangleEstimate, 1000, "计数没递归到子节点")
+        XCTAssertLessThanOrEqual(scene.triangleEstimate, 20_000)
+    }
+}
+
+@MainActor
+final class TiangongMaterialTests: XCTestCase {
+    /// 三种表面都必须能在无外部资源的情况下生成出来。
+    func testEverySurfaceYieldsATexture() {
+        for surface in TiangongMaterials.Surface.allCases {
+            XCTAssertNotNil(TiangongMaterials.texture(surface), surface.rawValue)
+        }
+    }
+
+    /// 贴图只生成一次：重复取用不该再解码一遍。
+    func testTexturesAreGeneratedOnce() {
+        for surface in TiangongMaterials.Surface.allCases {
+            _ = TiangongMaterials.texture(surface)
+        }
+        let baseline = TiangongMaterials.generationCount
+
+        for _ in 0..<5 {
+            for surface in TiangongMaterials.Surface.allCases {
+                _ = TiangongMaterials.texture(surface)
+            }
+        }
+        XCTAssertEqual(TiangongMaterials.generationCount, baseline, "重复取贴图必须命中缓存")
+    }
+
+    /// 这是 066 的核心风险：路由往返会重建整棵树，贴图跟着重建就白烧三次。
+    func testRouteRebuildDoesNotRegenerateTextures() {
+        let scene = TiangongScene()
+        scene.build()
+        let baseline = TiangongMaterials.generationCount
+
+        for _ in 0..<3 {
+            scene.rebuild()
+        }
+        XCTAssertEqual(TiangongMaterials.generationCount, baseline, "rebuild 不该重新生成贴图")
+    }
+
+    /// 三档材质必须真的不同，否则「分层」只是名字分层。
+    func testThreeTiersDifferInRoughnessAndMetallic() {
+        let tiers = [
+            TiangongMaterials.labBody(),
+            TiangongMaterials.resource(),
+            TiangongMaterials.wing(),
+        ]
+        let roughness = Set(tiers.map { Int($0.roughness.scale * 100) })
+        let metallic = Set(tiers.map { Int($0.metallic.scale * 100) })
+        XCTAssertEqual(roughness.count, 3, "三档粗糙度重复")
+        XCTAssertEqual(metallic.count, 3, "三档金属度重复")
+    }
+
+    /// 白 MLI 是隔热毯，不是金属：金属度必须为 0，否则在暗环境下等于照黑墙。
+    func testLabBodyIsDielectric() {
+        XCTAssertEqual(TiangongMaterials.labBody().metallic.scale, 0, accuracy: 0.001)
+        XCTAssertGreaterThan(TiangongMaterials.labBody().roughness.scale, 0.6)
+    }
 }
 
 final class TiangongHistoryTests: XCTestCase {    /// 逐字对照 `docs/research/realitykit-ios26-primary-sources.md` 第 15 条。

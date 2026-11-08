@@ -25,6 +25,7 @@ enum TiangongMesh {
         let ringCount = profile.count
         var positions: [SIMD3<Float>] = []
         var normals: [SIMD3<Float>] = []
+        var uvs: [SIMD2<Float>] = []
         var indices: [UInt32] = []
 
         for ring in 0..<ringCount {
@@ -38,6 +39,7 @@ enum TiangongMesh {
                 let dz = sin(angle)
                 positions.append(SIMD3(point.x * dx, y, point.x * dz))
                 normals.append(SIMD3(normal.x * dx, normal.y, normal.x * dz))
+                uvs.append(SIMD2(Float(side) / Float(sides), point.y))
             }
         }
 
@@ -58,10 +60,12 @@ enum TiangongMesh {
                 let angle = Float(side) / Float(sides) * 2 * .pi
                 positions.append(SIMD3(first.x * cos(angle), -half, first.x * sin(angle)))
                 normals.append(SIMD3(0, -1, 0))
+                uvs.append(SIMD2(0.5 + 0.5 * cos(angle), 0.5 + 0.5 * sin(angle)))
             }
             let center = UInt32(positions.count)
             positions.append(SIMD3(0, -half, 0))
             normals.append(SIMD3(0, -1, 0))
+            uvs.append(SIMD2(0.5, 0.5))
             for side in 0..<sides {
                 let current = base + UInt32(side)
                 let next = base + UInt32((side + 1) % sides)
@@ -75,10 +79,12 @@ enum TiangongMesh {
                 let angle = Float(side) / Float(sides) * 2 * .pi
                 positions.append(SIMD3(last.x * cos(angle), half, last.x * sin(angle)))
                 normals.append(SIMD3(0, 1, 0))
+                uvs.append(SIMD2(0.5 + 0.5 * cos(angle), 0.5 + 0.5 * sin(angle)))
             }
             let center = UInt32(positions.count)
             positions.append(SIMD3(0, half, 0))
             normals.append(SIMD3(0, 1, 0))
+            uvs.append(SIMD2(0.5, 0.5))
             for side in 0..<sides {
                 let current = base + UInt32(side)
                 let next = base + UInt32((side + 1) % sides)
@@ -89,6 +95,7 @@ enum TiangongMesh {
         var descriptor = MeshDescriptor(name: "revolve")
         descriptor.positions = MeshBuffer(positions)
         descriptor.normals = MeshBuffer(normals)
+        descriptor.textureCoordinates = MeshBuffer(uvs)
         descriptor.primitives = .triangles(indices)
         return (try? MeshResource.generate(from: [descriptor]))
             ?? MeshResource.generateBox(size: 0.01)

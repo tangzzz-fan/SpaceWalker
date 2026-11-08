@@ -30,6 +30,7 @@ final class TiangongScene {
         guard !isBuilt else { return }
         isBuilt = true
         root.name = "tiangong"
+        let started = CACurrentMediaTime()
 
         let camera = Entity()
         camera.name = "camera"
@@ -45,6 +46,9 @@ final class TiangongScene {
         addWing(.rightWing)
         addShenzhou()
         addLights()
+
+        let elapsed = Int((CACurrentMediaTime() - started) * 1000)
+        SessionLog.append("tiangong.build ms=\(elapsed) triangles=\(triangleEstimate)")
     }
 
     func attach(_ content: RealityViewCameraContent) {
@@ -175,13 +179,20 @@ final class TiangongScene {
     }
 
     var triangleEstimate: Int {
+        moduleNodes.values.reduce(0) { $0 + triangles(in: $1) }
+    }
+
+    private func triangles(in entity: Entity) -> Int {
         var count = 0
-        for entity in moduleNodes.values {
-            for model in entity.components[ModelComponent.self]?.mesh.contents.models ?? [] {
+        if let mesh = entity.components[ModelComponent.self]?.mesh {
+            for model in mesh.contents.models {
                 for part in model.parts {
                     count += (part.triangleIndices?.count ?? 0) / 3
                 }
             }
+        }
+        for child in entity.children {
+            count += triangles(in: child)
         }
         return count
     }
@@ -208,7 +219,7 @@ final class TiangongScene {
 
         let seal = ModelEntity(
             mesh: MeshResource.generateCylinder(height: sealHeight, radius: radius),
-            materials: [SimpleMaterial(color: UIColor(white: 0.82, alpha: 1), roughness: 0.55, isMetallic: true)]
+            materials: [TiangongMaterials.labBody()]
         )
         seal.orientation = axis
         seal.position = SIMD3(0, 0, TiangongLayout.labCylinderOffset)
@@ -216,7 +227,7 @@ final class TiangongScene {
 
         let rear = ModelEntity(
             mesh: TiangongMesh.frustum(topRadius: radius, bottomRadius: resourceRadius, height: rearHeight, caps: .none),
-            materials: [SimpleMaterial(color: UIColor(white: 0.52, alpha: 1), roughness: 0.7, isMetallic: true)]
+            materials: [TiangongMaterials.labCone()]
         )
         rear.orientation = axis
         rear.position = SIMD3(0, 0, TiangongLayout.labRearConeOffset)
@@ -224,7 +235,7 @@ final class TiangongScene {
 
         let cone = ModelEntity(
             mesh: TiangongMesh.frustum(topRadius: tipRadius, bottomRadius: radius, height: coneHeight, caps: .none),
-            materials: [SimpleMaterial(color: UIColor(white: 0.7, alpha: 1), roughness: 0.6, isMetallic: true)]
+            materials: [TiangongMaterials.labCone()]
         )
         cone.orientation = axis
         cone.position = SIMD3(0, 0, TiangongLayout.labConeOffset)
@@ -232,7 +243,7 @@ final class TiangongScene {
 
         let port = ModelEntity(
             mesh: MeshResource.generateCylinder(height: 0.014, radius: tipRadius),
-            materials: [SimpleMaterial(color: UIColor(white: 0.35, alpha: 1), roughness: 0.4, isMetallic: true)]
+            materials: [TiangongMaterials.hardware(0.35)]
         )
         port.name = "port"
         port.orientation = axis
@@ -240,7 +251,7 @@ final class TiangongScene {
 
         let tunnel = ModelEntity(
             mesh: MeshResource.generateCylinder(height: 0.006, radius: tipRadius * 0.56),
-            materials: [SimpleMaterial(color: UIColor(white: 0.12, alpha: 1), roughness: 0.8, isMetallic: false)]
+            materials: [TiangongMaterials.inner()]
         )
         tunnel.name = "port-tunnel"
         tunnel.orientation = axis
@@ -255,7 +266,7 @@ final class TiangongScene {
                     height: 0.016,
                     depth: tipRadius * 0.22
                 ),
-                materials: [SimpleMaterial(color: UIColor(white: 0.55, alpha: 1), roughness: 0.45, isMetallic: true)]
+                materials: [TiangongMaterials.hardware(0.55)]
             )
             latch.name = "port-latch-\(index)"
             latch.position = SIMD3(
@@ -279,7 +290,7 @@ final class TiangongScene {
         )
         let entity = ModelEntity(
             mesh: mesh,
-            materials: [SimpleMaterial(color: UIColor(red: 0.72, green: 0.55, blue: 0.22, alpha: 1), roughness: 0.35, isMetallic: true)]
+            materials: [TiangongMaterials.resource()]
         )
         entity.orientation = simd_quatf(angle: .pi / 2, axis: SIMD3(1, 0, 0))
         register(.resource, entity)
@@ -297,17 +308,13 @@ final class TiangongScene {
 
         let backing = ModelEntity(
             mesh: MeshResource.generateBox(width: total, height: 0.0016, depth: width * 0.97),
-            materials: [SimpleMaterial(color: UIColor(white: 0.22, alpha: 1), roughness: 0.75, isMetallic: false)]
+            materials: [TiangongMaterials.inner()]
         )
         backing.name = "backing"
         backing.position = SIMD3(0, -0.0024, 0)
         holder.addChild(backing)
 
-        let panelMaterial = SimpleMaterial(
-            color: UIColor(red: 0.10, green: 0.15, blue: 0.32, alpha: 1),
-            roughness: 0.35,
-            isMetallic: false
-        )
+        let panelMaterial = TiangongMaterials.wing()
         for index in 0..<TiangongModel.wingPanelCount {
             let node = ModelEntity(
                 mesh: MeshResource.generateBox(width: panel, height: 0.003, depth: width),
@@ -324,7 +331,7 @@ final class TiangongScene {
 
         let spine = ModelEntity(
             mesh: MeshResource.generateBox(width: total, height: 0.006, depth: 0.006),
-            materials: [SimpleMaterial(color: UIColor(white: 0.85, alpha: 1), roughness: 0.3, isMetallic: true)]
+            materials: [TiangongMaterials.hardware(0.85)]
         )
         spine.name = "spine"
         spine.position = SIMD3(0, 0, width / 2 - 0.004)
@@ -332,7 +339,7 @@ final class TiangongScene {
 
         let hinge = ModelEntity(
             mesh: MeshResource.generateBox(width: 0.018, height: 0.012, depth: width * 0.9),
-            materials: [SimpleMaterial(color: UIColor(white: 0.72, alpha: 1), roughness: 0.45, isMetallic: true)]
+            materials: [TiangongMaterials.hardware(0.72)]
         )
         hinge.name = "hinge"
         hinge.position = SIMD3(-side * total / 2 + side * 0.009, 0, 0)
@@ -356,7 +363,7 @@ final class TiangongScene {
                 height: orbitalLength,
                 radius: radius * TiangongModel.shenzhouOrbitalRatio
             ),
-            materials: [SimpleMaterial(color: UIColor(white: 0.88, alpha: 1), roughness: 0.45, isMetallic: false)]
+            materials: [TiangongMaterials.spacecraft()]
         )
         orbital.orientation = simd_quatf(angle: .pi / 2, axis: SIMD3(1, 0, 0))
         orbital.position = SIMD3(0, 0, -length / 2 + orbitalLength / 2)
@@ -368,7 +375,7 @@ final class TiangongScene {
                 height: capsuleLength,
                 caps: .none
             ),
-            materials: [SimpleMaterial(color: UIColor(white: 0.62, alpha: 1), roughness: 0.5, isMetallic: false)]
+            materials: [TiangongMaterials.capsule()]
         )
         capsule.orientation = simd_quatf(angle: -.pi / 2, axis: SIMD3(1, 0, 0))
         capsule.position = SIMD3(0, 0, -length / 2 + orbitalLength + capsuleLength / 2)
@@ -376,7 +383,7 @@ final class TiangongScene {
 
         let service = ModelEntity(
             mesh: MeshResource.generateCylinder(height: serviceLength, radius: radius),
-            materials: [SimpleMaterial(color: UIColor(white: 0.6, alpha: 1), roughness: 0.6, isMetallic: true)]
+            materials: [TiangongMaterials.hardware(0.6)]
         )
         service.orientation = simd_quatf(angle: .pi / 2, axis: SIMD3(1, 0, 0))
         service.position = SIMD3(0, 0, length / 2 - serviceLength / 2)
@@ -389,7 +396,7 @@ final class TiangongScene {
                     height: TiangongScale.display(TiangongModel.shenzhouWingLength),
                     depth: TiangongScale.display(TiangongModel.shenzhouWingWidth)
                 ),
-                materials: [SimpleMaterial(color: UIColor(red: 0.10, green: 0.15, blue: 0.32, alpha: 1), roughness: 0.35, isMetallic: false)]
+                materials: [TiangongMaterials.wing()]
             )
             wing.position = SIMD3(
                 0,
@@ -424,6 +431,18 @@ final class TiangongScene {
         )
         fill.orientation = simd_quatf(angle: .pi / 3, axis: SIMD3(0, 1, 0))
         root.addChild(fill)
+
+        let rim = Entity()
+        rim.components.set(
+            DirectionalLightComponent(
+                color: UIColor(red: 0.58, green: 0.72, blue: 1, alpha: 1),
+                intensity: 1400,
+                isRealWorldProxy: false
+            )
+        )
+        rim.position = SIMD3(-1.8, 1.2, -1.6)
+        rim.look(at: TiangongLayout.center, from: rim.position, relativeTo: nil)
+        root.addChild(rim)
     }
 }
 
