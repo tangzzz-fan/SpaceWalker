@@ -18,6 +18,10 @@ final class TiangongSession {
     @ObservationIgnored private var lastDrag: CGSize = .zero
     @ObservationIgnored private var lastMagnification: CGFloat = 1
 
+    @ObservationIgnored var orbit = TiangongOrbitClock()
+    @ObservationIgnored var orbitPace: Double = TiangongOrbitClock.paceSlow
+
+    var completedOrbits = 0
     var selected: TiangongModuleID?
     var separated: Set<TiangongModuleID> = []
 
@@ -59,6 +63,25 @@ final class TiangongSession {
         }
         SessionLog.append("tiangong.attach modules=\(TiangongModuleID.allCases.count)")
         SessionLog.append("tiangong.budget triangles=\(scene.triangleEstimate)")
+    }
+
+    func applyOrbit() {
+        scene.applySun(orbit.sunAngle)
+    }
+
+    /// 时钟只驱动光照与翼对日；对接时暂停，否则移动光源会干扰判距。
+    func stepClock(delta: TimeInterval) {
+        orbit.step(realSeconds: delta, pace: orbitPace, paused: dockingActive)
+        scene.applySun(orbit.sunAngle)
+        if orbit.completedOrbits != completedOrbits {
+            completedOrbits = orbit.completedOrbits
+        }
+    }
+
+    func toggleOrbitPace() {
+        orbitPace = orbitPace == TiangongOrbitClock.paceSlow
+            ? TiangongOrbitClock.paceFast
+            : TiangongOrbitClock.paceSlow
     }
 
     func applyRig() {

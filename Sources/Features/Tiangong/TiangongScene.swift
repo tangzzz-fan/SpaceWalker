@@ -11,6 +11,7 @@ final class TiangongScene {
     private(set) var root = Entity()
     private var moduleNodes: [TiangongModuleID: Entity] = [:]
     private var cameraEntity: Entity?
+    private var keyLight: Entity?
     private var content: RealityViewCameraContent?
     private var isBuilt = false
 
@@ -52,6 +53,18 @@ final class TiangongScene {
             "tiangong.build ms=\(elapsed) triangles=\(triangleEstimate)"
                 + " entities=\(entityCount) models=\(modelEntityCount)"
         )
+    }
+
+    /// 太阳绕模型转：方向光跟着走，两片翼绕自身长轴对日。
+    func applySun(_ angle: Float) {
+        if let keyLight {
+            let sun = SIMD3<Float>(0, sin(angle), cos(angle))
+            let from = TiangongLayout.center + sun * 4
+            keyLight.look(at: TiangongLayout.center, from: from, relativeTo: nil)
+        }
+        let quarter = simd_quatf(angle: .pi / 2 - angle, axis: SIMD3(1, 0, 0))
+        moduleNodes[.leftWing]?.orientation = quarter
+        moduleNodes[.rightWing]?.orientation = quarter
     }
 
     func attach(_ content: RealityViewCameraContent) {
@@ -545,6 +558,7 @@ final class TiangongScene {
         )
         key.orientation = simd_quatf(angle: -.pi / 4, axis: SIMD3(1, 0, 0))
         root.addChild(key)
+        keyLight = key
 
         let fill = Entity()
         fill.components.set(

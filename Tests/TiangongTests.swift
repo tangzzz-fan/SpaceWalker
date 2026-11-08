@@ -353,6 +353,81 @@ final class TiangongMaterialTests: XCTestCase {
     }
 }
 
+final class TiangongOrbitClockTests: XCTestCase {
+    /// 一圈 90 分钟，慢档 60 秒走完。
+    func testOneOrbitAtSlowPace() {
+        var clock = TiangongOrbitClock(phase: 0)
+        clock.step(realSeconds: TiangongOrbitClock.paceSlow, pace: TiangongOrbitClock.paceSlow, paused: false)
+        XCTAssertEqual(clock.completedOrbits, 1)
+        XCTAssertEqual(clock.phase, 0, accuracy: 0.0001)
+    }
+
+    /// 模型时间不能跟着展示倍率走：1 真实秒 = 90 模型秒。
+    func testModelSecondsFollowPhysics() {
+        var clock = TiangongOrbitClock(phase: 0)
+        clock.step(realSeconds: 1, pace: TiangongOrbitClock.paceSlow, paused: false)
+        XCTAssertEqual(clock.modelSeconds, 90, accuracy: 0.001)
+    }
+
+    /// 对接时暂停是 FR-C-08 的硬约束。
+    func testPausedDoesNotAdvance() {
+        var clock = TiangongOrbitClock(phase: 0.4)
+        clock.step(realSeconds: 10, pace: TiangongOrbitClock.paceFast, paused: true)
+        XCTAssertEqual(clock.phase, 0.4, accuracy: 0.0001)
+        XCTAssertEqual(clock.completedOrbits, 0)
+        XCTAssertEqual(clock.modelSeconds, 0)
+    }
+
+    func testFastPaceIsSixTimesFaster() {
+        var slow = TiangongOrbitClock(phase: 0)
+        var fast = TiangongOrbitClock(phase: 0)
+        slow.step(realSeconds: 5, pace: TiangongOrbitClock.paceSlow, paused: false)
+        fast.step(realSeconds: 5, pace: TiangongOrbitClock.paceFast, paused: false)
+        XCTAssertEqual(fast.phase / slow.phase, 6, accuracy: 0.001)
+    }
+
+    /// 圈数只增不减，相位回到 0…1。
+    func testOrbitWrapsPastOne() {
+        var clock = TiangongOrbitClock(phase: 0.9)
+        clock.step(realSeconds: 24, pace: TiangongOrbitClock.paceSlow, paused: false)
+        XCTAssertEqual(clock.completedOrbits, 1)
+        XCTAssertEqual(clock.phase, 0.3, accuracy: 0.0001)
+    }
+
+    /// 太阳翼的翼面法线全程对准太阳（≤5° 的等价断言：点乘 ≥ 0.996）。
+    func testWingNormalTracksTheSun() {
+        for index in 0..<40 {
+            let clock = TiangongOrbitClock(phase: Double(index) / 40)
+            let normal = simd_quatf(angle: clock.wingAngle, axis: SIMD3(1, 0, 0))
+                .act(SIMD3<Float>(0, 1, 0))
+            XCTAssertGreaterThan(
+                simd_dot(normal, clock.sunDirection),
+                0.996,
+                "phase \(Double(index) / 40)"
+            )
+        }
+    }
+}
+
+@MainActor
+final class TiangongOrbitSessionTests: XCTestCase {
+    func testDockingPausesTheClock() {
+        let session = TiangongSession()
+        session.beginDocking()
+        session.stepClock(delta: 5)
+        XCTAssertEqual(session.orbit.modelSeconds, 0)
+        XCTAssertEqual(session.completedOrbits, 0)
+    }
+
+    func testOrbitCountIsPublishedOnlyOnBoundary() {
+        let session = TiangongSession()
+        session.stepClock(delta: TiangongOrbitClock.paceSlow)
+        XCTAssertEqual(session.completedOrbits, 1)
+        session.stepClock(delta: 1)
+        XCTAssertEqual(session.completedOrbits, 1, "没过圈不该刷新读数")
+    }
+}
+
 final class TiangongHistoryTests: XCTestCase {    /// 逐字对照 `docs/research/realitykit-ios26-primary-sources.md` 第 15 条。
     func testFactsMatchPrimarySource() {
         XCTAssertEqual(TiangongHistory.name, "天宫一号")

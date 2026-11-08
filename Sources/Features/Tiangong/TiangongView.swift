@@ -54,6 +54,7 @@ struct TiangongView: View {
             probeLine = session.scene.verifyPicking()
         }
         .onReceive(dockTicker) { _ in
+            session.stepClock(delta: 0.1)
             if session.dockingActive {
                 session.stepDocking(delta: 0.1)
             }
@@ -101,6 +102,7 @@ struct TiangongView: View {
             content.add(session.scene.root)
             session.attach(content)
             session.applyRig()
+            session.applyOrbit()
         } update: { _ in
             session.applyRig()
         }
@@ -212,7 +214,7 @@ struct TiangongView: View {
             Text(TiangongHistory.facts.prefix(2).map { "\($0.label) \($0.value)" }.joined(separator: " · "))
                 .font(.caption2)
                 .foregroundStyle(.secondary)
-            Text("任务 \(session.mission.phase.ordinal)/3 · \(TiangongMission.summary(session.mission))")
+            Text("任务 \(session.mission.phase.ordinal)/3 · \(TiangongMission.summary(session.mission)) · 第 \(session.completedOrbits + 1) 圈")
                 .font(.caption2)
                 .foregroundStyle(.secondary)
             if let probeLine {
@@ -335,6 +337,14 @@ struct TiangongView: View {
                     .frame(width: 28, height: 28)
             }
             .accessibilityLabel(session.dockingActive ? "退出对接" : "对接任务")
+
+            Button {
+                session.toggleOrbitPace()
+            } label: {
+                Image(systemName: session.orbitPace == TiangongOrbitClock.paceSlow ? "tortoise" : "hare")
+                    .frame(width: 28, height: 28)
+            }
+            .accessibilityLabel("切换轨道速度")
 
             Button {
                 showsHistory = true
