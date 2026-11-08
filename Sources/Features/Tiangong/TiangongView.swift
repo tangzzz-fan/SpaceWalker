@@ -26,8 +26,14 @@ struct TiangongView: View {
                 reality(environment)
             }
 
-            if !LaunchMode.tiangongLabelsHidden(environment: ProcessInfo.processInfo.environment) {
+            if !session.drawingMode,
+               !LaunchMode.tiangongLabelsHidden(environment: ProcessInfo.processInfo.environment) {
                 labelLayer
+            }
+
+            if session.drawingMode {
+                dimensionLayer
+                viewPicker
             }
 
             VStack(alignment: .leading, spacing: 0) {
@@ -49,6 +55,10 @@ struct TiangongView: View {
         .preferredColorScheme(.dark)
         .task {
             environment = SpaceEnvironment.load()
+            if LaunchMode.tiangongDrawing(environment: ProcessInfo.processInfo.environment),
+               !session.drawingMode {
+                session.toggleDrawingMode()
+            }
             // 碰撞体与投影要等渲染就绪，立刻自检会全空。
             try? await Task.sleep(for: .seconds(1.2))
             probeLine = session.scene.verifyPicking()
@@ -92,6 +102,66 @@ struct TiangongView: View {
             }
             .allowsHitTesting(false)
         }
+    }
+
+    private var dimensionLayer: some View {
+        TimelineView(.periodic(from: .now, by: 0.1)) { _ in
+            ZStack {
+                ForEach(TiangongDimensions.all) { dimension in
+                    if let start = session.scene.project(dimension.from),
+                       let end = session.scene.project(dimension.to) {
+                        Path { path in
+                            path.move(to: start)
+                            path.addLine(to: end)
+                        }
+                        .stroke(.white.opacity(0.5), style: StrokeStyle(lineWidth: 0.8, dash: [3, 3]))
+
+                        Text(dimension.title)
+                            .font(.system(size: 11, weight: .medium, design: .monospaced))
+                            .foregroundStyle(.white.opacity(0.92))
+                            .padding(.horizontal, 5)
+                            .padding(.vertical, 2)
+                            .background(.black.opacity(0.55), in: RoundedRectangle(cornerRadius: 4))
+                            .position(
+                                x: clamped(
+                                    (start.x + end.x) / 2 + dimension.labelOffset.width,
+                                    in: session.viewSize.width
+                                ),
+                                y: (start.y + end.y) / 2 + dimension.labelOffset.height
+                            )
+                    }
+                }
+            }
+            .allowsHitTesting(false)
+        }
+    }
+
+    /// 标注不许被屏幕切掉：左右各留 78pt。
+    private func clamped(_ value: CGFloat, in width: CGFloat) -> CGFloat {
+        guard width > 0 else { return value }
+        return min(max(value, 78), width - 78)
+    }
+
+    private var viewPicker: some View {
+        VStack {
+            HStack {
+                Spacer()
+                HStack(spacing: 6) {
+                    ForEach(TiangongRig.Preset.allCases, id: \.self) { preset in
+                        Button(preset.title) {
+                            session.applyView(preset)
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.mini)
+                    }
+                }
+                .padding(6)
+                .background(.ultraThinMaterial, in: Capsule())
+            }
+            Spacer()
+        }
+        .padding(.horizontal, 16)
+        .padding(.top, 168)
     }
 
     private func reality(_ environment: RealityViewEnvironment) -> some View {
@@ -337,6 +407,14 @@ struct TiangongView: View {
                     .frame(width: 28, height: 28)
             }
             .accessibilityLabel(session.dockingActive ? "退出对接" : "对接任务")
+
+            Button {
+                session.toggleDrawingMode()
+            } label: {
+                Image(systemName: session.drawingMode ? "ruler.fill" : "ruler")
+                    .frame(width: 28, height: 28)
+            }
+            .accessibilityLabel(session.drawingMode ? "退出工程图" : "工程图")
 
             Button {
                 session.toggleOrbitPace()

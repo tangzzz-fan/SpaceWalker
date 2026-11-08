@@ -230,3 +230,54 @@ enum TiangongFormat {
         return text + " m"
     }
 }
+
+/// 工程图模式的尺寸标注。数值全部从 `TiangongModel` 推导，界面不许另写字面量。
+struct TiangongDimension: Identifiable, Equatable {
+    let id: String
+    let title: String
+    let from: SIMD3<Float>
+    let to: SIMD3<Float>
+    let labelOffset: CGSize
+}
+
+enum TiangongDimensions {
+    static var all: [TiangongDimension] {
+        let radius = TiangongScale.display(TiangongModel.maxDiameter) / 2
+        let halfSpan = TiangongScale.display(TiangongModel.wingSpan) / 2
+        let tunnel = TiangongScale.display(0.8) / 2
+        let aft = -TiangongLayout.resourceLengthDisplay
+        let front = TiangongLayout.dockingPortZ
+        let wingZ = TiangongLayout.resourceCenter.z
+
+        return [
+            TiangongDimension(
+                id: "length",
+                title: "全长 " + TiangongFormat.meters(TiangongModel.totalLength),
+                from: SIMD3(0, 0, aft),
+                to: SIMD3(0, 0, front),
+                labelOffset: CGSize(width: 0, height: 46)
+            ),
+            TiangongDimension(
+                id: "diameter",
+                title: "最大直径 " + TiangongFormat.meters(TiangongModel.maxDiameter),
+                from: SIMD3(0, radius, TiangongLayout.labCenter.z),
+                to: SIMD3(0, -radius, TiangongLayout.labCenter.z),
+                labelOffset: CGSize(width: 104, height: 14)
+            ),
+            TiangongDimension(
+                id: "span",
+                title: "翼展 " + TiangongFormat.meters(TiangongModel.wingSpan),
+                from: SIMD3(-halfSpan, 0, wingZ),
+                to: SIMD3(halfSpan, 0, wingZ),
+                labelOffset: CGSize(width: 0, height: -36)
+            ),
+            TiangongDimension(
+                id: "tunnel",
+                title: "转移通道 " + TiangongFormat.meters(0.8),
+                from: SIMD3(0, tunnel, front),
+                to: SIMD3(0, -tunnel, front),
+                labelOffset: CGSize(width: -92, height: 22)
+            ),
+        ]
+    }
+}

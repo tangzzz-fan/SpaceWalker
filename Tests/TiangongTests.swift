@@ -428,6 +428,51 @@ final class TiangongOrbitSessionTests: XCTestCase {
     }
 }
 
+@MainActor
+final class TiangongDrawingModeTests: XCTestCase {
+    /// 标注数值必须与几何常量同源，不许界面另写一份。
+    func testDimensionLabelsComeFromConstants() {
+        let titles = TiangongDimensions.all.map(\.title).joined(separator: " ")
+        XCTAssertTrue(titles.contains(TiangongFormat.meters(TiangongModel.totalLength)))
+        XCTAssertTrue(titles.contains(TiangongFormat.meters(TiangongModel.maxDiameter)))
+        XCTAssertTrue(titles.contains(TiangongFormat.meters(TiangongModel.wingSpan)))
+        XCTAssertTrue(titles.contains(TiangongFormat.meters(0.8)))
+    }
+
+    /// 四条标注，锚点两两不同（否则会叠在一起）。
+    func testDimensionsAreDistinct() {
+        let dimensions = TiangongDimensions.all
+        XCTAssertEqual(dimensions.count, 4)
+        XCTAssertEqual(Set(dimensions.map(\.id)).count, 4)
+        for dimension in dimensions {
+            XCTAssertNotEqual(dimension.from, dimension.to, dimension.id)
+            XCTAssertGreaterThan(simd_length(dimension.to - dimension.from), 0.001, dimension.id)
+        }
+    }
+
+    /// 切换工程图只换材质，不重建渲染树。
+    func testDrawingModeDoesNotRebuildTheTree() {
+        let scene = TiangongScene()
+        scene.build()
+        let root = scene.root
+        scene.setDrawingMode(true)
+        XCTAssertTrue(scene.drawingMode)
+        XCTAssertTrue(scene.root === root, "切模式不该换 root")
+        scene.setDrawingMode(false)
+        XCTAssertFalse(scene.drawingMode)
+    }
+
+    func testViewPresetsMoveTheRig() {
+        var rig = TiangongRig()
+        rig.apply(.side)
+        XCTAssertEqual(rig.yaw, 1.5708, accuracy: 0.001)
+        rig.apply(.top)
+        XCTAssertGreaterThan(rig.pitch, 0.9)
+        rig.apply(.front)
+        XCTAssertEqual(rig.yaw, 0.12, accuracy: 0.001)
+    }
+}
+
 final class TiangongHistoryTests: XCTestCase {    /// 逐字对照 `docs/research/realitykit-ios26-primary-sources.md` 第 15 条。
     func testFactsMatchPrimarySource() {
         XCTAssertEqual(TiangongHistory.name, "天宫一号")

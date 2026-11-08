@@ -167,6 +167,11 @@ enum LaunchMode {
         environment["SPACEWALKER_TG_FREEZE"] == "1"
     }
 
+    /// 取证与对照用：启动即进工程图模式。
+    static func tiangongDrawing(environment: [String: String]) -> Bool {
+        environment["SPACEWALKER_TG_DRAWING"] == "1"
+    }
+
     /// 无头截图用：启动即分离指定部件，逗号分隔（lab,leftWing）。
     static func tiangongSeparated(environment: [String: String]) -> Set<TiangongModuleID> {
         guard let raw = environment["SPACEWALKER_TG_SEPARATED"] else { return [] }

@@ -12,8 +12,11 @@ final class TiangongScene {
     private var moduleNodes: [TiangongModuleID: Entity] = [:]
     private var cameraEntity: Entity?
     private var keyLight: Entity?
+    private var lightGroup: [Entity] = []
     private var content: RealityViewCameraContent?
     private var isBuilt = false
+    private var baseMaterials: [ObjectIdentifier: [any RealityKit.Material]] = [:]
+    private(set) var drawingMode = false
 
     /// RealityView 每次重建都会拿到一个新的 `RealityViewCameraContent`。
     /// 复用同一个 root 二次 add 进新 scene 不生效（页面重建后一片黑），
@@ -22,6 +25,8 @@ final class TiangongScene {
         root.removeFromParent()
         root = Entity()
         moduleNodes.removeAll()
+        lightGroup.removeAll()
+        baseMaterials.removeAll()
         cameraEntity = nil
         isBuilt = false
         build()
@@ -48,11 +53,69 @@ final class TiangongScene {
         addShenzhou()
         addLights()
 
+        if drawingMode {
+            applyDrawingMode()
+        }
+
         let elapsed = Int((CACurrentMediaTime() - started) * 1000)
         SessionLog.append(
             "tiangong.build ms=\(elapsed) triangles=\(triangleEstimate)"
                 + " entities=\(entityCount) models=\(modelEntityCount)"
         )
+    }
+
+    /// 工程图模式：换成无光照的淡色实体，关掉灯。线框在 RealityKit 里没有原生支持，
+    /// 但 FR-C-10 允许「线框/淡色实体」二选一——淡色实体加尺寸标注才是可读的那一半。
+    func setDrawingMode(_ enabled: Bool) {
+        guard enabled != drawingMode else { return }
+        drawingMode = enabled
+        applyDrawingMode()
+    }
+
+    /// 场景可能还没建（会话先切模式、后建树），所以 build 末尾也要调一次。
+    private func applyDrawingMode() {
+        for light in lightGroup {
+            light.isEnabled = !drawingMode
+        }
+        for module in moduleNodes.values {
+            applyDrawing(to: module)
+        }
+    }
+
+    private func applyDrawing(to entity: Entity) {
+        let key = ObjectIdentifier(entity)
+        if let model = entity.components[ModelComponent.self] {
+            if drawingMode {
+                if baseMaterials[key] == nil {
+                    baseMaterials[key] = model.materials
+                }
+                let tone = Self.drawingTone(for: entity.name)
+                entity.components[ModelComponent.self]?.materials = [
+                    UnlitMaterial(color: UIColor(white: tone, alpha: 1))
+                ]
+            } else if let saved = baseMaterials[key] {
+                entity.components[ModelComponent.self]?.materials = saved
+            }
+        }
+        for child in entity.children {
+            applyDrawing(to: child)
+        }
+    }
+
+    /// 无光照下全靠灰度分块：舱体亮、太阳翼暗、硬件中间，否则整机糊成一个剪影。
+    private static func drawingTone(for name: String) -> CGFloat {
+        if name.hasPrefix("panel") || name == "backing" { return 0.46 }
+        if name.hasPrefix("resource") { return 0.70 }
+        if name.hasPrefix("port") || name == "antenna-dish" { return 0.60 }
+        if name.hasPrefix("shenzhou") || name == "capsule" { return 0.80 }
+        if name.hasPrefix("lab-window") || name == "lab-rear-cone" { return 0.74 }
+        if name.hasPrefix("lab-") || name == "lab-seal" { return 0.92 }
+        return 0.84
+    }
+
+    func project(_ point: SIMD3<Float>) -> CGPoint? {
+        guard let content else { return nil }
+        return content.project(point: point, to: Self.space)
     }
 
     /// 太阳绕模型转：方向光跟着走，两片翼绕自身长轴对日。
@@ -559,6 +622,7 @@ final class TiangongScene {
         key.orientation = simd_quatf(angle: -.pi / 4, axis: SIMD3(1, 0, 0))
         root.addChild(key)
         keyLight = key
+        lightGroup.append(key)
 
         let fill = Entity()
         fill.components.set(
@@ -570,6 +634,7 @@ final class TiangongScene {
         )
         fill.orientation = simd_quatf(angle: .pi / 3, axis: SIMD3(0, 1, 0))
         root.addChild(fill)
+        lightGroup.append(fill)
 
         let rim = Entity()
         rim.components.set(
@@ -582,10 +647,23 @@ final class TiangongScene {
         rim.position = SIMD3(-1.8, 1.2, -1.6)
         rim.look(at: TiangongLayout.center, from: rim.position, relativeTo: nil)
         root.addChild(rim)
+        lightGroup.append(rim)
     }
 }
 
 struct TiangongRig: Equatable, Sendable {
+    enum Preset: String, CaseIterable {
+        case front, side, top
+
+        var title: String {
+            switch self {
+            case .front: "正"
+            case .side: "侧"
+            case .top: "俯"
+            }
+        }
+    }
+
     static let pitchRange: ClosedRange<Float> = -0.9...1.1
     static let distanceRange: ClosedRange<Float> = 0.55...4.5
     static let yawSensitivity: Float = 0.006
@@ -609,6 +687,23 @@ struct TiangongRig: Equatable, Sendable {
     mutating func rotate(deltaX: Float, deltaY: Float) {
         yaw += deltaX * Self.yawSensitivity
         pitch = min(max(pitch + deltaY * Self.pitchSensitivity, Self.pitchRange.lowerBound), Self.pitchRange.upperBound)
+    }
+
+    mutating func apply(_ preset: Preset) {
+        switch preset {
+        case .front:
+            yaw = 0.12
+            pitch = 0.10
+            distance = 3.4
+        case .side:
+            yaw = 1.5708
+            pitch = 0.02
+            distance = 3.9
+        case .top:
+            yaw = 0.20
+            pitch = 0.95
+            distance = 3.5
+        }
     }
 
     mutating func dolly(scale: Float) {

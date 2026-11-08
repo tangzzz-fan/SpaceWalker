@@ -27,6 +27,7 @@ final class TiangongSession {
     @ObservationIgnored var orbitPace: Double = TiangongOrbitClock.paceSlow
 
     var completedOrbits = 0
+    var drawingMode = false
     var selected: TiangongModuleID?
     var separated: Set<TiangongModuleID> = []
 
@@ -68,6 +69,16 @@ final class TiangongSession {
         }
         SessionLog.append("tiangong.attach modules=\(TiangongModuleID.allCases.count)")
         SessionLog.append("tiangong.budget triangles=\(scene.triangleEstimate)")
+    }
+
+    func toggleDrawingMode() {
+        drawingMode.toggle()
+        scene.setDrawingMode(drawingMode)
+    }
+
+    func applyView(_ preset: TiangongRig.Preset) {
+        rig.apply(preset)
+        scene.apply(rig: rig)
     }
 
     func applyOrbit() {
