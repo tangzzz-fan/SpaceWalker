@@ -97,6 +97,25 @@ final class TiangongScene {
         node.move(to: transform, relativeTo: node.parent, duration: 0.18, timingFunction: .easeOut)
     }
 
+    /// 合拢：所有模块同时微微鼓起再回落。
+    /// 不给 root 做缩放——相机会跟着缩，视觉上变成「拉近」，而不是「组件合在一起」。
+    func playClosureAnimation() {
+        let bulge = SIMD3<Float>(repeating: 1.03)
+        for node in moduleNodes.values {
+            var transform = node.transform
+            transform.scale = bulge
+            node.move(to: transform, relativeTo: node.parent, duration: 0.16, timingFunction: .easeOut)
+        }
+        Task {
+            try? await Task.sleep(for: .milliseconds(180))
+            for node in moduleNodes.values {
+                var transform = node.transform
+                transform.scale = .one
+                node.move(to: transform, relativeTo: node.parent, duration: 0.24, timingFunction: .easeInOut)
+            }
+        }
+    }
+
     func screenPoint(for id: TiangongModuleID) -> CGPoint? {
         guard let content, let node = moduleNodes[id] else { return nil }
         return content.project(point: node.position(relativeTo: nil), to: Self.space)

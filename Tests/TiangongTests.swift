@@ -379,3 +379,34 @@ final class TiangongShipAttitudeTests: XCTestCase {
         )
     }
 }
+
+@MainActor
+final class TiangongClosureTests: XCTestCase {
+    /// 拆完四个进装配，再逐个装回，最后一个触发合拢并进入对接阶段。
+    func testClosureOnLastModuleReturned() {
+        let session = TiangongSession()
+        for id in TiangongModuleID.dismantlable {
+            session.toggleDisassembly(id)
+        }
+        XCTAssertEqual(session.mission.phase, .assembly)
+
+        for id in TiangongModuleID.dismantlable.dropLast() {
+            session.toggleDisassembly(id)
+        }
+        XCTAssertEqual(session.mission.phase, .assembly, "还没装完不该进对接")
+
+        session.toggleDisassembly(TiangongModuleID.dismantlable.last!)
+        XCTAssertEqual(session.mission.phase, .docking)
+        XCTAssertTrue(session.separated.isEmpty)
+    }
+
+    /// 中途又拆一个，不该误触发。
+    func testNoClosureWhenReopening() {
+        let session = TiangongSession()
+        for id in TiangongModuleID.dismantlable {
+            session.toggleDisassembly(id)
+        }
+        session.toggleDisassembly(.lab)
+        XCTAssertEqual(session.mission.phase, .assembly)
+    }
+}

@@ -12,6 +12,7 @@ struct TiangongView: View {
     @State private var dragMode: DragMode = .none
     @State private var lastDrag: CGSize = .zero
     @State private var lastRotation: Double = 0
+    @State private var lastFPSLog: TimeInterval = 0
     @State private var dockTicker = Timer.publish(every: 0.1, on: .main, in: .common).autoconnect()
 
     private enum DragMode { case none, orbit, module, docking }
@@ -53,6 +54,11 @@ struct TiangongView: View {
         .onReceive(dockTicker) { _ in
             if session.dockingActive {
                 session.stepDocking(delta: 0.1)
+            }
+            let now = ProcessInfo.processInfo.systemUptime
+            if now - lastFPSLog >= 2 {
+                lastFPSLog = now
+                session.logFrameRate(now: now)
             }
         }
         .sheet(isPresented: $showsHistory) {

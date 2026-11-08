@@ -30,6 +30,7 @@ final class TiangongSession {
     var dockingHolding: TimeInterval = 0
 
     @ObservationIgnored private var lastDockingOffset: SIMD3<Float>?
+    @ObservationIgnored let probe = ProbeRecorder()
     @ObservationIgnored var viewSize: CGSize = .zero
     @ObservationIgnored private var dragging: TiangongModuleID?
     @ObservationIgnored private var dragStart: SIMD3<Float> = .zero
@@ -47,6 +48,7 @@ final class TiangongSession {
 
     func attach(_ content: RealityViewCameraContent) {
         scene.attach(content)
+        probe.attach(content)
         scene.apply(rig: rig)
         applyLaunchState()
         if LaunchMode.tiangongDockingOnLaunch(environment: ProcessInfo.processInfo.environment) {
@@ -131,7 +133,7 @@ final class TiangongSession {
         case .snap(let target):
             separated.remove(id)
             scene.setPosition(target, for: id)
-            mission = TiangongMission.separated(mission, count: separated.count)
+            advanceMission(from: .assembly)
             UIImpactFeedbackGenerator(style: .medium).impactOccurred()
             SessionLog.append("tiangong.assembly id=\(id.rawValue) snap=1")
         case .reject(let failure, let push):
@@ -286,12 +288,22 @@ final class TiangongSession {
             separated.insert(id)
         }
         scene.applySeparation(separated, animated: true)
-        mission = TiangongMission.separated(mission, count: separated.count)
+        advanceMission(from: mission.phase)
         UIImpactFeedbackGenerator(style: .light).impactOccurred()
         SessionLog.append(
             "tiangong.disassembly id=\(id.rawValue) separated=\(separated.contains(id) ? 1 : 0)"
                 + " total=\(separated.count)"
         )
+    }
+
+    /// 两条交互路径（拖动吸附、卡片按钮）共用同一段推进逻辑，
+    /// 否则「按按钮装回最后一个」不会触发合拢。
+    private func advanceMission(from phase: TiangongMission.Phase) {
+        mission = TiangongMission.separated(mission, count: separated.count)
+        guard phase == .assembly, mission.phase == .docking else { return }
+        scene.playClosureAnimation()
+        UINotificationFeedbackGenerator().notificationOccurred(.success)
+        SessionLog.append("tiangong.closure modules=\(TiangongModuleID.dismantlable.count)")
     }
 
     func resetView() {
@@ -301,5 +313,20 @@ final class TiangongSession {
         scene.applySeparation(separated, animated: true)
         scene.apply(rig: rig)
         SessionLog.append("tiangong.view reset")
+    }
+}
+
+extension TiangongSession {
+    /// 帧率只打日志，不上屏——NFR-01 要的是真机 60 秒的平均与下限，
+    /// 用 `ProbeRecorder` 的 SceneEvents.Update 间隔，比 CADisplayLink 接近真实负载。
+    @discardableResult
+    func logFrameRate(now: TimeInterval) -> String {
+        let summary = probe.tick(now: now, anchorPosition: nil)
+        let line = String(
+            format: "tiangong.fps avg=%.1f min=%.1f hitch=%d",
+            summary.fps, summary.minimumFPS, summary.hitches
+        )
+        SessionLog.append(line)
+        return line
     }
 }
