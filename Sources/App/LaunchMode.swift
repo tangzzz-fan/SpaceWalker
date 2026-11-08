@@ -157,6 +157,16 @@ enum LaunchMode {
         environment["SPACEWALKER_TG_NOLABEL"] == "1"
     }
 
+    /// 取证用：固定初始轨道相位（0…1），让三视图可复现。
+    static func tiangongPhase(environment: [String: String]) -> Double? {
+        environment["SPACEWALKER_TG_PHASE"].flatMap(Double.init)
+    }
+
+    /// 取证用：冻结轨道时钟，光照与翼角不再随时间变化。
+    static func tiangongFrozen(environment: [String: String]) -> Bool {
+        environment["SPACEWALKER_TG_FREEZE"] == "1"
+    }
+
     /// 无头截图用：启动即分离指定部件，逗号分隔（lab,leftWing）。
     static func tiangongSeparated(environment: [String: String]) -> Set<TiangongModuleID> {
         guard let raw = environment["SPACEWALKER_TG_SEPARATED"] else { return [] }
