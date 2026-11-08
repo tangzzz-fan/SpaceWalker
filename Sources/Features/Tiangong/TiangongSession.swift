@@ -9,9 +9,12 @@ import SwiftUI
 final class TiangongSession {
     /// 场景与相机都是 60Hz 量或引用类型，进观察集合只会让 body 按手势频率重算。
     @ObservationIgnored let scene = TiangongScene()
-    @ObservationIgnored var rig = TiangongRig(distance: LaunchMode.tiangongDistance(
-        environment: ProcessInfo.processInfo.environment
-    ) ?? TiangongRig().distance)
+    @ObservationIgnored var rig = TiangongRig(
+        yaw: LaunchMode.tiangongYaw(environment: ProcessInfo.processInfo.environment) ?? TiangongRig().yaw,
+        pitch: LaunchMode.tiangongPitch(environment: ProcessInfo.processInfo.environment) ?? TiangongRig().pitch,
+        distance: LaunchMode.tiangongDistance(environment: ProcessInfo.processInfo.environment)
+            ?? TiangongRig().distance
+    )
     @ObservationIgnored private var lastDrag: CGSize = .zero
     @ObservationIgnored private var lastMagnification: CGFloat = 1
 

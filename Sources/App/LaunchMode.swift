@@ -143,6 +143,15 @@ enum LaunchMode {
         environment["SPACEWALKER_TG_DIST"].flatMap(Float.init)
     }
 
+    /// 无头截图用：固定初始视角。正/侧/俯三视图靠它取，不需要手转。
+    static func tiangongYaw(environment: [String: String]) -> Float? {
+        environment["SPACEWALKER_TG_YAW"].flatMap(Float.init)
+    }
+
+    static func tiangongPitch(environment: [String: String]) -> Float? {
+        environment["SPACEWALKER_TG_PITCH"].flatMap(Float.init)
+    }
+
     /// 无头截图用：启动即分离指定部件，逗号分隔（lab,leftWing）。
     static func tiangongSeparated(environment: [String: String]) -> Set<TiangongModuleID> {
         guard let raw = environment["SPACEWALKER_TG_SEPARATED"] else { return [] }

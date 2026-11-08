@@ -196,45 +196,46 @@ final class TiangongScene {
     }
 
     private func addLab() {
-        let seal = ModelEntity(
-            mesh: MeshResource.generateCylinder(
-                height: TiangongLayout.labSealDisplay,
-                radius: TiangongScale.display(TiangongModel.maxDiameter) / 2
-            ),
-            materials: [SimpleMaterial(color: UIColor(white: 0.82, alpha: 1), roughness: 0.55, isMetallic: true)]
-        )
-        seal.orientation = simd_quatf(angle: .pi / 2, axis: SIMD3(1, 0, 0))
+        let axis = simd_quatf(angle: .pi / 2, axis: SIMD3(1, 0, 0))
+        let radius = TiangongScale.display(TiangongModel.maxDiameter) / 2
+        let resourceRadius = TiangongScale.display(TiangongModel.resourceDiameter) / 2
+        let tipRadius = radius * TiangongModel.labConeTipRatio
+        let sealHeight = TiangongScale.display(TiangongModel.labSealLength)
+        let coneHeight = TiangongScale.display(TiangongModel.labConeLength)
+        let rearHeight = TiangongScale.display(TiangongModel.labRearConeLength)
 
         let lab = Entity()
+
+        let seal = ModelEntity(
+            mesh: MeshResource.generateCylinder(height: sealHeight, radius: radius),
+            materials: [SimpleMaterial(color: UIColor(white: 0.82, alpha: 1), roughness: 0.55, isMetallic: true)]
+        )
+        seal.orientation = axis
+        seal.position = SIMD3(0, 0, TiangongLayout.labCylinderOffset)
         lab.addChild(seal)
 
-        // 前端的非密封后锥段：参考图上舱体在这里收细，再接到对接环。
-        let coneRadius = TiangongScale.display(TiangongModel.maxDiameter) / 2
+        let rear = ModelEntity(
+            mesh: TiangongMesh.frustum(topRadius: radius, bottomRadius: resourceRadius, height: rearHeight, caps: .none),
+            materials: [SimpleMaterial(color: UIColor(white: 0.52, alpha: 1), roughness: 0.7, isMetallic: true)]
+        )
+        rear.orientation = axis
+        rear.position = SIMD3(0, 0, TiangongLayout.labRearConeOffset)
+        lab.addChild(rear)
+
         let cone = ModelEntity(
-            mesh: TiangongMesh.frustum(
-                topRadius: coneRadius * 0.42,
-                bottomRadius: coneRadius,
-                height: TiangongLayout.labConeDisplay
-            ),
+            mesh: TiangongMesh.frustum(topRadius: tipRadius, bottomRadius: radius, height: coneHeight, caps: .none),
             materials: [SimpleMaterial(color: UIColor(white: 0.7, alpha: 1), roughness: 0.6, isMetallic: true)]
         )
-        // 小端朝 +Z（朝向神舟那一侧）。锥台不是尖锥：参考图上舱体是收细后接对接环。
-        cone.orientation = simd_quatf(angle: .pi / 2, axis: SIMD3(1, 0, 0))
-        cone.position = SIMD3(0, 0, TiangongLayout.labSealDisplay / 2 + TiangongLayout.labConeDisplay / 2)
+        cone.orientation = axis
+        cone.position = SIMD3(0, 0, TiangongLayout.labConeOffset)
         lab.addChild(cone)
 
         let port = ModelEntity(
-            mesh: MeshResource.generateCylinder(
-                height: 0.012,
-                radius: TiangongScale.display(TiangongModel.maxDiameter) / 2 * 0.42
-            ),
+            mesh: MeshResource.generateCylinder(height: 0.012, radius: tipRadius),
             materials: [SimpleMaterial(color: UIColor(white: 0.35, alpha: 1), roughness: 0.4, isMetallic: true)]
         )
-        port.orientation = simd_quatf(angle: .pi / 2, axis: SIMD3(1, 0, 0))
-        port.position = SIMD3(
-            0, 0,
-            TiangongLayout.labSealDisplay + TiangongLayout.labConeDisplay - TiangongLayout.labCenter.z
-        )
+        port.orientation = axis
+        port.position = SIMD3(0, 0, TiangongLayout.labLengthDisplay / 2)
         lab.addChild(port)
 
         register(.lab, lab)
@@ -275,7 +276,7 @@ final class TiangongScene {
         register(id, entity)
     }
 
-    /// 神舟三舱，按参考图从前往后：轨道舱（对接端）→ 返回舱（钟形，锥尖朝天宫）→ 推进舱（带两片翼）。
+    /// 神舟三舱，按参考图从前往后：轨道舱（对接端）→ 返回舱（钟形）→ 推进舱（带两片翼）。
     private func addShenzhou() {
         let holder = Entity()
         let length = TiangongScale.display(TiangongModel.shenzhouLength)
@@ -286,22 +287,23 @@ final class TiangongScene {
         let serviceLength = TiangongScale.display(TiangongModel.shenzhouServiceLength)
 
         let orbital = ModelEntity(
-            mesh: MeshResource.generateCylinder(height: orbitalLength, radius: radius * 0.74),
+            mesh: MeshResource.generateCylinder(
+                height: orbitalLength,
+                radius: radius * TiangongModel.shenzhouOrbitalRatio
+            ),
             materials: [SimpleMaterial(color: UIColor(white: 0.88, alpha: 1), roughness: 0.45, isMetallic: false)]
         )
         orbital.orientation = simd_quatf(angle: .pi / 2, axis: SIMD3(1, 0, 0))
         orbital.position = SIMD3(0, 0, -length / 2 + orbitalLength / 2)
         holder.addChild(orbital)
 
-        // 返回舱是钟形，侧视近似为「粗端朝后、小端朝前」的锥台。
-        // 用圆锥会让尖头戳在轨道舱端面上，那是之前看起来不对的原因。
         let capsule = ModelEntity(
-            mesh: TiangongMesh.frustum(
-                topRadius: radius * 0.5,
-                bottomRadius: radius,
-                height: capsuleLength
+            mesh: TiangongMesh.revolve(
+                profile: TiangongModel.capsuleProfile.map { SIMD2($0.x * radius, $0.y) },
+                height: capsuleLength,
+                caps: .none
             ),
-            materials: [SimpleMaterial(color: UIColor(white: 0.75, alpha: 1), roughness: 0.5, isMetallic: false)]
+            materials: [SimpleMaterial(color: UIColor(white: 0.62, alpha: 1), roughness: 0.5, isMetallic: false)]
         )
         capsule.orientation = simd_quatf(angle: -.pi / 2, axis: SIMD3(1, 0, 0))
         capsule.position = SIMD3(0, 0, -length / 2 + orbitalLength + capsuleLength / 2)

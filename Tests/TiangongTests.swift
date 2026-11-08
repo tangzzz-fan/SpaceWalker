@@ -1,4 +1,5 @@
 import XCTest
+import RealityKit
 import simd
 
 @testable import SpaceWalker
@@ -20,11 +21,12 @@ final class TiangongScaleTests: XCTestCase {
         XCTAssertLessThanOrEqual(footprint.width, 1.0, "翼展越界：\(footprint.width)")
     }
 
-    func testCabinsAreAdjacentAtOrigin() {
-        let gap = TiangongLayout.labCenter.z - TiangongLayout.resourceCenter.z
-        // 实验舱中心现在落在密封舱的一半处（锥段在它前面），不再是整段的一半。
-        let expected = TiangongLayout.labSealDisplay / 2 + TiangongLayout.resourceLengthDisplay / 2
-        XCTAssertEqual(gap, expected, accuracy: 0.0001, "两舱应首尾相接")
+    /// 两舱在 z = 0 处相接：实验舱底面贴着资源舱顶面。
+    func testCabinsMeetAtOrigin() {
+        let labBottom = TiangongLayout.labCenter.z - TiangongLayout.labLengthDisplay / 2
+        let resourceTop = TiangongLayout.resourceCenter.z + TiangongLayout.resourceLengthDisplay / 2
+        XCTAssertEqual(labBottom, 0, accuracy: 0.0001, "实验舱底面应落在原点")
+        XCTAssertEqual(resourceTop, 0, accuracy: 0.0001, "资源舱顶面应落在原点")
     }
 
     func testWingsSitSymmetricallyOnResourceCabin() {
@@ -42,8 +44,141 @@ final class TiangongScaleTests: XCTestCase {
     }
 }
 
-final class TiangongHistoryTests: XCTestCase {
-    /// 逐字对照 `docs/research/realitykit-ios26-primary-sources.md` 第 15 条。
+/// 064：分段、端面连续与对接基准。这些断言守的是「改几何别把玩法改坏」。
+final class TiangongGeometryTests: XCTestCase {
+    /// 实验舱必须是 前锥 + 圆柱 + 后锥，三段之和等于一手数据 6.4 m。
+    func testLabSegmentsSumToTotal() {
+        let sum = TiangongModel.labConeLength
+            + TiangongModel.labSealLength
+            + TiangongModel.labRearConeLength
+        XCTAssertEqual(sum, TiangongModel.labLength, accuracy: 0.0001)
+    }
+
+    /// 三段在局部坐标里首尾相接：没有缝，也不重叠。
+    func testLabSegmentsAreContiguous() {
+        let rear = TiangongScale.display(TiangongModel.labRearConeLength)
+        let seal = TiangongScale.display(TiangongModel.labSealLength)
+        let cone = TiangongScale.display(TiangongModel.labConeLength)
+
+        let rearRange = (
+            TiangongLayout.labRearConeOffset - rear / 2,
+            TiangongLayout.labRearConeOffset + rear / 2
+        )
+        let sealRange = (
+            TiangongLayout.labCylinderOffset - seal / 2,
+            TiangongLayout.labCylinderOffset + seal / 2
+        )
+        let coneRange = (
+            TiangongLayout.labConeOffset - cone / 2,
+            TiangongLayout.labConeOffset + cone / 2
+        )
+
+        XCTAssertEqual(rearRange.1, sealRange.0, accuracy: 0.0001, "后锥与圆柱之间有缝")
+        XCTAssertEqual(sealRange.1, coneRange.0, accuracy: 0.0001, "圆柱与前锥之间有缝")
+        XCTAssertEqual(rearRange.0, -TiangongLayout.labLengthDisplay / 2, accuracy: 0.0001)
+        XCTAssertEqual(coneRange.1, TiangongLayout.labLengthDisplay / 2, accuracy: 0.0001)
+    }
+
+    /// 后锥段要真的收细：资源舱直径必须小于实验舱最大直径。
+    func testRearConeBridgesBothDiameters() {
+        let ratio = TiangongModel.resourceDiameter / TiangongModel.maxDiameter
+        XCTAssertLessThan(TiangongModel.resourceDiameter, TiangongModel.maxDiameter)
+        XCTAssertEqual(ratio, 0.828, accuracy: 0.005, "2.775 / 3.35，收细幅度约 17%")
+        XCTAssertGreaterThan(TiangongModel.labRearConeLength, 0, "没有后锥段就是硬切台阶")
+    }
+
+    /// 对接基准是玩法参数，不许随几何改造漂移：2cm 容差就量在这个 z 上。
+    func testDockingPortZIsPinned() {
+        XCTAssertEqual(TiangongLayout.dockingPortZ, 0.36, accuracy: 0.0001)
+    }
+
+    /// 返回舱钟形：半径单调不增，宽端满径，窄端与轨道舱衔接。
+    func testCapsuleProfileShrinksMonotonically() {
+        let radii = TiangongModel.capsuleProfile.map(\.x)
+        XCTAssertEqual(radii[0], 1, accuracy: 0.0001, "宽端应满径")
+        for index in 1..<radii.count {
+            XCTAssertLessThanOrEqual(radii[index], radii[index - 1] + 0.0001, "半径不该回涨")
+        }
+        XCTAssertEqual(
+            radii.last!,
+            TiangongModel.shenzhouOrbitalRatio,
+            accuracy: 0.03,
+            "窄端应与轨道舱直径衔接"
+        )
+    }
+
+    /// 母线轴向比例要覆盖 0…1，否则旋转体会短一截。
+    func testCapsuleProfileSpansFullLength() {
+        let ticks = TiangongModel.capsuleProfile.map(\.y)
+        XCTAssertEqual(ticks[0], 0, accuracy: 0.0001)
+        XCTAssertEqual(ticks[ticks.count - 1], 1, accuracy: 0.0001)
+        for index in 1..<ticks.count {
+            XCTAssertGreaterThan(ticks[index], ticks[index - 1], "轴向比例必须递增")
+        }
+    }
+}
+
+@MainActor
+final class TiangongSceneSegmentationTests: XCTestCase {
+    private func axialRange(of entity: Entity, in parent: Entity) -> (Float, Float)? {
+        guard let mesh = entity.components[ModelComponent.self]?.mesh else { return nil }
+        let bounds = mesh.bounds
+        let matrix = entity.transform.matrix
+        var low = Float.greatestFiniteMagnitude
+        var high = -Float.greatestFiniteMagnitude
+        for xi in [-1, 1] {
+            for yi in [-1, 1] {
+                for zi in [-1, 1] {
+                    let corner = SIMD4<Float>(
+                        xi > 0 ? bounds.max.x : bounds.min.x,
+                        yi > 0 ? bounds.max.y : bounds.min.y,
+                        zi > 0 ? bounds.max.z : bounds.min.z,
+                        1
+                    )
+                    let world = matrix * corner
+                    low = min(low, world.z)
+                    high = max(high, world.z)
+                }
+            }
+        }
+        return (low, high)
+    }
+
+    /// 实验舱必须是四个子件：后锥、圆柱、前锥、对接环。少一个就说明分段没生效。
+    func testLabIsBuiltFromFourSegments() {
+        let scene = TiangongScene()
+        scene.build()
+        guard let lab = scene.root.children.first(where: { $0.name == TiangongModuleID.lab.rawValue }) else {
+            return XCTFail("没找到实验舱实体")
+        }
+        XCTAssertEqual(lab.children.count, 4, "应为 后锥 + 圆柱 + 前锥 + 对接环")
+    }
+
+    /// 三个舱段沿轴首尾相接：不许有缝，也不许重叠。这比截图更硬——不依赖光照。
+    func testLabSegmentsTileTheAxis() {
+        let scene = TiangongScene()
+        scene.build()
+        guard let lab = scene.root.children.first(where: { $0.name == TiangongModuleID.lab.rawValue }) else {
+            return XCTFail("没找到实验舱实体")
+        }
+
+        let ranges = lab.children.compactMap { axialRange(of: $0, in: lab) }.sorted { $0.0 < $1.0 }
+        XCTAssertEqual(ranges.count, 4)
+
+        for index in 1..<3 {
+            XCTAssertEqual(ranges[index].0, ranges[index - 1].1, accuracy: 0.0002, "第 \(index) 段与上一段之间有缝")
+        }
+
+        let half = TiangongLayout.labLengthDisplay / 2
+        XCTAssertEqual(ranges[0].0, -half, accuracy: 0.0002, "后锥端面应在舱底")
+        XCTAssertEqual(ranges[2].1, half, accuracy: 0.0002, "前锥端面应在舱顶")
+
+        let port = ranges[3]
+        XCTAssertEqual((port.0 + port.1) / 2, half, accuracy: 0.002, "对接环应落在舱顶平面上")
+    }
+}
+
+final class TiangongHistoryTests: XCTestCase {    /// 逐字对照 `docs/research/realitykit-ios26-primary-sources.md` 第 15 条。
     func testFactsMatchPrimarySource() {
         XCTAssertEqual(TiangongHistory.name, "天宫一号")
         XCTAssertEqual(

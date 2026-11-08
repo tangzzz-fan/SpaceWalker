@@ -23,10 +23,14 @@ enum TiangongModel {
     static let maxDiameter: Float = 3.35
     /// 实验舱轴向长度，含前端的非密封后锥段。
     static let labLength: Float = 6.4
-    /// 锥段长度：参考图上它约占实验舱的 1/4，是舱体最显著的外形特征之一。
+    /// 前锥段长度：参考图上它约占实验舱的 1/4，是舱体最显著的外形特征之一。
     static let labConeLength: Float = 1.6
-    /// 密封舱 = 实验舱总长 − 锥段。
-    static var labSealLength: Float { labLength - labConeLength }
+    /// 后锥段：实验舱收细到资源舱直径的过渡段，一手资料写作「非密封后锥段」。
+    static let labRearConeLength: Float = 0.8
+    /// 密封圆柱段 = 实验舱总长 − 前锥 − 后锥。
+    static var labSealLength: Float { labLength - labConeLength - labRearConeLength }
+    /// 前锥收细后的小端半径占最大半径的比例。
+    static let labConeTipRatio: Float = 0.42
     /// 资源舱轴向尺寸。
     static let resourceLength: Float = 3.2
     static let resourceDiameter: Float = 2.775
@@ -44,6 +48,19 @@ enum TiangongModel {
     static var shenzhouServiceLength: Float {
         shenzhouLength - shenzhouOrbitalLength - shenzhouCapsuleLength
     }
+    /// 返回舱母线：(半径占比, 轴向比例)，从后端宽端到前端窄端。
+    /// 直母线会读成「锥」；钟形需要中段外凸，且窄端要与轨道舱对接得上。
+    static let capsuleProfile: [SIMD2<Float>] = [
+        SIMD2(1.00, 0.00),
+        SIMD2(0.99, 0.20),
+        SIMD2(0.95, 0.42),
+        SIMD2(0.88, 0.62),
+        SIMD2(0.81, 0.78),
+        SIMD2(0.75, 0.91),
+        SIMD2(0.72, 1.00),
+    ]
+    /// 轨道舱半径占飞船最大半径的比例，与返回舱窄端衔接。
+    static let shenzhouOrbitalRatio: Float = 0.74
     /// 推进舱两侧太阳翼（参考图上神舟也有两片，我之前漏做）。
     static let shenzhouWingLength: Float = 1.6
     static let shenzhouWingWidth: Float = 2.4
@@ -99,10 +116,23 @@ struct TiangongLayout {
     static let resourceLengthDisplay = TiangongScale.display(TiangongModel.resourceLength)
 
     /// 两舱首尾相接于 z = 0：实验舱在前（+Z），资源舱在后（−Z）。
-    /// 实验舱自己再分两段：密封舱在前、锥段在其中，锥段朝 +Z 收细后接对接环。
-    static let labCenter = SIMD3<Float>(0, 0, labSealDisplay / 2)
-    static let labConeCenter = SIMD3<Float>(0, 0, labSealDisplay + labConeDisplay / 2)
+    /// 实验舱自后向前分三段：后锥段、密封圆柱段、前锥段；前锥收细后接对接环。
+    static let labCenter = SIMD3<Float>(0, 0, labLengthDisplay / 2)
     static let resourceCenter = SIMD3<Float>(0, 0, -resourceLengthDisplay / 2)
+
+    static var labRearConeOffset: Float {
+        -labLengthDisplay / 2 + TiangongScale.display(TiangongModel.labRearConeLength) / 2
+    }
+
+    static var labCylinderOffset: Float {
+        labRearConeOffset
+            + TiangongScale.display(TiangongModel.labRearConeLength) / 2
+            + TiangongScale.display(TiangongModel.labSealLength) / 2
+    }
+
+    static var labConeOffset: Float {
+        labLengthDisplay / 2 - TiangongScale.display(TiangongModel.labConeLength) / 2
+    }
 
     static let dockingPortZ = labLengthDisplay + TiangongScale.display(TiangongModel.dockingPortLength)
 
