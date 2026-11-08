@@ -176,6 +176,74 @@ final class TiangongSceneSegmentationTests: XCTestCase {
         let port = ranges[3]
         XCTAssertEqual((port.0 + port.1) / 2, half, accuracy: 0.002, "对接环应落在舱顶平面上")
     }
+    /// 每翼必须是四块电池板：一手文字「一对 4 块」，参考图的分格也在这个量级。
+    func testEachWingHasFourPanels() {
+        let scene = TiangongScene()
+        scene.build()
+        for id in [TiangongModuleID.leftWing, .rightWing] {
+            guard let wing = scene.root.children.first(where: { $0.name == id.rawValue }) else {
+                return XCTFail("没找到 \(id.rawValue)")
+            }
+            let panels = wing.children.filter { $0.name.hasPrefix("panel-") }
+            XCTAssertEqual(panels.count, TiangongModel.wingPanelCount, id.rawValue)
+            XCTAssertNotNil(wing.children.first { $0.name == "hinge" }, "缺根部铰链")
+            XCTAssertNotNil(wing.children.first { $0.name == "spine" }, "缺纵梁")
+        }
+    }
+
+    /// 分格不能吃掉翼展：最外端到轴线的距离必须还是一手数据的 18.405/2。
+    func testWingStillReachesFullSpan() {
+        let scene = TiangongScene()
+        scene.build()
+        let expected = TiangongScale.display(TiangongModel.wingSpan) / 2
+
+        for id in [TiangongModuleID.leftWing, .rightWing] {
+            guard let wing = scene.root.children.first(where: { $0.name == id.rawValue }) else {
+                return XCTFail("没找到 \(id.rawValue)")
+            }
+            var outer: Float = 0
+            for panel in wing.children where panel.name.hasPrefix("panel-") {
+                guard let mesh = panel.components[ModelComponent.self]?.mesh else { continue }
+                let half = mesh.bounds.max.x
+                outer = max(outer, abs(wing.position.x + panel.position.x) + half)
+            }
+            XCTAssertEqual(outer, expected, accuracy: 0.001, "\(id.rawValue) 翼展被分格改变了")
+        }
+    }
+
+    /// 对接机构要读得出「机构」：环之外还得有卡爪与通道。
+    func testDockingPortHasLatchesAndTunnel() {
+        let scene = TiangongScene()
+        scene.build()
+        guard let lab = scene.root.children.first(where: { $0.name == TiangongModuleID.lab.rawValue }),
+              let port = lab.children.first(where: { $0.name == "port" }) else {
+            return XCTFail("没找到对接机构")
+        }
+        let latches = port.children.filter { $0.name.hasPrefix("port-latch-") }
+        XCTAssertEqual(latches.count, TiangongModel.dockingLatchCount)
+        XCTAssertNotNil(port.children.first { $0.name == "port-tunnel" }, "缺中心通道")
+        XCTAssertGreaterThanOrEqual(port.children.count + 1, 3, "环 + 卡爪 + 通道才够三件")
+    }
+
+    /// 卡爪均布：任两个相邻卡爪到轴线的距离相同，且角度间隔一致。
+    func testDockingLatchesAreEvenlySpaced() {
+        let scene = TiangongScene()
+        scene.build()
+        guard let lab = scene.root.children.first(where: { $0.name == TiangongModuleID.lab.rawValue }),
+              let port = lab.children.first(where: { $0.name == "port" }) else {
+            return XCTFail("没找到对接机构")
+        }
+        let latches = port.children.filter { $0.name.hasPrefix("port-latch-") }
+        let radii = latches.map { simd_length(SIMD2($0.position.x, $0.position.z)) }
+        for radius in radii {
+            XCTAssertEqual(radius, radii[0], accuracy: 0.0001)
+        }
+        let expected = Float.pi * 2 / Float(latches.count)
+        let angles = latches.map { atan2($0.position.z, $0.position.x) }.sorted()
+        for index in 1..<angles.count {
+            XCTAssertEqual(angles[index] - angles[index - 1], expected, accuracy: 0.001)
+        }
+    }
 }
 
 final class TiangongHistoryTests: XCTestCase {    /// 逐字对照 `docs/research/realitykit-ios26-primary-sources.md` 第 15 条。

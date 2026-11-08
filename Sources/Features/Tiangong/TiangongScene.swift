@@ -231,11 +231,42 @@ final class TiangongScene {
         lab.addChild(cone)
 
         let port = ModelEntity(
-            mesh: MeshResource.generateCylinder(height: 0.012, radius: tipRadius),
+            mesh: MeshResource.generateCylinder(height: 0.014, radius: tipRadius),
             materials: [SimpleMaterial(color: UIColor(white: 0.35, alpha: 1), roughness: 0.4, isMetallic: true)]
         )
+        port.name = "port"
         port.orientation = axis
         port.position = SIMD3(0, 0, TiangongLayout.labLengthDisplay / 2)
+
+        let tunnel = ModelEntity(
+            mesh: MeshResource.generateCylinder(height: 0.006, radius: tipRadius * 0.56),
+            materials: [SimpleMaterial(color: UIColor(white: 0.12, alpha: 1), roughness: 0.8, isMetallic: false)]
+        )
+        tunnel.name = "port-tunnel"
+        tunnel.orientation = axis
+        tunnel.position = SIMD3(0, 0, 0.006)
+        port.addChild(tunnel)
+
+        for index in 0..<TiangongModel.dockingLatchCount {
+            let angle = Float(index) / Float(TiangongModel.dockingLatchCount) * 2 * .pi
+            let latch = ModelEntity(
+                mesh: MeshResource.generateBox(
+                    width: tipRadius * 0.30,
+                    height: 0.016,
+                    depth: tipRadius * 0.22
+                ),
+                materials: [SimpleMaterial(color: UIColor(white: 0.55, alpha: 1), roughness: 0.45, isMetallic: true)]
+            )
+            latch.name = "port-latch-\(index)"
+            latch.position = SIMD3(
+                cos(angle) * tipRadius * 0.82,
+                0,
+                sin(angle) * tipRadius * 0.82
+            )
+            latch.orientation = simd_quatf(angle: -angle, axis: SIMD3(0, 1, 0))
+            port.addChild(latch)
+        }
+
         lab.addChild(port)
 
         register(.lab, lab)
@@ -255,25 +286,59 @@ final class TiangongScene {
     }
 
     private func addWing(_ id: TiangongModuleID) {
-        let mesh = MeshResource.generateBox(
-            width: TiangongScale.display(TiangongModel.wingLength),
-            height: 0.004,
-            depth: TiangongScale.display(TiangongModel.wingWidth)
+        let side: Float = id == .leftWing ? -1 : 1
+        let total = TiangongScale.display(TiangongModel.wingLength)
+        let gap = TiangongScale.display(TiangongModel.wingPanelGap)
+        let count = Float(TiangongModel.wingPanelCount)
+        let panel = (total - gap * (count - 1)) / count
+        let width = TiangongScale.display(TiangongModel.wingWidth)
+
+        let holder = Entity()
+
+        let backing = ModelEntity(
+            mesh: MeshResource.generateBox(width: total, height: 0.0016, depth: width * 0.97),
+            materials: [SimpleMaterial(color: UIColor(white: 0.22, alpha: 1), roughness: 0.75, isMetallic: false)]
         )
-        let entity = ModelEntity(
-            mesh: mesh,
-            materials: [SimpleMaterial(color: UIColor(red: 0.10, green: 0.15, blue: 0.32, alpha: 1), roughness: 0.35, isMetallic: false)]
+        backing.name = "backing"
+        backing.position = SIMD3(0, -0.0024, 0)
+        holder.addChild(backing)
+
+        let panelMaterial = SimpleMaterial(
+            color: UIColor(red: 0.10, green: 0.15, blue: 0.32, alpha: 1),
+            roughness: 0.35,
+            isMetallic: false
         )
+        for index in 0..<TiangongModel.wingPanelCount {
+            let node = ModelEntity(
+                mesh: MeshResource.generateBox(width: panel, height: 0.003, depth: width),
+                materials: [panelMaterial]
+            )
+            node.name = "panel-\(index)"
+            node.position = SIMD3(
+                side * (panel / 2 + Float(index) * (panel + gap) - total / 2),
+                0,
+                0
+            )
+            holder.addChild(node)
+        }
+
         let spine = ModelEntity(
-            mesh: MeshResource.generateBox(
-                width: TiangongScale.display(TiangongModel.wingLength),
-                height: 0.006,
-                depth: 0.006
-            ),
+            mesh: MeshResource.generateBox(width: total, height: 0.006, depth: 0.006),
             materials: [SimpleMaterial(color: UIColor(white: 0.85, alpha: 1), roughness: 0.3, isMetallic: true)]
         )
-        entity.addChild(spine)
-        register(id, entity)
+        spine.name = "spine"
+        spine.position = SIMD3(0, 0, width / 2 - 0.004)
+        holder.addChild(spine)
+
+        let hinge = ModelEntity(
+            mesh: MeshResource.generateBox(width: 0.018, height: 0.012, depth: width * 0.9),
+            materials: [SimpleMaterial(color: UIColor(white: 0.72, alpha: 1), roughness: 0.45, isMetallic: true)]
+        )
+        hinge.name = "hinge"
+        hinge.position = SIMD3(-side * total / 2 + side * 0.009, 0, 0)
+        holder.addChild(hinge)
+
+        register(id, holder)
     }
 
     /// 神舟三舱，按参考图从前往后：轨道舱（对接端）→ 返回舱（钟形）→ 推进舱（带两片翼）。

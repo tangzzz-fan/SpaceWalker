@@ -69,6 +69,12 @@ enum TiangongModel {
     static var wingLength: Float {
         (wingSpan - maxDiameter) / 2
     }
+    /// 单翼电池板块数：一手文字「由一对 4 块太阳电池板组成」。
+    static let wingPanelCount = 4
+    /// 板间缝（真实尺寸，米）。视觉上必须能看出分格，但不吃掉翼展。
+    static let wingPanelGap: Float = 0.16
+    /// 对接机构卡爪数：被动对接机构的均布锁钩。
+    static let dockingLatchCount = 4
 }
 
 enum TiangongModuleID: String, CaseIterable, Equatable, Sendable, Identifiable {
