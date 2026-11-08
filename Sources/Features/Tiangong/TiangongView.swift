@@ -95,9 +95,10 @@ struct TiangongView: View {
         RealityView { content in
             content.camera = .virtual
             content.environment = environment
-            session.scene.build()
+            session.scene.rebuild()
             content.add(session.scene.root)
             session.attach(content)
+            session.applyRig()
         } update: { _ in
             session.applyRig()
         }

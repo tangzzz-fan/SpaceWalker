@@ -14,6 +14,18 @@ final class TiangongScene {
     private var content: RealityViewCameraContent?
     private var isBuilt = false
 
+    /// RealityView 每次重建都会拿到一个新的 `RealityViewCameraContent`。
+    /// 复用同一个 root 二次 add 进新 scene 不生效（页面重建后一片黑），
+    /// 所以每次进路由都重建整棵树——五个实体、几十个三角形，成本可忽略。
+    func rebuild() {
+        root.removeFromParent()
+        root = Entity()
+        moduleNodes.removeAll()
+        cameraEntity = nil
+        isBuilt = false
+        build()
+    }
+
     func build() {
         guard !isBuilt else { return }
         isBuilt = true
@@ -197,15 +209,17 @@ final class TiangongScene {
         lab.addChild(seal)
 
         // 前端的非密封后锥段：参考图上舱体在这里收细，再接到对接环。
+        let coneRadius = TiangongScale.display(TiangongModel.maxDiameter) / 2
         let cone = ModelEntity(
-            mesh: MeshResource.generateCone(
-                height: TiangongLayout.labConeDisplay,
-                radius: TiangongScale.display(TiangongModel.maxDiameter) / 2
+            mesh: TiangongMesh.frustum(
+                topRadius: coneRadius * 0.42,
+                bottomRadius: coneRadius,
+                height: TiangongLayout.labConeDisplay
             ),
             materials: [SimpleMaterial(color: UIColor(white: 0.7, alpha: 1), roughness: 0.6, isMetallic: true)]
         )
-        // 锥尖朝 +Z（朝向神舟那一侧）；用 +π/2 会反过来，参考图上两艘飞行器的锥尖是相对的。
-        cone.orientation = simd_quatf(angle: -.pi / 2, axis: SIMD3(1, 0, 0))
+        // 小端朝 +Z（朝向神舟那一侧）。锥台不是尖锥：参考图上舱体是收细后接对接环。
+        cone.orientation = simd_quatf(angle: .pi / 2, axis: SIMD3(1, 0, 0))
         cone.position = SIMD3(0, 0, TiangongLayout.labSealDisplay / 2 + TiangongLayout.labConeDisplay / 2)
         lab.addChild(cone)
 
@@ -279,8 +293,14 @@ final class TiangongScene {
         orbital.position = SIMD3(0, 0, -length / 2 + orbitalLength / 2)
         holder.addChild(orbital)
 
+        // 返回舱是钟形，侧视近似为「粗端朝后、小端朝前」的锥台。
+        // 用圆锥会让尖头戳在轨道舱端面上，那是之前看起来不对的原因。
         let capsule = ModelEntity(
-            mesh: MeshResource.generateCone(height: capsuleLength, radius: radius),
+            mesh: TiangongMesh.frustum(
+                topRadius: radius * 0.5,
+                bottomRadius: radius,
+                height: capsuleLength
+            ),
             materials: [SimpleMaterial(color: UIColor(white: 0.75, alpha: 1), roughness: 0.5, isMetallic: false)]
         )
         capsule.orientation = simd_quatf(angle: -.pi / 2, axis: SIMD3(1, 0, 0))

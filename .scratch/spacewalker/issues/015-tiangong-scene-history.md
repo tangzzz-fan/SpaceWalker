@@ -67,6 +67,17 @@ Wikimedia Commons `Tiangong 1 drawing.png`（CC BY-SA 3.0，Craigboy）对照，
 
 参考图归档在 `docs/gates/M3/reference-tiangong-drawing.png`。
 
+### 第二轮：锥台与路由往返
+
+- **锥体看着不对**：用 `generateCone`（完整圆锥）近似钟形返回舱与实验舱前锥段，
+  锥尖会「戳」在相邻圆柱的端面上。RealityKit 没有锥台生成器，补了 `TiangongMesh.frustum`
+  （MeshDescriptor 手工生成侧面 + 两端盖），两处都换成锥台：实验舱 粗端→0.42R，
+  返回舱 粗端→0.5R。
+- **切回天宫黑屏**：`RealityView` 每次重建都拿到新的 `RealityViewCameraContent`，
+  复用同一个 root 二次 `add` 进新 scene 不生效（先 `removeFromParent` 也不行）。
+  改为 `rebuild()`：每次进路由重建整棵树（五个实体、几十个三角形，成本可忽略）。
+  验证：模拟器往返后截图 368KB（黑屏）→ 2.8MB（有画面），UI 测试在真机也通过。
+
 ## 遗留
 
 - **辨识度不及格**：当前形态是「两段圆筒 + 两片薄板 + 一个锥」，裸看像水管而非航天器。
