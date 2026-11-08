@@ -81,6 +81,14 @@ final class TiangongScene {
         moduleNodes[id]?.position = position
     }
 
+    /// 飞船姿态：绕竖直轴偏航、绕横轴俯仰。角度是度，视觉与判定共用同一个值。
+    func setAttitude(yawDegrees: Float, pitchDegrees: Float, for id: TiangongModuleID) {
+        guard let node = moduleNodes[id] else { return }
+        let yaw = simd_quatf(angle: yawDegrees * .pi / 180, axis: SIMD3(0, 1, 0))
+        let pitch = simd_quatf(angle: pitchDegrees * .pi / 180, axis: SIMD3(1, 0, 0))
+        node.orientation = yaw * pitch
+    }
+
     /// 排斥：沿判定给的方向弹开一点，让「装不进去」有可见的方向感。
     func push(_ id: TiangongModuleID, direction: SIMD3<Float>, distance: Float = 0.05) {
         guard let node = moduleNodes[id] else { return }

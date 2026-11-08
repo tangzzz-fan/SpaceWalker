@@ -341,3 +341,41 @@ final class TiangongMissionTests: XCTestCase {
         XCTAssertEqual(TiangongMission.docking(state, outcome: .docked), state)
     }
 }
+
+@MainActor
+final class TiangongShipAttitudeTests: XCTestCase {
+    /// 双指旋转的角度一半给偏航、一半给俯仰。
+    func testRotationSplitsBetweenYawAndPitch() {
+        let session = TiangongSession()
+        session.beginDocking()
+        session.rotateShip(degrees: 10)
+        XCTAssertEqual(session.shipYaw, 5, accuracy: 0.001)
+        XCTAssertEqual(session.shipPitch, 5, accuracy: 0.001)
+    }
+
+    func testRotationClampedBothWays() {
+        let session = TiangongSession()
+        session.beginDocking()
+        session.rotateShip(degrees: 1000)
+        XCTAssertEqual(session.shipYaw, 30, accuracy: 0.001)
+        session.rotateShip(degrees: -2000)
+        XCTAssertEqual(session.shipYaw, -30, accuracy: 0.001)
+    }
+
+    func testRotationIgnoredOutsideDocking() {
+        let session = TiangongSession()
+        session.rotateShip(degrees: 20)
+        XCTAssertEqual(session.shipYaw, 0)
+    }
+
+    /// 姿态偏差进入判定：超过 5° 时接触必失败。
+    func testSteepAngleFailsDocking() {
+        XCTAssertEqual(
+            TiangongDocking.judge(
+                TiangongDocking.Input(offset: .zero, angleDegrees: 6, speed: 0),
+                delta: 0.1
+            ),
+            .failed(.tooSteep)
+        )
+    }
+}

@@ -24,6 +24,9 @@ final class TiangongSession {
     var dockingOutcome: TiangongDocking.Outcome = .approaching
     var controlMode: TiangongDocking.ControlMode = .coarse
     var dockingElapsed: TimeInterval = 0
+    /// 飞船姿态偏差（度）。UI 可达，判定与视觉共用。
+    var shipYaw: Float = 0
+    var shipPitch: Float = 0
     var dockingHolding: TimeInterval = 0
 
     @ObservationIgnored private var lastDockingOffset: SIMD3<Float>?
@@ -148,6 +151,8 @@ final class TiangongSession {
         dockingOutcome = .approaching
         dockingElapsed = 0
         dockingHolding = 0
+        shipYaw = 0
+        shipPitch = 0
         lastDockingOffset = nil
         selected = nil
         applyShipPosition()
@@ -158,6 +163,7 @@ final class TiangongSession {
         dockingActive = false
         dockingOutcome = .approaching
         scene.setPosition(TiangongLayout.shenzhouCenter, for: .shenzhou)
+        scene.setAttitude(yawDegrees: 0, pitchDegrees: 0, for: .shenzhou)
         SessionLog.append("tiangong.docking end")
     }
 
@@ -186,6 +192,16 @@ final class TiangongSession {
         applyShipPosition()
     }
 
+    /// 双指旋转微调姿态。偏航与俯仰各分一半角度，视觉上像「斜着歪」，
+    /// 判定用的是合成后的偏差角——`tooSteep` 因此变得可达。
+    func rotateShip(degrees: Double) {
+        guard dockingActive, !isTerminal else { return }
+        let half = Float(degrees) / 2
+        shipYaw = min(max(shipYaw + half, -30), 30)
+        shipPitch = min(max(shipPitch + half, -30), 30)
+        scene.setAttitude(yawDegrees: shipYaw, pitchDegrees: shipPitch, for: .shenzhou)
+    }
+
     func stepDocking(delta: TimeInterval) {
         guard dockingActive, !isTerminal else { return }
         dockingElapsed += delta
@@ -197,6 +213,7 @@ final class TiangongSession {
         let outcome = TiangongDocking.judge(
             TiangongDocking.Input(
                 offset: dockingOffset,
+                angleDegrees: max(abs(shipYaw), abs(shipPitch)),
                 speed: speed,
                 elapsed: dockingElapsed,
                 holding: dockingHolding

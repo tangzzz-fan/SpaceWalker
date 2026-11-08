@@ -11,6 +11,7 @@ struct TiangongView: View {
     @State private var showsHistory = false
     @State private var dragMode: DragMode = .none
     @State private var lastDrag: CGSize = .zero
+    @State private var lastRotation: Double = 0
     @State private var dockTicker = Timer.publish(every: 0.1, on: .main, in: .common).autoconnect()
 
     private enum DragMode { case none, orbit, module, docking }
@@ -104,6 +105,7 @@ struct TiangongView: View {
         )
         .gesture(orbitGesture)
         .simultaneousGesture(zoomGesture)
+        .simultaneousGesture(rotateGesture)
         .simultaneousGesture(selectGesture)
     }
 
@@ -162,6 +164,20 @@ struct TiangongView: View {
                 if !session.dockingActive {
                     session.endMagnify()
                 }
+            }
+    }
+
+    /// 双指旋转只在对接模式下有意义，其余时候吃掉手势会挡住缩放。
+    private var rotateGesture: some Gesture {
+        RotateGesture()
+            .onChanged { value in
+                guard session.dockingActive else { return }
+                let degrees = value.rotation.degrees
+                session.rotateShip(degrees: degrees - lastRotation)
+                lastRotation = degrees
+            }
+            .onEnded { _ in
+                lastRotation = 0
             }
     }
 
@@ -261,7 +277,10 @@ struct TiangongView: View {
                     .buttonStyle(.borderedProminent)
                     .controlSize(.small)
             }
-            Text("拖动平移 · 捏合推进 · 单指转视角已停用")
+            Text("拖动平移 · 捏合推进 · 双指旋转调姿态")
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+            Text("姿态偏差 \(Int(max(abs(session.shipYaw), abs(session.shipPitch))))° / 容差 \(Int(TiangongDocking.angleTolerance))°")
                 .font(.caption2)
                 .foregroundStyle(.secondary)
         }
