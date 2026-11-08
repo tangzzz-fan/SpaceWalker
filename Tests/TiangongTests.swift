@@ -151,7 +151,9 @@ final class TiangongSceneSegmentationTests: XCTestCase {
         guard let lab = scene.root.children.first(where: { $0.name == TiangongModuleID.lab.rawValue }) else {
             return XCTFail("没找到实验舱实体")
         }
-        XCTAssertEqual(lab.children.count, 4, "应为 后锥 + 圆柱 + 前锥 + 对接环")
+        let segments: Set<String> = ["lab-rear-cone", "lab-seal", "lab-cone", "port"]
+        let present = lab.children.filter { segments.contains($0.name) }
+        XCTAssertEqual(present.count, 4, "应为 后锥 + 圆柱 + 前锥 + 对接环")
     }
 
     /// 三个舱段沿轴首尾相接：不许有缝，也不许重叠。这比截图更硬——不依赖光照。
@@ -162,7 +164,11 @@ final class TiangongSceneSegmentationTests: XCTestCase {
             return XCTFail("没找到实验舱实体")
         }
 
-        let ranges = lab.children.compactMap { axialRange(of: $0, in: lab) }.sorted { $0.0 < $1.0 }
+        let segments: Set<String> = ["lab-rear-cone", "lab-seal", "lab-cone", "port"]
+        let ranges = lab.children
+            .filter { segments.contains($0.name) }
+            .compactMap { axialRange(of: $0, in: lab) }
+            .sorted { $0.0 < $1.0 }
         XCTAssertEqual(ranges.count, 4)
 
         for index in 1..<3 {
@@ -250,6 +256,44 @@ final class TiangongSceneSegmentationTests: XCTestCase {
         scene.build()
         XCTAssertGreaterThan(scene.triangleEstimate, 1000, "计数没递归到子节点")
         XCTAssertLessThanOrEqual(scene.triangleEstimate, 20_000)
+        XCTAssertLessThanOrEqual(scene.entityCount, 60, "实体超预算")
+        XCTAssertLessThanOrEqual(scene.modelEntityCount, 40, "模型数超预算，同材质小件要合并")
+    }
+
+    /// 资源舱尾部必须读得出「动力系统 + 天线」：一手资料与新华社示意图都标了这两样。
+    func testResourceCarriesEnginesAndAntenna() {
+        let scene = TiangongScene()
+        scene.build()
+        guard let resource = scene.root.children.first(where: { $0.name == TiangongModuleID.resource.rawValue }) else {
+            return XCTFail("没找到资源舱")
+        }
+        for name in ["resource-engines", "resource-verniers", "antenna-dish", "antenna-mast"] {
+            XCTAssertNotNil(resource.children.first { $0.name == name }, "缺 \(name)")
+        }
+        XCTAssertEqual(
+            resource.children.compactMap { $0.name }.filter { $0.hasPrefix("resource-engine-") }.count,
+            0,
+            "喷管必须合并成一个网格，不能每个一个实体"
+        )
+    }
+
+    func testShenzhouHasEngines() {
+        let scene = TiangongScene()
+        scene.build()
+        guard let ship = scene.root.children.first(where: { $0.name == TiangongModuleID.shenzhou.rawValue }) else {
+            return XCTFail("没找到神舟")
+        }
+        XCTAssertNotNil(ship.children.first { $0.name == "shenzhou-engines" })
+    }
+
+    func testLabHasTwoWindows() {
+        let scene = TiangongScene()
+        scene.build()
+        guard let lab = scene.root.children.first(where: { $0.name == TiangongModuleID.lab.rawValue }) else {
+            return XCTFail("没找到实验舱")
+        }
+        let windows = lab.children.filter { $0.name.hasPrefix("lab-window-") }
+        XCTAssertEqual(windows.count, 2)
     }
 }
 

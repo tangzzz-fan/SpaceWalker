@@ -75,6 +75,27 @@ enum TiangongModel {
     static let wingPanelGap: Float = 0.16
     /// 对接机构卡爪数：被动对接机构的均布锁钩。
     static let dockingLatchCount = 4
+    /// 资源舱尾部轨控发动机：一手资料「2 台 490 N」，两侧各一。
+    static let mainEngineCount = 2
+    /// 备用发动机「4 台 150 N」，绕轴均布。
+    static let vernierCount = 4
+    /// 中继天线口径，一手资料「直径约 1 m」。
+    static let relayAntennaDiameter: Float = 1.0
+    /// 喷管母线（归一化）：y=0 是喉部，y=1 是喷口，中间外扩成钟形。
+    static let nozzleProfile: [SIMD2<Float>] = [
+        SIMD2(0.42, 0.00),
+        SIMD2(0.46, 0.35),
+        SIMD2(0.58, 0.62),
+        SIMD2(0.80, 0.84),
+        SIMD2(1.00, 1.00),
+    ]
+    /// 抛物面天线母线（归一化）：y=1 是口沿，y=0 是馈源端，凹面朝外。
+    static let dishProfile: [SIMD2<Float>] = [
+        SIMD2(1.00, 1.00),
+        SIMD2(0.74, 0.64),
+        SIMD2(0.44, 0.30),
+        SIMD2(0.00, 0.00),
+    ]
 }
 
 enum TiangongModuleID: String, CaseIterable, Equatable, Sendable, Identifiable {

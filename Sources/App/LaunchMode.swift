@@ -152,6 +152,11 @@ enum LaunchMode {
         environment["SPACEWALKER_TG_PITCH"].flatMap(Float.init)
     }
 
+    /// 盲测与结构核对照用：关掉常驻部件标签，只看几何。
+    static func tiangongLabelsHidden(environment: [String: String]) -> Bool {
+        environment["SPACEWALKER_TG_NOLABEL"] == "1"
+    }
+
     /// 无头截图用：启动即分离指定部件，逗号分隔（lab,leftWing）。
     static func tiangongSeparated(environment: [String: String]) -> Set<TiangongModuleID> {
         guard let raw = environment["SPACEWALKER_TG_SEPARATED"] else { return [] }

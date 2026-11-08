@@ -11,11 +11,14 @@ enum TiangongMesh {
     }
 
     /// 母线点：x = 半径，y = 轴向比例（0 在 −Y 端，1 在 +Y 端）。
+    /// `instances` 把同一个母线复制成多份并共用一个网格——同材质的小件必须合并，
+    /// 否则 10 个喷口就是 10 个 draw call。
     static func revolve(
         profile: [SIMD2<Float>],
         height: Float,
         sides: Int = 32,
-        caps: Caps = .both
+        caps: Caps = .both,
+        instances: [float4x4] = [matrix_identity_float4x4]
     ) -> MeshResource {
         guard profile.count >= 2, height > 0, sides >= 3 else {
             return MeshResource.generateBox(size: 0.01)
@@ -92,6 +95,34 @@ enum TiangongMesh {
             }
         }
 
+        if instances.count > 1 {
+            let basePositions = positions
+            let baseNormals = normals
+            let baseUVs = uvs
+            let baseIndices = indices
+            positions = []
+            normals = []
+            uvs = []
+            indices = []
+            for (slot, transform) in instances.enumerated() {
+                let rotation = simd_float3x3(
+                    SIMD3(transform.columns.0.x, transform.columns.0.y, transform.columns.0.z),
+                    SIMD3(transform.columns.1.x, transform.columns.1.y, transform.columns.1.z),
+                    SIMD3(transform.columns.2.x, transform.columns.2.y, transform.columns.2.z)
+                )
+                let offset = UInt32(slot * basePositions.count)
+                for position in basePositions {
+                    let moved = transform * SIMD4(position, 1)
+                    positions.append(SIMD3(moved.x, moved.y, moved.z))
+                }
+                for normal in baseNormals {
+                    normals.append(simd_normalize(rotation * normal))
+                }
+                uvs.append(contentsOf: baseUVs)
+                indices.append(contentsOf: baseIndices.map { $0 + offset })
+            }
+        }
+
         var descriptor = MeshDescriptor(name: "revolve")
         descriptor.positions = MeshBuffer(positions)
         descriptor.normals = MeshBuffer(normals)
@@ -114,6 +145,12 @@ enum TiangongMesh {
             sides: sides,
             caps: caps
         )
+    }
+
+    static func placement(_ position: SIMD3<Float>, _ orientation: simd_quatf) -> float4x4 {
+        var matrix = simd_float4x4(orientation)
+        matrix.columns.3 = SIMD4(position, 1)
+        return matrix
     }
 
     private static func tangentAt(_ profile: [SIMD2<Float>], ring: Int) -> SIMD2<Float> {

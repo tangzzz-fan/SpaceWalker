@@ -48,7 +48,10 @@ final class TiangongScene {
         addLights()
 
         let elapsed = Int((CACurrentMediaTime() - started) * 1000)
-        SessionLog.append("tiangong.build ms=\(elapsed) triangles=\(triangleEstimate)")
+        SessionLog.append(
+            "tiangong.build ms=\(elapsed) triangles=\(triangleEstimate)"
+                + " entities=\(entityCount) models=\(modelEntityCount)"
+        )
     }
 
     func attach(_ content: RealityViewCameraContent) {
@@ -182,6 +185,23 @@ final class TiangongScene {
         moduleNodes.values.reduce(0) { $0 + triangles(in: $1) }
     }
 
+    var entityCount: Int {
+        moduleNodes.values.reduce(0) { $0 + entities(in: $1) }
+    }
+
+    var modelEntityCount: Int {
+        moduleNodes.values.reduce(0) { $0 + models(in: $1) }
+    }
+
+    private func entities(in entity: Entity) -> Int {
+        1 + entity.children.reduce(0) { $0 + entities(in: $1) }
+    }
+
+    private func models(in entity: Entity) -> Int {
+        let selfCount = entity.components[ModelComponent.self] == nil ? 0 : 1
+        return selfCount + entity.children.reduce(0) { $0 + models(in: $1) }
+    }
+
     private func triangles(in entity: Entity) -> Int {
         var count = 0
         if let mesh = entity.components[ModelComponent.self]?.mesh {
@@ -221,6 +241,7 @@ final class TiangongScene {
             mesh: MeshResource.generateCylinder(height: sealHeight, radius: radius),
             materials: [TiangongMaterials.labBody()]
         )
+        seal.name = "lab-seal"
         seal.orientation = axis
         seal.position = SIMD3(0, 0, TiangongLayout.labCylinderOffset)
         lab.addChild(seal)
@@ -229,6 +250,7 @@ final class TiangongScene {
             mesh: TiangongMesh.frustum(topRadius: radius, bottomRadius: resourceRadius, height: rearHeight, caps: .none),
             materials: [TiangongMaterials.labCone()]
         )
+        rear.name = "lab-rear-cone"
         rear.orientation = axis
         rear.position = SIMD3(0, 0, TiangongLayout.labRearConeOffset)
         lab.addChild(rear)
@@ -237,6 +259,7 @@ final class TiangongScene {
             mesh: TiangongMesh.frustum(topRadius: tipRadius, bottomRadius: radius, height: coneHeight, caps: .none),
             materials: [TiangongMaterials.labCone()]
         )
+        cone.name = "lab-cone"
         cone.orientation = axis
         cone.position = SIMD3(0, 0, TiangongLayout.labConeOffset)
         lab.addChild(cone)
@@ -280,20 +303,102 @@ final class TiangongScene {
 
         lab.addChild(port)
 
+        for (index, x) in [Float(-0.032), 0.032].enumerated() {
+            let frame = ModelEntity(
+                mesh: MeshResource.generateCylinder(height: 0.004, radius: 0.0115),
+                materials: [TiangongMaterials.hardware(0.82)]
+            )
+            frame.name = "lab-window-\(index)"
+            let y = max(radius * radius - x * x, 0).squareRoot()
+            frame.position = SIMD3(x, y, TiangongLayout.labCylinderOffset + 0.032)
+
+            let glass = ModelEntity(
+                mesh: MeshResource.generateCylinder(height: 0.005, radius: 0.008),
+                materials: [TiangongMaterials.inner()]
+            )
+            glass.name = "lab-window-glass-\(index)"
+            glass.position = SIMD3(0, 0.0008, 0)
+            frame.addChild(glass)
+            lab.addChild(frame)
+        }
+
         register(.lab, lab)
     }
 
     private func addResource() {
-        let mesh = MeshResource.generateCylinder(
-            height: TiangongLayout.resourceLengthDisplay,
-            radius: TiangongScale.display(TiangongModel.resourceDiameter) / 2
-        )
-        let entity = ModelEntity(
-            mesh: mesh,
+        let holder = Entity()
+        let radius = TiangongScale.display(TiangongModel.resourceDiameter) / 2
+        let length = TiangongLayout.resourceLengthDisplay
+
+        let body = ModelEntity(
+            mesh: MeshResource.generateCylinder(height: length, radius: radius),
             materials: [TiangongMaterials.resource()]
         )
-        entity.orientation = simd_quatf(angle: .pi / 2, axis: SIMD3(1, 0, 0))
-        register(.resource, entity)
+        body.name = "resource-body"
+        body.orientation = simd_quatf(angle: .pi / 2, axis: SIMD3(1, 0, 0))
+        holder.addChild(body)
+
+        let aft = -length / 2
+        let aftRotation = simd_quatf(angle: -.pi / 2, axis: SIMD3(1, 0, 0))
+
+        let mainPlacements = (0..<TiangongModel.mainEngineCount).map { index in
+            let side: Float = index == 0 ? -1 : 1
+            return TiangongMesh.placement(SIMD3(side * radius * 0.42, 0, aft - 0.006), aftRotation)
+        }
+        let engines = ModelEntity(
+            mesh: TiangongMesh.revolve(
+                profile: TiangongModel.nozzleProfile.map { SIMD2($0.x * 0.018, $0.y) },
+                height: 0.022,
+                sides: 20,
+                instances: mainPlacements
+            ),
+            materials: [TiangongMaterials.hardware(0.32)]
+        )
+        engines.name = "resource-engines"
+        holder.addChild(engines)
+
+        let vernierPlacements = (0..<TiangongModel.vernierCount).map { index in
+            let angle = Float(index) / Float(TiangongModel.vernierCount) * 2 * .pi
+            return TiangongMesh.placement(
+                SIMD3(cos(angle) * radius * 0.7, sin(angle) * radius * 0.7, aft - 0.002),
+                aftRotation
+            )
+        }
+        let verniers = ModelEntity(
+            mesh: TiangongMesh.revolve(
+                profile: TiangongModel.nozzleProfile.map { SIMD2($0.x * 0.009, $0.y) },
+                height: 0.012,
+                sides: 16,
+                instances: vernierPlacements
+            ),
+            materials: [TiangongMaterials.hardware(0.45)]
+        )
+        verniers.name = "resource-verniers"
+        holder.addChild(verniers)
+
+        let mast = ModelEntity(
+            mesh: MeshResource.generateCylinder(height: 0.02, radius: 0.0035),
+            materials: [TiangongMaterials.hardware(0.7)]
+        )
+        mast.name = "antenna-mast"
+        mast.position = SIMD3(0, radius + 0.006, 0)
+        holder.addChild(mast)
+
+        let dishRadius = TiangongScale.display(TiangongModel.relayAntennaDiameter) / 2
+        let dish = ModelEntity(
+            mesh: TiangongMesh.revolve(
+                profile: TiangongModel.dishProfile.map { SIMD2($0.x * dishRadius, $0.y) },
+                height: 0.008,
+                sides: 24,
+                caps: .none
+            ),
+            materials: [TiangongMaterials.hardware(0.78)]
+        )
+        dish.name = "antenna-dish"
+        dish.position = SIMD3(0, radius + 0.020, 0)
+        holder.addChild(dish)
+
+        register(.resource, holder)
     }
 
     private func addWing(_ id: TiangongModuleID) {
@@ -388,6 +493,26 @@ final class TiangongScene {
         service.orientation = simd_quatf(angle: .pi / 2, axis: SIMD3(1, 0, 0))
         service.position = SIMD3(0, 0, length / 2 - serviceLength / 2)
         holder.addChild(service)
+
+        let aftRotation = simd_quatf(angle: .pi / 2, axis: SIMD3(1, 0, 0))
+        let enginePlacements = (0..<TiangongModel.vernierCount).map { index in
+            let angle = Float(index) / Float(TiangongModel.vernierCount) * 2 * .pi
+            return TiangongMesh.placement(
+                SIMD3(cos(angle) * radius * 0.55, sin(angle) * radius * 0.55, length / 2 + 0.006),
+                aftRotation
+            )
+        }
+        let engines = ModelEntity(
+            mesh: TiangongMesh.revolve(
+                profile: TiangongModel.nozzleProfile.map { SIMD2($0.x * 0.011, $0.y) },
+                height: 0.014,
+                sides: 16,
+                instances: enginePlacements
+            ),
+            materials: [TiangongMaterials.hardware(0.42)]
+        )
+        engines.name = "shenzhou-engines"
+        holder.addChild(engines)
 
         for sign in [Float(-1), 1] {
             let wing = ModelEntity(

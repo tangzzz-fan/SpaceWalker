@@ -26,7 +26,9 @@ struct TiangongView: View {
                 reality(environment)
             }
 
-            labelLayer
+            if !LaunchMode.tiangongLabelsHidden(environment: ProcessInfo.processInfo.environment) {
+                labelLayer
+            }
 
             VStack(alignment: .leading, spacing: 0) {
                 topBar
