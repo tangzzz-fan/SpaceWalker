@@ -23,6 +23,11 @@ final class TiangongScene {
     private var interiorGroup: Entity?
     private var cameraOverride = false
     private(set) var cutawayMode = false
+    private var reentryTrail: Entity?
+    private var reentryMaterials: [ObjectIdentifier: [any RealityKit.Material]] = [:]
+    private var reentryProgress = TiangongReentry.Progress()
+    private var reentryHeat: Float = 0
+    private(set) var reentryActive = false
 
     /// RealityView 每次重建都会拿到一个新的 `RealityViewCameraContent`。
     /// 复用同一个 root 二次 add 进新 scene 不生效（页面重建后一片黑），
@@ -33,6 +38,9 @@ final class TiangongScene {
         moduleNodes.removeAll()
         lightGroup.removeAll()
         baseMaterials.removeAll()
+        reentryMaterials.removeAll()
+        reentryHeat = 0
+        reentryTrail = nil
         cameraEntity = nil
         isBuilt = false
         build()
@@ -58,12 +66,16 @@ final class TiangongScene {
         addWing(.rightWing)
         addShenzhou()
         addLights()
+        addReentryTrail()
 
         if drawingMode {
             applyDrawingMode()
         }
         if cutawayMode {
             applyCutawayState()
+        }
+        if reentryActive {
+            applyReentryState()
         }
 
         let elapsed = Int((CACurrentMediaTime() - started) * 1000)
@@ -141,6 +153,141 @@ final class TiangongScene {
 
     func attach(_ content: RealityViewCameraContent) {
         self.content = content
+    }
+
+    // MARK: - 再入
+
+    /// 尾迹是一条母线旋转体，不用粒子：粒子数量不可控，会撞 068 的 draw call 预算。
+    /// 挂在资源舱下——下沉、淡出、预算统计都随父节点走，不另写一份同步。
+    private func addReentryTrail() {
+        guard let resource = moduleNodes[.resource] else { return }
+        let length = TiangongScale.display(TiangongModel.reentryTrailLength)
+        let trail = ModelEntity(
+            mesh: TiangongMesh.revolve(
+                profile: TiangongModel.reentryTrailProfile,
+                height: length,
+                sides: 24,
+                caps: .none
+            ),
+            materials: [trailMaterial(opacity: 0.001)]
+        )
+        trail.name = "reentry-trail"
+        trail.orientation = simd_quatf(angle: -.pi / 2, axis: SIMD3(1, 0, 0))
+        trail.position = SIMD3(0, 0, -TiangongLayout.resourceLengthDisplay / 2 - length / 2)
+        trail.isEnabled = false
+        resource.addChild(trail)
+        reentryTrail = trail
+    }
+
+    /// RealityKit 的 `UnlitMaterial.Blending` 只有 opaque / transparent，没有加法混合；
+    /// 深色星空上用透明混合的亮橙，观感与加法接近，也就不必自造 CustomMaterial。
+    private func trailMaterial(opacity: Float) -> UnlitMaterial {
+        var material = UnlitMaterial(color: UIColor(red: 1, green: 0.46, blue: 0.16, alpha: 1))
+        material.blending = .transparent(opacity: .init(floatLiteral: max(opacity, 0.001)))
+        return material
+    }
+
+    /// 再入是三段式的：下沉、加热、解体。渲染只消费 `progress`，不自己算时间。
+    func setReentry(active: Bool, progress: TiangongReentry.Progress) {
+        reentryActive = active
+        reentryProgress = progress
+        applyReentryState()
+    }
+
+    private func applyReentryState() {
+        guard isBuilt else { return }
+        let descent = reentryActive ? reentryProgress.coast * 0.16 : 0
+        for id in TiangongModuleID.allCases {
+            guard let node = moduleNodes[id] else { continue }
+            node.position = TiangongLayout.restPosition(id) + SIMD3(0, -descent, 0)
+            if reentryActive {
+                node.components[OpacityComponent.self] = OpacityComponent(
+                    opacity: reentryProgress.alphas[id] ?? 1
+                )
+            } else {
+                node.components.remove(OpacityComponent.self)
+            }
+        }
+
+        applyReentryHeat(reentryActive ? reentryProgress.heat : 0)
+
+        if let trail = reentryTrail {
+            let heat = reentryActive ? reentryProgress.heat : 0
+            trail.isEnabled = heat > 0.01
+            let length = TiangongScale.display(TiangongModel.reentryTrailLength)
+            let grow = 0.3 + 0.7 * heat
+            trail.scale = SIMD3(0.72, grow, 0.72)
+            trail.position = SIMD3(
+                0,
+                0,
+                -TiangongLayout.resourceLengthDisplay / 2 - length * grow / 2
+            )
+            // 不透明度只跟加热走；解体的淡出由资源舱的 OpacityComponent 带下来。
+            trail.components[ModelComponent.self]?.materials = [
+                trailMaterial(opacity: heat)
+            ]
+        }
+    }
+
+    /// 发光强度按 0.02 量化，避免每 0.1 s 把 38 个模型的材质数组重写一遍。
+    private func applyReentryHeat(_ heat: Float) {
+        let clamped = min(max(heat, 0), 1)
+        guard abs(clamped - reentryHeat) > 0.02 || (clamped == 0 && reentryHeat != 0) else {
+            return
+        }
+        reentryHeat = clamped
+        let tint = UIColor(red: 1, green: 0.30, blue: 0.06, alpha: 1)
+        for id in TiangongModuleID.allCases {
+            guard let node = moduleNodes[id] else { continue }
+            applyHeat(to: node, tint: tint, heat: clamped)
+        }
+    }
+
+    /// 只改颜色与发光，不改结构；原始材质整份存着，退出时整份换回。
+    private func applyHeat(to entity: Entity, tint: UIColor, heat: Float) {
+        let key = ObjectIdentifier(entity)
+        if var model = entity.components[ModelComponent.self] {
+            if heat > 0 {
+                if reentryMaterials[key] == nil {
+                    reentryMaterials[key] = model.materials
+                }
+                var materials = model.materials
+                for index in materials.indices {
+                    guard var pbr = materials[index] as? PhysicallyBasedMaterial else { continue }
+                    // 基色也要往橙里推：白色蒙皮只加发光会读成「粉色塑料」。
+                    pbr.baseColor.tint = Self.blend(
+                        pbr.baseColor.tint,
+                        tint,
+                        CGFloat(min(heat * 0.82, 1))
+                    )
+                    pbr.emissiveColor = .init(color: tint)
+                    pbr.emissiveIntensity = heat * 1.1
+                    materials[index] = pbr
+                }
+                model.materials = materials
+                entity.components[ModelComponent.self] = model
+            } else if let saved = reentryMaterials.removeValue(forKey: key) {
+                model.materials = saved
+                entity.components[ModelComponent.self] = model
+            }
+        }
+        for child in entity.children {
+            applyHeat(to: child, tint: tint, heat: heat)
+        }
+    }
+
+    private static func blend(_ from: UIColor, _ to: UIColor, _ amount: CGFloat) -> UIColor {
+        var fr: CGFloat = 0, fg: CGFloat = 0, fb: CGFloat = 0, fa: CGFloat = 0
+        var tr: CGFloat = 0, tg: CGFloat = 0, tb: CGFloat = 0, ta: CGFloat = 0
+        from.getRed(&fr, green: &fg, blue: &fb, alpha: &fa)
+        to.getRed(&tr, green: &tg, blue: &tb, alpha: &ta)
+        let t = min(max(amount, 0), 1)
+        return UIColor(
+            red: fr + (tr - fr) * t,
+            green: fg + (tg - fg) * t,
+            blue: fb + (tb - fb) * t,
+            alpha: fa + (ta - fa) * t
+        )
     }
 
     func apply(rig: TiangongRig) {

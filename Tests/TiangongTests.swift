@@ -567,6 +567,9 @@ final class TiangongHistoryTests: XCTestCase {    /// 逐字对照 `docs/researc
         copy += TiangongHistory.facts.flatMap { [$0.label, $0.value] }
         copy += TiangongModuleID.allCases.flatMap { [$0.title, $0.detail] }
         copy += TiangongHistory.milestones.flatMap { [$0.title, $0.detail, $0.source] }
+        if let closing = TiangongHistory.closing {
+            copy += [closing.headline, closing.date, closing.place, closing.body]
+        }
 
         for term in TiangongHistory.forbiddenTerms {
             for text in copy {
@@ -912,5 +915,151 @@ final class TiangongClosureTests: XCTestCase {
         }
         session.toggleDisassembly(.lab)
         XCTAssertEqual(session.mission.phase, .assembly)
+    }
+}
+
+final class TiangongReentryTests: XCTestCase {
+    /// 三拍边界：7.5 / 13.5 / 20。边界值归属后一拍。
+    func testTimelineCoversThreeBeats() {
+        XCTAssertEqual(TiangongReentry.phase(at: 0), .coast)
+        XCTAssertEqual(TiangongReentry.phase(at: 7.4), .coast)
+        XCTAssertEqual(TiangongReentry.phase(at: 7.5), .heating)
+        XCTAssertEqual(TiangongReentry.phase(at: 13.4), .heating)
+        XCTAssertEqual(TiangongReentry.phase(at: 13.5), .breakup)
+        XCTAssertEqual(TiangongReentry.phase(at: 19.9), .breakup)
+        XCTAssertEqual(TiangongReentry.phase(at: 20), .card)
+    }
+
+    func testFlightDurationWithinGate() {
+        XCTAssertGreaterThanOrEqual(TiangongReentry.flightDuration, 18)
+        XCTAssertLessThanOrEqual(TiangongReentry.flightDuration, 22)
+    }
+
+    /// 步进不会越过卡：多跑十秒仍停在 20 s。
+    func testStepStopsAtCard() {
+        var state = TiangongReentry.start()
+        for _ in 0..<400 {
+            state = TiangongReentry.step(state, delta: 0.1)
+        }
+        XCTAssertEqual(state.phase, .card)
+        XCTAssertEqual(state.elapsed, TiangongReentry.flightDuration, accuracy: 0.001)
+    }
+
+    func testSkipLandsOnCardImmediately() {
+        var state = TiangongReentry.step(TiangongReentry.start(), delta: 0.1)
+        state = TiangongReentry.skip(state)
+        XCTAssertEqual(state.phase, .card)
+        XCTAssertEqual(state.elapsed, TiangongReentry.flightDuration, accuracy: 0.001)
+        XCTAssertEqual(TiangongReentry.skip(state), state)
+    }
+
+    /// 先翼后舱段：到 0.35 时两翼已经没了，三个舱段还在。
+    func testAlphasStartOpaqueAndWingsLeaveFirst() {
+        let start = TiangongReentry.alphas(at: 0)
+        for id in TiangongModuleID.allCases {
+            XCTAssertEqual(start[id] ?? 0, 1, accuracy: 0.0001, id.rawValue)
+        }
+
+        let mid = TiangongReentry.alphas(at: 0.35)
+        XCTAssertEqual(mid[.leftWing] ?? 1, 0, accuracy: 0.0001)
+        XCTAssertEqual(mid[.rightWing] ?? 1, 0, accuracy: 0.0001)
+        XCTAssertGreaterThan(mid[.resource] ?? 0, 0.5, "资源舱应在翼之后才散")
+        XCTAssertGreaterThan(mid[.lab] ?? 0, 0.5, "实验舱应更晚")
+        XCTAssertGreaterThan(mid[.shenzhou] ?? 0, 0.5, "飞船最后")
+
+        let end = TiangongReentry.alphas(at: 1)
+        for id in TiangongModuleID.allCases {
+            XCTAssertEqual(end[id] ?? 1, 0, accuracy: 0.0001, id.rawValue)
+        }
+    }
+
+    /// 不透明度只能单调下降，否则重看时会看到「重新亮起来」的抖动。
+    func testAlphasAreMonotonic() {
+        var previous = TiangongReentry.alphas(at: 0)
+        for step in 1...20 {
+            let current = TiangongReentry.alphas(at: Float(step) / 20)
+            for id in TiangongModuleID.allCases {
+                let before = previous[id] ?? 1
+                let after = current[id] ?? 1
+                XCTAssertLessThanOrEqual(after, before + 0.0001, id.rawValue)
+            }
+            previous = current
+        }
+    }
+
+    func testUnlockNeedsCompleteMissionAndMilestones() {
+        var mission = TiangongMission.start()
+        XCTAssertFalse(TiangongReentry.isUnlocked(mission: mission, readMilestones: true))
+        mission.phase = .complete
+        XCTAssertFalse(TiangongReentry.isUnlocked(mission: mission, readMilestones: false))
+        XCTAssertTrue(TiangongReentry.isUnlocked(mission: mission, readMilestones: true))
+    }
+
+    /// 收束卡与史实面板同源：日期、落区都从 `facts` 拆出来，不另写一份。
+    func testClosingCardSharesHistorySource() {
+        guard let closing = TiangongHistory.closing else {
+            return XCTFail("缺再入收束卡")
+        }
+        XCTAssertEqual(closing.date, "2018-04-02")
+        XCTAssertTrue(closing.place.contains("南太平洋"))
+        XCTAssertTrue(closing.body.contains(closing.date))
+        XCTAssertTrue(closing.body.contains(closing.place))
+        for term in TiangongHistory.forbiddenTerms {
+            XCTAssertFalse(closing.body.contains(term))
+        }
+    }
+
+    @MainActor
+    func testSceneShowsTrailOnlyDuringReentry() {
+        let scene = TiangongScene()
+        scene.build()
+        guard let trail = Self.find("reentry-trail", in: scene.root) else {
+            return XCTFail("缺尾迹")
+        }
+        XCTAssertFalse(trail.isEnabled, "默认视图不许出现尾迹")
+        XCTAssertLessThanOrEqual(scene.modelEntityCount, 40, "尾迹关着就不该占 draw call")
+
+        let heating = TiangongReentry.progress(
+            TiangongReentry.State(phase: .heating, elapsed: 10)
+        )
+        scene.setReentry(active: true, progress: heating)
+        XCTAssertTrue(trail.isEnabled)
+        XCTAssertLessThanOrEqual(scene.modelEntityCount, 40, "加热时也只多一条尾迹")
+
+        scene.setReentry(active: false, progress: TiangongReentry.Progress())
+        XCTAssertFalse(trail.isEnabled)
+    }
+
+    @MainActor
+    private static func find(_ name: String, in entity: Entity) -> Entity? {
+        if entity.name == name { return entity }
+        for child in entity.children {
+            if let hit = find(name, in: child) { return hit }
+        }
+        return nil
+    }
+
+    /// 重看三次后必须完全复位：位置、不透明度、尾迹都不许残留。
+    @MainActor
+    func testClosingReentryRestoresModules() {
+        let scene = TiangongScene()
+        scene.build()
+        guard let lab = scene.root.children.first(where: { $0.name == TiangongModuleID.lab.rawValue }) else {
+            return XCTFail("缺实验舱")
+        }
+        let rest = lab.position
+
+        for round in 0..<3 {
+            let breakup = TiangongReentry.progress(
+                TiangongReentry.State(phase: .breakup, elapsed: 18)
+            )
+            scene.setReentry(active: true, progress: breakup)
+            XCTAssertNotNil(lab.components[OpacityComponent.self], "第 \(round + 1) 次：没有淡出组件")
+            XCTAssertNotEqual(lab.position.y, rest.y, accuracy: 0.0001, "第 \(round + 1) 次：没有下沉")
+
+            scene.setReentry(active: false, progress: TiangongReentry.Progress())
+            XCTAssertNil(lab.components[OpacityComponent.self], "第 \(round + 1) 次：不透明度没复位")
+            XCTAssertEqual(lab.position.y, rest.y, accuracy: 0.0001, "第 \(round + 1) 次：位置没复位")
+        }
     }
 }

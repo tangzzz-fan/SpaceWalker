@@ -29,6 +29,15 @@ final class TiangongSession {
     var completedOrbits = 0
     var drawingMode = false
     var cutawayMode = false
+    /// 「最后一圈」的相位。渲染只读它；跳过与重看都只改这一个值。
+    /// 时间刻度标 `@ObservationIgnored`：每 0.1 s 变一次的结构进观察集合，
+    /// 会让整个 body 按 10Hz 重算（062 的白屏就是这么来的）。
+    @ObservationIgnored var reentry = TiangongReentry.State()
+    /// 只镜像相位，供 SwiftUI 用。相位切换时才写，体感上只有 4 次重算。
+    var reentryPhase: TiangongReentry.Phase = .idle
+    /// 070 降级成史实卡之后，「看过姿态调整」的等价条件就是打开过史实面板。
+    var hasReadMilestones = false
+    @ObservationIgnored private var reentryBaseRig: TiangongRig?
     var selected: TiangongModuleID?
     var separated: Set<TiangongModuleID> = []
 
@@ -65,6 +74,9 @@ final class TiangongSession {
         probe.attach(content)
         scene.apply(rig: rig)
         applyLaunchState()
+        if reentryActive {
+            applyReentryFrame()
+        }
         if LaunchMode.tiangongDockingOnLaunch(environment: ProcessInfo.processInfo.environment) {
             beginDocking()
         }
@@ -73,17 +85,20 @@ final class TiangongSession {
     }
 
     func toggleDrawingMode() {
+        guard !reentryActive else { return }
         drawingMode.toggle()
         scene.setDrawingMode(drawingMode)
     }
 
     func toggleCutawayMode() {
+        guard !reentryActive else { return }
         cutawayMode.toggle()
         scene.setCutawayMode(cutawayMode)
         scene.apply(rig: rig)
     }
 
     func applyView(_ preset: TiangongRig.Preset) {
+        guard !reentryActive else { return }
         rig.apply(preset)
         scene.apply(rig: rig)
     }
@@ -92,9 +107,13 @@ final class TiangongSession {
         scene.applySun(orbit.sunAngle)
     }
 
-    /// 时钟只驱动光照与翼对日；对接时暂停，否则移动光源会干扰判距。
+    /// 时钟只驱动光照与翼对日；对接与再入都暂停，否则移动光源会干扰判距与加热观感。
     func stepClock(delta: TimeInterval) {
-        orbit.step(realSeconds: delta, pace: orbitPace, paused: dockingActive || clockFrozen)
+        orbit.step(
+            realSeconds: delta,
+            pace: orbitPace,
+            paused: dockingActive || clockFrozen || reentryActive
+        )
         scene.applySun(orbit.sunAngle)
         if orbit.completedOrbits != completedOrbits {
             completedOrbits = orbit.completedOrbits
@@ -111,7 +130,110 @@ final class TiangongSession {
         scene.apply(rig: rig)
     }
 
+    // MARK: - 最后一圈
+
+    var reentryActive: Bool { reentryPhase != .idle }
+
+    var canStartReentry: Bool {
+        TiangongReentry.isUnlocked(mission: mission, readMilestones: hasReadMilestones)
+    }
+
+    func markMilestonesRead() {
+        hasReadMilestones = true
+    }
+
+    /// 再入是独立流程：先退出剖面/工程图/对接，否则加热材质会盖在工程图上，
+    /// 解体的模块也会跟分离态打架。
+    func startReentry(ignoringLock: Bool = false) {
+        guard reentryActive || canStartReentry || ignoringLock else { return }
+        if drawingMode {
+            drawingMode = false
+            scene.setDrawingMode(false)
+        }
+        if cutawayMode {
+            cutawayMode = false
+            scene.setCutawayMode(false)
+        }
+        if dockingActive {
+            // 只关掉交互，不调用 endDocking：那会把飞船推回待对接位，
+            // 而「最后一圈」恰恰发生在对接完成之后。
+            dockingActive = false
+        }
+        separated.removeAll()
+        scene.applySeparation(separated, animated: false)
+        selected = nil
+        reentryBaseRig = rig
+        reentry = TiangongReentry.start()
+        reentryPhase = reentry.phase
+        applyReentryFrame()
+        SessionLog.append("tiangong.reentry start")
+    }
+
+    func stepReentry(delta: TimeInterval) {
+        guard reentryActive, !clockFrozen else { return }
+        let previous = reentry.phase
+        reentry = TiangongReentry.step(reentry, delta: delta)
+        applyReentryFrame()
+        if reentry.phase != previous {
+            reentryPhase = reentry.phase
+            SessionLog.append("tiangong.reentry phase=\(reentry.phase.rawValue)")
+        }
+    }
+
+    func skipReentry() {
+        guard reentryActive else { return }
+        reentry = TiangongReentry.skip(reentry)
+        reentryPhase = reentry.phase
+        applyReentryFrame()
+        SessionLog.append("tiangong.reentry skip")
+    }
+
+    /// 重看从第一拍重新开始；不重建场景，只把进度与不透明度复位。
+    func replayReentry() {
+        guard reentryActive else { return }
+        reentry = TiangongReentry.start()
+        reentryPhase = reentry.phase
+        applyReentryFrame()
+        SessionLog.append("tiangong.reentry replay")
+    }
+
+    /// 取证用：把「最后一圈」直接推进到指定秒数，无头截三拍各一张。
+    func seekReentry(to seconds: TimeInterval) {
+        guard reentryActive else { return }
+        let clamped = min(max(seconds, 0), TiangongReentry.flightDuration)
+        reentry = TiangongReentry.State(
+            phase: TiangongReentry.phase(at: clamped),
+            elapsed: clamped
+        )
+        reentryPhase = reentry.phase
+        applyReentryFrame()
+    }
+
+    /// 退出时把相机、位置、不透明度与发光全部还原——重看三次不能留下任何残留。
+    func closeReentry() {
+        guard reentryActive else { return }
+        reentry = TiangongReentry.State()
+        reentryPhase = .idle
+        scene.setReentry(active: false, progress: TiangongReentry.Progress())
+        rig = reentryBaseRig ?? TiangongRig()
+        reentryBaseRig = nil
+        scene.apply(rig: rig)
+        SessionLog.append("tiangong.reentry close")
+    }
+
+    /// 相机在衰减段缓慢拉远；其余两拍不再动，避免「越烧越远」的错觉。
+    private func applyReentryFrame() {
+        let progress = TiangongReentry.progress(reentry)
+        scene.setReentry(active: reentryActive, progress: progress)
+        guard reentryActive else { return }
+        var show = reentryBaseRig ?? rig
+        show.distance += progress.coast * 1.3
+        show.yaw += progress.coast * 0.5
+        scene.apply(rig: show)
+    }
+
     func rotate(translation: CGSize) {
+        guard !reentryActive else { return }
         rig.rotate(
             deltaX: Float(translation.width - lastDrag.width),
             deltaY: Float(translation.height - lastDrag.height)
@@ -125,6 +247,7 @@ final class TiangongSession {
     }
 
     func magnify(_ magnification: CGFloat) {
+        guard !reentryActive else { return }
         rig.dolly(scale: Float(magnification / max(lastMagnification, 0.001)))
         lastMagnification = magnification
         scene.apply(rig: rig)
@@ -146,6 +269,7 @@ final class TiangongSession {
     }
 
     func pick(at point: CGPoint) {
+        guard !reentryActive else { return }
         let hit = scene.pick(at: point)
         selected = hit
         SessionLog.append("tiangong.select id=\(hit?.rawValue ?? "none")")
@@ -153,6 +277,7 @@ final class TiangongSession {
 
     /// 按下时决定这次手势是「拖模块」还是「转相机」。
     func beginModuleDrag(at point: CGPoint) -> Bool {
+        guard !reentryActive else { return false }
         guard let id = scene.pick(at: point), separated.contains(id) else { return false }
         dragging = id
         dragStart = scene.position(of: id) ?? TiangongLayout.restPosition(id)
@@ -195,6 +320,7 @@ final class TiangongSession {
     // MARK: - 对接
 
     func beginDocking() {
+        guard !reentryActive else { return }
         separated.removeAll()
         scene.applySeparation(separated, animated: false)
         dockingActive = true
@@ -293,6 +419,7 @@ final class TiangongSession {
     }
 
     func replayMission() {
+        guard !reentryActive else { return }
         mission = TiangongMission.replay(mission)
         separated.removeAll()
         scene.applySeparation(separated, animated: false)
@@ -330,6 +457,7 @@ final class TiangongSession {
     }
 
     func toggleDisassembly(_ id: TiangongModuleID) {
+        guard !reentryActive else { return }
         guard TiangongDisassembly.isDismantlable(id) else { return }
         if separated.contains(id) {
             separated.remove(id)
@@ -356,6 +484,7 @@ final class TiangongSession {
     }
 
     func resetView() {
+        guard !reentryActive else { return }
         rig = TiangongRig()
         selected = nil
         separated.removeAll()

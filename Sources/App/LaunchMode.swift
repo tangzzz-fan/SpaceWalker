@@ -172,6 +172,12 @@ enum LaunchMode {
         environment["SPACEWALKER_TG_CUTAWAY"] == "1"
     }
 
+    /// 取证用：跳过解锁条件直接放「最后一圈」，并可从给定的秒数起播
+    /// （`SPACEWALKER_TG_REENTRY=12` 从第 12 秒开始），无头截三拍各一张。
+    static func tiangongReentry(environment: [String: String]) -> TimeInterval? {
+        environment["SPACEWALKER_TG_REENTRY"].flatMap(Double.init)
+    }
+
     /// 取证用：启动即打开史实面板。
     static func tiangongHistorySheet(environment: [String: String]) -> Bool {
         environment["SPACEWALKER_TG_HISTORY"] == "1"

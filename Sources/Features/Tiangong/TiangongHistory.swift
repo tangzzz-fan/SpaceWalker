@@ -41,6 +41,27 @@ enum TiangongHistory {
         ),
     ]
 
+    /// 「最后一圈」收束卡。与上方 `facts` 同源，不在别处再写一份文案——
+    /// 彩蛋的日期写错比彩蛋本身没有更糟。
+    struct Closing: Equatable, Sendable {
+        var headline: String
+        var date: String
+        var place: String
+        var body: String
+    }
+
+    static var closing: Closing? {
+        guard let fact = facts.first(where: { $0.label == "再入" }) else { return nil }
+        let parts = fact.value.components(separatedBy: " · ")
+        guard parts.count == 2 else { return nil }
+        return Closing(
+            headline: "再入大气层",
+            date: parts[0],
+            place: parts[1],
+            body: "\(name)于 \(parts[0]) 再入大气层，落区 \(parts[1])。"
+        )
+    }
+
     /// 界面禁止出现的称谓。PRD FR-C-01 要求「界面不称其为空间站」。
     static let forbiddenTerms = ["空间站"]
 

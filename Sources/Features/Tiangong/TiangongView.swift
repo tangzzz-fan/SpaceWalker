@@ -27,34 +27,39 @@ struct TiangongView: View {
             }
 
             if !session.drawingMode,
+               !session.reentryActive,
                !LaunchMode.tiangongLabelsHidden(environment: ProcessInfo.processInfo.environment) {
                 labelLayer
             }
 
-            if session.drawingMode {
+            if session.drawingMode, !session.reentryActive {
                 dimensionLayer
                 viewPicker
             }
 
-            VStack(alignment: .leading, spacing: 0) {
-                topBar
-                Spacer(minLength: 0)
-                if session.dockingActive {
-                    dockingCard
-                        .padding(.bottom, 10)
-                } else if let selected = session.selected {
-                    infoCard(selected)
-                        .padding(.bottom, 10)
+            if session.reentryActive {
+                reentryOverlay
+            } else {
+                VStack(alignment: .leading, spacing: 0) {
+                    topBar
+                    Spacer(minLength: 0)
+                    if session.dockingActive {
+                        dockingCard
+                            .padding(.bottom, 10)
+                    } else if let selected = session.selected {
+                        infoCard(selected)
+                            .padding(.bottom, 10)
+                    }
+                    if session.cutawayMode {
+                        cutawayCard
+                            .padding(.bottom, 10)
+                    }
+                    controlBar
                 }
-                if session.cutawayMode {
-                    cutawayCard
-                        .padding(.bottom, 10)
-                }
-                controlBar
+                .padding(.horizontal, 16)
+                .padding(.top, 8)
+                .padding(.bottom, 18)
             }
-            .padding(.horizontal, 16)
-            .padding(.top, 8)
-            .padding(.bottom, 18)
         }
         .preferredColorScheme(.dark)
         .task {
@@ -70,12 +75,22 @@ struct TiangongView: View {
             if LaunchMode.tiangongHistorySheet(environment: ProcessInfo.processInfo.environment) {
                 showsHistory = true
             }
+            if let seconds = LaunchMode.tiangongReentry(environment: ProcessInfo.processInfo.environment) {
+                session.startReentry(ignoringLock: true)
+                session.seekReentry(to: seconds)
+            }
             // 碰撞体与投影要等渲染就绪，立刻自检会全空。
             try? await Task.sleep(for: .seconds(1.2))
             probeLine = session.scene.verifyPicking()
         }
+        .onChange(of: showsHistory) { _, open in
+            if open {
+                session.markMilestonesRead()
+            }
+        }
         .onReceive(dockTicker) { _ in
             session.stepClock(delta: 0.1)
+            session.stepReentry(delta: 0.1)
             if session.dockingActive {
                 session.stepDocking(delta: 0.1)
             }
@@ -368,6 +383,15 @@ struct TiangongView: View {
                 Button("重玩整个任务") { session.replayMission() }
                     .buttonStyle(.borderedProminent)
                     .controlSize(.small)
+                if session.canStartReentry {
+                    Button("最后一圈") { session.startReentry() }
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
+                } else {
+                    Text("打开一次史实面板，解锁「最后一圈」。")
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                }
             }
             Text("拖动平移 · 捏合推进 · 双指旋转调姿态")
                 .font(.caption2)
@@ -398,8 +422,70 @@ struct TiangongView: View {
         .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16))
     }
 
+    private var reentryOverlay: some View {
+        ZStack {
+            if session.reentryPhase == .card {
+                reentryCard
+            } else {
+                VStack {
+                    Spacer()
+                    HStack(spacing: 12) {
+                        Text(TiangongReentry.caption(session.reentryPhase) ?? "")
+                            .font(.caption.weight(.medium))
+                        Button("跳过") { session.skipReentry() }
+                            .buttonStyle(.bordered)
+                            .controlSize(.small)
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 10)
+                    .background(.ultraThinMaterial, in: Capsule())
+                    .padding(.bottom, 60)
+                }
+            }
+        }
+    }
+
+    /// 收束卡。文案全部来自 `TiangongHistory.closing`，与史实面板同源。
+    private var reentryCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("最后一圈")
+                .font(.caption2.weight(.semibold))
+                .foregroundStyle(.secondary)
+            if let closing = TiangongHistory.closing {
+                Text(closing.headline)
+                    .font(.system(size: 26, weight: .semibold, design: .rounded))
+                HStack(alignment: .firstTextBaseline, spacing: 10) {
+                    Text(closing.date)
+                        .font(.system(.title3, design: .monospaced))
+                    Text(closing.place)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+                Text(closing.body)
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+            }
+            HStack(spacing: 10) {
+                Button("再看一次") { session.replayReentry() }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                Button("关闭") { session.closeReentry() }
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.small)
+            }
+            .padding(.top, 2)
+            Text("史实条目与出处见 docs/research/realitykit-ios26-primary-sources.md 第 15 条。")
+                .font(.caption2)
+                .foregroundStyle(.tertiary)
+        }
+        .padding(22)
+        .frame(maxWidth: 360, alignment: .leading)
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 22))
+        .padding(24)
+    }
+
     private var controlBar: some View {
-        HStack(spacing: 18) {
+        HStack(spacing: 12) {
             Button {
                 session.resetView()
             } label: {
@@ -461,6 +547,15 @@ struct TiangongView: View {
             .accessibilityLabel("切换轨道速度")
 
             Button {
+                session.startReentry()
+            } label: {
+                Image(systemName: "flame")
+                    .frame(width: 28, height: 28)
+            }
+            .disabled(!session.canStartReentry)
+            .accessibilityLabel("最后一圈")
+
+            Button {
                 showsHistory = true
             } label: {
                 Image(systemName: "info.circle")
@@ -468,7 +563,7 @@ struct TiangongView: View {
             }
             .accessibilityLabel("史实")
         }
-        .padding(.horizontal, 20)
+        .padding(.horizontal, 14)
         .padding(.vertical, 10)
         .background(.ultraThinMaterial, in: Capsule())
     }

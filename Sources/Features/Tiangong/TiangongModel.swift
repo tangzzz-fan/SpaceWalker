@@ -77,6 +77,17 @@ enum TiangongModel {
     static let wingPanelGap: Float = 0.16
     /// 对接机构卡爪数：被动对接机构的均布锁钩。
     static let dockingLatchCount = 4
+    /// 再入尾迹的母线（半径, 轴向比例）。纯视觉，不表示真实尺寸。
+    static let reentryTrailProfile: [SIMD2<Float>] = [
+        SIMD2(0.020, 0.00),
+        SIMD2(0.048, 0.10),
+        SIMD2(0.070, 0.30),
+        SIMD2(0.062, 0.55),
+        SIMD2(0.034, 0.80),
+        SIMD2(0.004, 1.00),
+    ]
+    /// 尾迹长度（真实米）。1:20 之后约 0.7 m，比整机略长，读作「拖在后面的等离子」。
+    static let reentryTrailLength: Float = 14
     /// 资源舱尾部轨控发动机：一手资料「2 台 490 N」，两侧各一。
     static let mainEngineCount = 2
     /// 备用发动机「4 台 150 N」，绕轴均布。
