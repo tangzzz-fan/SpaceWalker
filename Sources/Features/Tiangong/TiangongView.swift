@@ -46,6 +46,10 @@ struct TiangongView: View {
                     infoCard(selected)
                         .padding(.bottom, 10)
                 }
+                if session.cutawayMode {
+                    cutawayCard
+                        .padding(.bottom, 10)
+                }
                 controlBar
             }
             .padding(.horizontal, 16)
@@ -58,6 +62,10 @@ struct TiangongView: View {
             if LaunchMode.tiangongDrawing(environment: ProcessInfo.processInfo.environment),
                !session.drawingMode {
                 session.toggleDrawingMode()
+            }
+            if LaunchMode.tiangongCutaway(environment: ProcessInfo.processInfo.environment),
+               !session.cutawayMode {
+                session.toggleCutawayMode()
             }
             if LaunchMode.tiangongHistorySheet(environment: ProcessInfo.processInfo.environment) {
                 showsHistory = true
@@ -373,6 +381,23 @@ struct TiangongView: View {
         .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16))
     }
 
+    private var cutawayCard: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("剖面")
+                .font(.caption2.weight(.semibold))
+                .foregroundStyle(.secondary)
+            Text("睡眠区 · 健身区 · 设备机柜 · Ø0.8 m 转移通道")
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+            Text("剖开的是密封舱外壳；内部为示意，不按真实尺寸还原。")
+                .font(.caption2)
+                .foregroundStyle(.tertiary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(14)
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16))
+    }
+
     private var controlBar: some View {
         HStack(spacing: 18) {
             Button {
@@ -410,6 +435,14 @@ struct TiangongView: View {
                     .frame(width: 28, height: 28)
             }
             .accessibilityLabel(session.dockingActive ? "退出对接" : "对接任务")
+
+            Button {
+                session.toggleCutawayMode()
+            } label: {
+                Image(systemName: session.cutawayMode ? "circle.lefthalf.filled" : "circle.dotted")
+                    .frame(width: 28, height: 28)
+            }
+            .accessibilityLabel(session.cutawayMode ? "退出剖面" : "剖面")
 
             Button {
                 session.toggleDrawingMode()

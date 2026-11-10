@@ -147,6 +147,115 @@ enum TiangongMesh {
         )
     }
 
+    /// 半开的舱壳：只造一段圆弧（含厚度、两端封口、两条侧壁），缺口朝向由外部旋转决定。
+    /// RealityKit 没有裁剪平面，所以剖面不是"切"，是"本来就只有这一半"。
+    static func arcShell(
+        radius: Float,
+        thickness: Float,
+        height: Float,
+        sweep: Float,
+        sides: Int = 28
+    ) -> MeshResource {
+        guard radius > thickness, thickness > 0, height > 0, sweep > 0, sides >= 4 else {
+            return MeshResource.generateBox(size: 0.01)
+        }
+
+        let half = height / 2
+        let inner = radius - thickness
+        var positions: [SIMD3<Float>] = []
+        var normals: [SIMD3<Float>] = []
+        var uvs: [SIMD2<Float>] = []
+        var indices: [UInt32] = []
+
+        func addQuad(
+            _ a: SIMD3<Float>, _ b: SIMD3<Float>, _ c: SIMD3<Float>, _ d: SIMD3<Float>,
+            _ normal: SIMD3<Float>,
+            _ uvA: SIMD2<Float>, _ uvB: SIMD2<Float>, _ uvC: SIMD2<Float>, _ uvD: SIMD2<Float>
+        ) {
+            let base = UInt32(positions.count)
+            positions += [a, b, c, d]
+            normals += [normal, normal, normal, normal]
+            uvs += [uvA, uvB, uvC, uvD]
+            indices += [base, base + 1, base + 2, base, base + 2, base + 3]
+        }
+
+        for step in 0..<sides {
+            let t0 = Float(step) / Float(sides)
+            let t1 = Float(step + 1) / Float(sides)
+            let a0 = -sweep / 2 + t0 * sweep
+            let a1 = -sweep / 2 + t1 * sweep
+            let d0 = SIMD3(cos(a0), 0, sin(a0))
+            let d1 = SIMD3(cos(a1), 0, sin(a1))
+
+            let outerNormal = simd_normalize(d0 + d1)
+            addQuad(
+                SIMD3(d0.x * radius, -half, d0.z * radius),
+                SIMD3(d0.x * radius, half, d0.z * radius),
+                SIMD3(d1.x * radius, half, d1.z * radius),
+                SIMD3(d1.x * radius, -half, d1.z * radius),
+                outerNormal,
+                SIMD2(t0, 0), SIMD2(t0, 1), SIMD2(t1, 1), SIMD2(t1, 0)
+            )
+
+            addQuad(
+                SIMD3(d1.x * inner, half, d1.z * inner),
+                SIMD3(d0.x * inner, half, d0.z * inner),
+                SIMD3(d0.x * inner, -half, d0.z * inner),
+                SIMD3(d1.x * inner, -half, d1.z * inner),
+                -outerNormal,
+                SIMD2(t1, 1), SIMD2(t0, 1), SIMD2(t0, 0), SIMD2(t1, 0)
+            )
+            // 内壁两个绕序各出一份：从舱内看过去是背面，只出一份会被剔除掉。
+            addQuad(
+                SIMD3(d1.x * inner, -half, d1.z * inner),
+                SIMD3(d0.x * inner, -half, d0.z * inner),
+                SIMD3(d0.x * inner, half, d0.z * inner),
+                SIMD3(d1.x * inner, half, d1.z * inner),
+                -outerNormal,
+                SIMD2(t1, 0), SIMD2(t0, 0), SIMD2(t0, 1), SIMD2(t1, 1)
+            )
+
+            addQuad(
+                SIMD3(d0.x * radius, half, d0.z * radius),
+                SIMD3(d0.x * inner, half, d0.z * inner),
+                SIMD3(d1.x * inner, half, d1.z * inner),
+                SIMD3(d1.x * radius, half, d1.z * radius),
+                SIMD3(0, 1, 0),
+                SIMD2(t0, 1), SIMD2(t0, 0), SIMD2(t1, 0), SIMD2(t1, 1)
+            )
+
+            addQuad(
+                SIMD3(d1.x * inner, -half, d1.z * inner),
+                SIMD3(d0.x * inner, -half, d0.z * inner),
+                SIMD3(d0.x * radius, -half, d0.z * radius),
+                SIMD3(d1.x * radius, -half, d1.z * radius),
+                SIMD3(0, -1, 0),
+                SIMD2(t1, 0), SIMD2(t0, 0), SIMD2(t0, 1), SIMD2(t1, 1)
+            )
+        }
+
+        for angle in [-sweep / 2, sweep / 2] {
+            let direction = SIMD3(cos(angle), 0, sin(angle))
+            let tangent = SIMD3(-sin(angle), 0, cos(angle))
+            addQuad(
+                SIMD3(direction.x * inner, -half, direction.z * inner),
+                SIMD3(direction.x * inner, half, direction.z * inner),
+                SIMD3(direction.x * radius, half, direction.z * radius),
+                SIMD3(direction.x * radius, -half, direction.z * radius),
+                tangent,
+                SIMD2(0, 0), SIMD2(0, 1), SIMD2(1, 1), SIMD2(1, 0)
+            )
+        }
+
+        var descriptor = MeshDescriptor(name: "arcShell")
+        descriptor.positions = MeshBuffer(positions)
+        descriptor.normals = MeshBuffer(normals)
+        descriptor.textureCoordinates = MeshBuffer(uvs)
+        descriptor.primitives = .triangles(indices)
+        return (try? MeshResource.generate(from: [descriptor]))
+            ?? MeshResource.generateBox(size: 0.01)
+    }
+
     static func placement(_ position: SIMD3<Float>, _ orientation: simd_quatf) -> float4x4 {
         var matrix = simd_float4x4(orientation)
         matrix.columns.3 = SIMD4(position, 1)

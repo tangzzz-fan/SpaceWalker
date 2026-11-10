@@ -28,6 +28,7 @@ final class TiangongSession {
 
     var completedOrbits = 0
     var drawingMode = false
+    var cutawayMode = false
     var selected: TiangongModuleID?
     var separated: Set<TiangongModuleID> = []
 
@@ -74,6 +75,12 @@ final class TiangongSession {
     func toggleDrawingMode() {
         drawingMode.toggle()
         scene.setDrawingMode(drawingMode)
+    }
+
+    func toggleCutawayMode() {
+        cutawayMode.toggle()
+        scene.setCutawayMode(cutawayMode)
+        scene.apply(rig: rig)
     }
 
     func applyView(_ preset: TiangongRig.Preset) {

@@ -17,6 +17,12 @@ final class TiangongScene {
     private var isBuilt = false
     private var baseMaterials: [ObjectIdentifier: [any RealityKit.Material]] = [:]
     private(set) var drawingMode = false
+    private var cutawayShell: Entity?
+    private var cabinLight: Entity?
+    private var cabinLightIsHeadlight = true
+    private var interiorGroup: Entity?
+    private var cameraOverride = false
+    private(set) var cutawayMode = false
 
     /// RealityView 每次重建都会拿到一个新的 `RealityViewCameraContent`。
     /// 复用同一个 root 二次 add 进新 scene 不生效（页面重建后一片黑），
@@ -55,6 +61,9 @@ final class TiangongScene {
 
         if drawingMode {
             applyDrawingMode()
+        }
+        if cutawayMode {
+            applyCutawayState()
         }
 
         let elapsed = Int((CACurrentMediaTime() - started) * 1000)
@@ -135,10 +144,15 @@ final class TiangongScene {
     }
 
     func apply(rig: TiangongRig) {
+        guard !cameraOverride else { return }
         guard let cameraEntity else { return }
         let position = rig.cameraPosition() + TiangongLayout.center
         cameraEntity.position = position
         cameraEntity.look(at: TiangongLayout.center, from: position, relativeTo: nil)
+        if cutawayMode {
+            updateCutawayFacing()
+            updateHeadlight()
+        }
     }
 
     /// 分离/装回。复位用绝对初值，不做相对增量——连续 10 轮拆装不能累积漂移。
@@ -273,7 +287,9 @@ final class TiangongScene {
         1 + entity.children.reduce(0) { $0 + entities(in: $1) }
     }
 
+    /// 只数启用中的模型——禁用实体不进渲染，不算 draw call。
     private func models(in entity: Entity) -> Int {
+        guard entity.isEnabled else { return 0 }
         let selfCount = entity.components[ModelComponent.self] == nil ? 0 : 1
         return selfCount + entity.children.reduce(0) { $0 + models(in: $1) }
     }
@@ -340,6 +356,38 @@ final class TiangongScene {
         cone.position = SIMD3(0, 0, TiangongLayout.labConeOffset)
         lab.addChild(cone)
 
+        let shell = ModelEntity(
+            mesh: TiangongMesh.arcShell(
+                radius: radius,
+                thickness: 0.004,
+                height: sealHeight,
+                sweep: TiangongModel.cutawaySweep
+            ),
+            materials: [TiangongMaterials.cutawayShell()]
+        )
+        shell.name = "lab-shell"
+        shell.orientation = axis
+        shell.position = SIMD3(0, 0, TiangongLayout.labCylinderOffset)
+        shell.isEnabled = false
+        lab.addChild(shell)
+        cutawayShell = shell
+
+        let interior = Entity()
+        interior.name = "lab-interior"
+        interior.isEnabled = false
+        addInterior(to: interior, radius: radius)
+        lab.addChild(interior)
+        interiorGroup = interior
+
+        let cabinLight = Entity()
+        cabinLight.name = "cabin-headlight"
+        cabinLight.components.set(
+            DirectionalLightComponent(color: UIColor(white: 0.98, alpha: 1), intensity: 1700, isRealWorldProxy: false)
+        )
+        cabinLight.isEnabled = false
+        root.addChild(cabinLight)
+        self.cabinLight = cabinLight
+
         let port = ModelEntity(
             mesh: MeshResource.generateCylinder(height: 0.014, radius: tipRadius),
             materials: [TiangongMaterials.hardware(0.35)]
@@ -399,6 +447,94 @@ final class TiangongScene {
         }
 
         register(.lab, lab)
+    }
+
+    private func addInterior(to interior: Entity, radius: Float) {
+        let tunnel = ModelEntity(
+            mesh: MeshResource.generateCylinder(
+                height: TiangongScale.display(TiangongModel.labSealLength),
+                radius: TiangongScale.display(0.8) / 2
+            ),
+            materials: [TiangongMaterials.interior(0.44)]
+        )
+        tunnel.name = "interior-tunnel"
+        tunnel.orientation = simd_quatf(angle: .pi / 2, axis: SIMD3(1, 0, 0))
+        tunnel.position = SIMD3(0, 0, TiangongLayout.labCylinderOffset)
+        interior.addChild(tunnel)
+
+        for (index, degrees) in [Float(-58), -122, 58, 122].enumerated() {
+            let angle = degrees * .pi / 180
+            let rack = ModelEntity(
+                mesh: MeshResource.generateBox(width: 0.018, height: 0.034, depth: 0.085),
+                materials: [TiangongMaterials.interior(0.60)]
+            )
+            rack.name = "interior-rack-\(index)"
+            rack.position = SIMD3(
+                cos(angle) * (radius - 0.014),
+                sin(angle) * (radius - 0.014),
+                TiangongLayout.labCylinderOffset
+            )
+            rack.orientation = simd_quatf(angle: -angle, axis: SIMD3(0, 0, 1))
+            interior.addChild(rack)
+        }
+
+        let sleep = ModelEntity(
+            mesh: MeshResource.generateBox(width: 0.062, height: 0.030, depth: 0.030),
+            materials: [TiangongMaterials.interior(0.92)]
+        )
+        sleep.name = "interior-sleep"
+        sleep.position = SIMD3(0, 0.030, TiangongLayout.labCylinderOffset - 0.060)
+        interior.addChild(sleep)
+
+        let gym = ModelEntity(
+            mesh: MeshResource.generateBox(width: 0.040, height: 0.024, depth: 0.052),
+            materials: [TiangongMaterials.interior(0.72)]
+        )
+        gym.name = "interior-gym"
+        gym.position = SIMD3(0, -0.032, TiangongLayout.labCylinderOffset + 0.030)
+        interior.addChild(gym)
+    }
+
+    func setCutawayMode(_ enabled: Bool) {
+        guard enabled != cutawayMode else { return }
+        cutawayMode = enabled
+        applyCutawayState()
+    }
+
+    /// 与工程图一样：会话可能先切模式、后建树，所以 build 末尾也要能补调。
+    private func applyCutawayState() {
+        cutawayShell?.isEnabled = cutawayMode
+        interiorGroup?.isEnabled = cutawayMode
+        cabinLight?.isEnabled = cutawayMode
+        moduleNodes[.lab]?.children.first { $0.name == "lab-seal" }?.isEnabled = !cutawayMode
+        if cutawayMode {
+            updateCutawayFacing()
+            updateHeadlight()
+        } else {
+            leaveCabin()
+        }
+    }
+
+    /// 头灯跟着视线走：剖面模式下内壁背光，只有沿视线照进来的光能照亮它。
+    private func updateHeadlight() {
+        guard cutawayMode, let cabinLight, let cameraEntity else { return }
+        let from = cameraEntity.position
+        cabinLight.look(at: TiangongLayout.center, from: from, relativeTo: nil)
+    }
+
+    /// 缺口朝向相机在 XY 平面上的投影——舱体轴是 Z，缺口只能在横截面里转。
+    private func updateCutawayFacing() {
+        guard let shell = cutawayShell, let cameraEntity else { return }
+        let offset = cameraEntity.position - TiangongLayout.center
+        // 圆弧的中心是「有壁」的那一半，缺口在对面，所以要转 180° 才是把缺口对着相机。
+        let psi = atan2(offset.y, offset.x) + .pi
+        let axis = simd_quatf(angle: .pi / 2, axis: SIMD3(1, 0, 0))
+        let spin = simd_quatf(angle: psi, axis: SIMD3(0, 0, 1))
+        shell.orientation = spin * axis
+    }
+
+    func leaveCabin() {
+        cameraOverride = false
     }
 
     private func addResource() {

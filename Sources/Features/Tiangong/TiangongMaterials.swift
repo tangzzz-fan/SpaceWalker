@@ -80,10 +80,28 @@ enum TiangongMaterials {
         return material
     }
 
+    /// 剖面内景：自发光。舱壁挡住太阳后舱内没有任何光源，
+    /// 靠 PBR 会一律发黑；示意图本来就是"自亮"的，这里不自欺。
+    static func interior(_ white: CGFloat) -> PhysicallyBasedMaterial {
+        var material = PhysicallyBasedMaterial()
+        let tint = UIColor(white: white, alpha: 1)
+        material.baseColor = .init(tint: tint)
+        material.roughness = .init(floatLiteral: 0.8)
+        material.metallic = .init(floatLiteral: 0)
+        material.emissiveColor = .init(color: tint)
+        material.emissiveIntensity = 0.3
+        return material
+    }
+
+    /// 剖开的舱壁：内壁朝里，任何外部光都照不到，用无光照材质两面同色。
+    static func cutawayShell() -> UnlitMaterial {
+        UnlitMaterial(color: UIColor(white: 0.78, alpha: 1))
+    }
+
     /// 阴影里的构件（基板背面、对接口内圈）：粗糙、非金属，避免被天空盒反射成亮片。
     static func inner() -> PhysicallyBasedMaterial {
         var material = PhysicallyBasedMaterial()
-        material.baseColor = .init(tint: UIColor(white: 0.16, alpha: 1))
+        material.baseColor = .init(tint: UIColor(white: 0.30, alpha: 1))
         material.roughness = .init(floatLiteral: 0.85)
         material.metallic = .init(floatLiteral: 0)
         return material

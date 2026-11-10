@@ -167,6 +167,11 @@ enum LaunchMode {
         environment["SPACEWALKER_TG_FREEZE"] == "1"
     }
 
+    /// 取证用：启动即进剖面模式。
+    static func tiangongCutaway(environment: [String: String]) -> Bool {
+        environment["SPACEWALKER_TG_CUTAWAY"] == "1"
+    }
+
     /// 取证用：启动即打开史实面板。
     static func tiangongHistorySheet(environment: [String: String]) -> Bool {
         environment["SPACEWALKER_TG_HISTORY"] == "1"

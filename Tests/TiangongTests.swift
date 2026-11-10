@@ -473,6 +473,58 @@ final class TiangongDrawingModeTests: XCTestCase {
     }
 }
 
+@MainActor
+final class TiangongCutawayTests: XCTestCase {
+    func testCutawaySwapsShellForInterior() {
+        let scene = TiangongScene()
+        scene.build()
+        guard let lab = scene.root.children.first(where: { $0.name == TiangongModuleID.lab.rawValue }) else {
+            return XCTFail("没找到实验舱")
+        }
+        func isOn(_ name: String) -> Bool {
+            lab.children.first { $0.name == name }?.isEnabled ?? false
+        }
+
+        XCTAssertTrue(isOn("lab-seal"), "默认应是完整外壳")
+        XCTAssertFalse(isOn("lab-shell"))
+        XCTAssertFalse(isOn("lab-interior"))
+
+        scene.setCutawayMode(true)
+        XCTAssertFalse(isOn("lab-seal"))
+        XCTAssertTrue(isOn("lab-shell"))
+        XCTAssertTrue(isOn("lab-interior"))
+
+        scene.setCutawayMode(false)
+        XCTAssertTrue(isOn("lab-seal"))
+        XCTAssertFalse(isOn("lab-shell"))
+    }
+
+    /// 内景要有名字、能数出来，否则「三处内部分区」无从验收。
+    func testInteriorHasNamedRegions() {
+        let scene = TiangongScene()
+        scene.build()
+        guard let lab = scene.root.children.first(where: { $0.name == TiangongModuleID.lab.rawValue }),
+              let interior = lab.children.first(where: { $0.name == "lab-interior" }) else {
+            return XCTFail("没找到内景")
+        }
+        let names = Set(interior.children.compactMap(\.name))
+        XCTAssertTrue(names.contains("interior-tunnel"))
+        XCTAssertTrue(names.contains("interior-sleep"))
+        XCTAssertTrue(names.contains("interior-gym"))
+        XCTAssertEqual(names.filter { $0.hasPrefix("interior-rack-") }.count, 4)
+    }
+
+    /// 默认视图的模型数必须守住预算：禁用实体不产生 draw call，所以只数启用的。
+    func testDefaultViewStaysWithinModelBudget() {
+        let scene = TiangongScene()
+        scene.build()
+        XCTAssertLessThanOrEqual(scene.modelEntityCount, 40, "默认视图模型数超预算")
+        XCTAssertLessThanOrEqual(scene.entityCount, 60)
+        scene.setCutawayMode(true)
+        XCTAssertLessThanOrEqual(scene.entityCount, 60, "剖面模式实体数超预算")
+    }
+}
+
 final class TiangongHistoryTests: XCTestCase {    /// 逐字对照 `docs/research/realitykit-ios26-primary-sources.md` 第 15 条。
     func testFactsMatchPrimarySource() {
         XCTAssertEqual(TiangongHistory.name, "天宫一号")
