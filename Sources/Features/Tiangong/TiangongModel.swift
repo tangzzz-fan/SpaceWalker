@@ -29,6 +29,8 @@ enum TiangongModel {
     static let labRearConeLength: Float = 0.8
     /// 密封圆柱段 = 实验舱总长 − 前锥 − 后锥。
     static var labSealLength: Float { labLength - labConeLength - labRearConeLength }
+    /// 剖面模式保留的舱壳张角（弧度）：200° 留 160° 的缺口。
+    static let cutawaySweep: Float = 200 * .pi / 180
     /// 前锥收细后的小端半径占最大半径的比例。
     static let labConeTipRatio: Float = 0.42
     /// 资源舱轴向尺寸。
