@@ -59,6 +59,9 @@ struct TiangongView: View {
                !session.drawingMode {
                 session.toggleDrawingMode()
             }
+            if LaunchMode.tiangongHistorySheet(environment: ProcessInfo.processInfo.environment) {
+                showsHistory = true
+            }
             // 碰撞体与投影要等渲染就绪，立刻自检会全空。
             try? await Task.sleep(for: .seconds(1.2))
             probeLine = session.scene.verifyPicking()
@@ -468,6 +471,31 @@ struct TiangongHistorySheet: View {
                         .foregroundStyle(.secondary)
                     Text(fact.value)
                         .font(.subheadline)
+                }
+            }
+
+            if !TiangongHistory.milestones.isEmpty {
+                Divider()
+                    .padding(.vertical, 2)
+                Text("任务里程碑")
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                ForEach(TiangongHistory.milestones) { milestone in
+                    VStack(alignment: .leading, spacing: 3) {
+                        HStack(alignment: .firstTextBaseline, spacing: 6) {
+                            Text(milestone.date)
+                                .font(.caption.monospacedDigit())
+                                .foregroundStyle(.secondary)
+                            Text(milestone.title)
+                                .font(.subheadline.weight(.medium))
+                        }
+                        Text(milestone.detail)
+                            .font(.caption)
+                        Text(milestone.source)
+                            .font(.caption2)
+                            .foregroundStyle(.tertiary)
+                    }
+                    .padding(.vertical, 2)
                 }
             }
 

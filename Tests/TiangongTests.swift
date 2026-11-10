@@ -488,11 +488,33 @@ final class TiangongHistoryTests: XCTestCase {    /// 逐字对照 `docs/researc
         )
     }
 
+    /// 里程碑只收有一手来源的条目：界面上的每一条都必须写得出出处。
+    func testEveryMilestoneCarriesASource() {
+        XCTAssertFalse(TiangongHistory.milestones.isEmpty)
+        for milestone in TiangongHistory.milestones {
+            XCTAssertFalse(milestone.source.isEmpty, milestone.title)
+            XCTAssertFalse(milestone.date.isEmpty, milestone.title)
+            XCTAssertGreaterThan(milestone.detail.count, 20, "防占位符：\(milestone.title)")
+        }
+    }
+
+    /// 组合体姿态调整这条已核到一手来源（cmse 神舟九号第三期通报），措辞必须与来源一致。
+    func testCompositeAttitudeMilestoneMatchesPrimarySource() {
+        guard let milestone = TiangongHistory.milestones.first(where: { $0.title == "组合体姿态调整" }) else {
+            return XCTFail("缺组合体姿态里程碑")
+        }
+        XCTAssertEqual(milestone.date, "2012-06-20")
+        XCTAssertTrue(milestone.detail.contains("天宫在后正飞"))
+        XCTAssertTrue(milestone.detail.contains("飞船在前倒飞"))
+        XCTAssertTrue(milestone.source.contains("中国载人航天工程办公室"))
+    }
+
     /// PRD FR-C-01：界面不称其为「空间站」。
     func testNoForbiddenTermInUserFacingCopy() {
         var copy = [TiangongHistory.name, TiangongHistory.kind, TiangongHistory.summary]
         copy += TiangongHistory.facts.flatMap { [$0.label, $0.value] }
         copy += TiangongModuleID.allCases.flatMap { [$0.title, $0.detail] }
+        copy += TiangongHistory.milestones.flatMap { [$0.title, $0.detail, $0.source] }
 
         for term in TiangongHistory.forbiddenTerms {
             for text in copy {

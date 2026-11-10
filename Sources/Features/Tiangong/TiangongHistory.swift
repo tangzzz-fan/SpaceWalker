@@ -22,6 +22,25 @@ enum TiangongHistory {
         Fact(label: "再入", value: "2018-04-02 · 南太平洋中部"),
     ]
 
+    /// 任务里程碑。只收**有一手来源**的条目——没有出处的漂亮故事不进界面。
+    struct Milestone: Equatable, Sendable, Identifiable {
+        var id: String { date }
+        var date: String
+        var title: String
+        var detail: String
+        var source: String
+    }
+
+    static let milestones: [Milestone] = [
+        Milestone(
+            date: "2012-06-20",
+            title: "组合体姿态调整",
+            detail: "天宫一号与神舟九号组合体完成第一次姿态调整，从倒飞状态进入正常飞行姿态，"
+                + "形成「天宫在后正飞、飞船在前倒飞」的组合体标准飞行模式。",
+            source: "中国载人航天工程办公室 · 神舟九号任务第三期通报"
+        ),
+    ]
+
     /// 界面禁止出现的称谓。PRD FR-C-01 要求「界面不称其为空间站」。
     static let forbiddenTerms = ["空间站"]
 
