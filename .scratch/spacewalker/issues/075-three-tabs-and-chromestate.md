@@ -8,7 +8,7 @@ blocked_by: []
 
 ## 背景
 
-把「用户在三个房间之间怎么走」变成产品里看得见、代码里可断言的一件事：底部出现 3 个带文字的一级入口（星图 / 太阳系 / 天宫一号），任意模块一次点击互达；首次打开落在星图。同时在 `AppState` 上建立本次重构唯一的结构真相 `ChromeState`（本票先落最小字段），让后面每一票都能用 `TestStore` 断言界面结构，而不是靠截图。
+把「用户在三个房间之间怎么走」变成产品里看得见、代码里可断言的一件事：底部出现 3 个带文字的一级入口（星图 / 太阳系 / 天宫一号），任意模块一次点击互达；首次打开落在星图。同时在 `AppState` 上建立本次重构唯一的结构真相 `ChromeState`（本票先落最小字段），让后面每一票都能在 reducer 通道上断言界面结构，而不是靠截图。
 
 父 spec：074。
 
@@ -18,13 +18,13 @@ blocked_by: []
 - [ ] 从任意模块到任意模块 ≤1 次点击；天宫不再只能从太阳系进入
 - [ ] 默认落地 `route == .sky`（`LaunchMode.initialRoute` 与 `AppState` 初始值同源）
 - [ ] `ChromeState` 为 Equatable / Sendable 值类型，含 route、tab 项、选中指示；由纯函数 `derive` 计算，reducer 在 `.route` 时统一重算
-- [ ] `TestStore` 断言：3 个 tab 的文字与选中态、默认 `.sky`、切换后选中项同步
+- [ ] reducer 通道断言：3 个 tab 的文字与选中态、默认 `.sky`、切换后选中项同步
 - [ ] 既有 358 项测试全绿，零回归
 - [ ] 生产代码零注释；新增文件后跑 `xcodegen generate`
 
 ## 测试缝
 
-`ChromeState` + `makeAppReducer()`，复用 `TestStore.send/assert`；先例 `AppReducerTests`、`SolarSystemReducerTests`。只断言外部可观察状态，不断言 View 层级或像素。
+`ChromeState` + `makeAppReducer()`，用 `AppReducerTests` 已有的 `reduce` 断言通道；先例 `SolarSystemReducerTests`。`SpaceWalkerTests` 未链接 `TGReduxKitTesting`，本票不新加依赖（seam 不变，只换断言 harness）。只断言外部可观察状态，不断言 View 层级或像素。
 
 ## 备注
 

@@ -23,7 +23,7 @@ blocked_by: [077]
 
 ## 测试缝
 
-`ChromeState` 选中派生 + `TestStore`；session 行为沿用既有单测，不新开缝。
+`ChromeState` 选中派生 + reducer 断言通道；session 行为沿用既有单测，不新开缝。
 
 ## 备注
 

@@ -23,7 +23,7 @@ blocked_by: [075]
 
 ## 测试缝
 
-`LaunchMode` 纯函数 + `ChromeState.debugOverlay`，`TestStore`；先例 `SkyTests` 里的调试开关断言。
+`LaunchMode` 纯函数 + `ChromeState.debugOverlay`，reducer 断言通道；先例 `SkyTests` 里的调试开关断言。
 
 ## 备注
 

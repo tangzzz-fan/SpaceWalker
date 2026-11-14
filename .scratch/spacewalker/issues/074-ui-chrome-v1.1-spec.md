@@ -77,7 +77,7 @@ blocked_by: []
 
 ## 测试缝
 
-**唯一自动断言缝**：`ChromeState` + `makeAppReducer()`，复用 `TGReduxKitTesting/TestStore` 的 `send/assert`。好测试只断言外部可观察的状态派生结果，不断言私有方法、View 层级或像素。
+**唯一自动断言缝**：`ChromeState` + `makeAppReducer()`，用项目已有的 `reduce` 断言通道（`AppReducerTests` 风格）。`SpaceWalkerTests` 只链接 `TGReduxKit` product，未链接 `TGReduxKitTesting`，因此不引入 `TestStore` 依赖、不产生 xcodeproj 漂移；seam 本身不变。好测试只断言外部可观察的状态派生结果，不断言私有方法、View 层级或像素。
 
 - 先例：`AppReducerTests`（route 变更）、`SolarSystemReducerTests`（selected 派生）、`LaunchMode` 的字典注入纯函数测试、史实禁词测试。
 - 覆盖：默认 `route == .sky`；3 个 tab 的文字与选中态；`primaryAction` 唯一且归属底部；`contextControls.count <= 3` 且每个都有文字；`debugOverlay` 默认全 false；`selected == nil` 时 `visibleLabels` 空且 `infoCard == nil`；选中实验舱后 `visibleLabels == [.lab]` 且 `infoCard != nil`；诊断开关纯函数；用户文案禁词与史实日期。

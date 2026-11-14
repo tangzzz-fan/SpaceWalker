@@ -17,13 +17,13 @@ blocked_by: [075, 076]
 - [ ] 三个主视图同为 44pt 只读状态条，两行以内，右侧只有「…」
 - [ ] 底部三段：主操作（1 个暖金实心，y 680–740）→ 上下文控件（≤3，都带文字，740–784）→ 3 个 tab（784–840）
 - [ ] 主操作随模块变化（星图「找星」/ 太阳系「聚焦」/ 天宫「开始拆解」等），不重复出现在状态条或卡片里
-- [ ] `ChromeState.primaryAction / contextControls / statusLine` 由 `derive` 计算；`TestStore` 断言唯一性、≤3、都带文字、归属底部
+- [ ] `ChromeState.primaryAction / contextControls / statusLine` 由 `derive` 计算；reducer 通道断言唯一性、≤3、都带文字、归属底部
 - [ ] A1 / B1 / C1 截图与 v1.1 稿逐屏对照，差异回改稿或回改实现
 - [ ] 358 项既有测试全绿；60fps 不回归（真机复测由 080 承接）
 
 ## 测试缝
 
-`ChromeState` 派生 + `TestStore`；视觉与布局用截图对照，不新增 XCUITest 断言。
+`ChromeState` 派生 + reducer 断言通道；视觉与布局用截图对照，不新增 XCUITest 断言。
 
 ## 备注
 
