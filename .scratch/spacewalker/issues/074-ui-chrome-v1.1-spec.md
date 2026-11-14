@@ -90,7 +90,7 @@ AR / 相机能力；横屏与 iPad 版式；多语言；新的几何、粒子、
 
 ## 备注
 
-- 设计基准状态：v1.1 稿已落盘并结构化核验（14 屏、自查表第 12 项「✓ 通过」、assumption 偏离记录已关闭、「空间站」0 次、顶栏主操作残留 0 处；底部三段 y 680–740 / 740–784 / 784–840）。open-design run `88fab827` 仍在收尾，终态需在实现前再确认一次；若稿再变，本 spec 的视觉引用随之更新。
+- 设计基准状态：v1.1 稿 **已确认**（2026-11-14 23:22）。open-design run `88fab827` 终态 `succeeded / agentId=claude / artifactCount=1 / deliverableValid=true`；结构化核验 14 屏、自查表第 12 项「✓ 通过」、assumption 偏离记录已关闭、「空间站」0 次、顶栏主操作残留 0 处、底部三段 y 680–740 / 740–784 / 784–840。详见 `docs/design/DRAFT-v1.md` 的「v1.1 交付核验」。若稿再变，本 spec 的视觉引用随之更新。
 - 术语遵循 `GLOSSARY.md`；ADR-0005（程序化几何）不变；PRD 与 ADR 冲突时按 `docs/agents/domain.md` 规则处理。
 - 相关既有决策：上架名「星槎」（`docs/design/NAME.md`）、主操作落底部的评审裁决（`docs/design/DRAFT-v1.md`）。
 - `stage: M3`；子票请从 075 起编号，并在 `blocked_by` 引用本 spec 或彼此的依赖。

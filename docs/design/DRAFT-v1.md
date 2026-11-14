@@ -2,7 +2,7 @@
 
 > 生成时间：2026-11-14 22:38
 > 工具：OpenDesign 本地项目 `xingcha-ui-v1`，agent = Claude Code（DeepSeek-V4.1-Flash）
-> 状态：**已评审通过，含一项裁决修订**；v1 原稿不可直接作为实现基准，需先出 v1.1
+> 状态：**v1.1 已产出并核验，作为实现基准**（2026-11-14 23:22；评审裁决见下，核验记录见文末）
 
 ## 评审裁决（2026-11-14 22:46，董事长 Tang，第 2 轮）
 
@@ -50,8 +50,24 @@
 - ~~主操作放顶栏 44pt 状态条（任务书 §9 要求「主操作在屏幕下 40%」）~~ → **2026-11-14 22:46 裁决：否决，见「评审裁决」表第 1 项**。v1.1 需重排 14 屏。
 - 工程图的「翼展」「转移通道」写成「由模型计算」，不编造数值——符合「标注与常量同源」的要求，**保留**。
 
+## v1.1 交付核验（2026-11-14 23:22，已确认）
+
+run `88fab827-fba1-4199-8c37-252dc7a0b2b5`：`status=succeeded`、`agentId=claude`、`artifactCount=1`、`deliverableValid=true`。产物 `index.html` 于 23:20:55 落盘，1,185,187 字节（v1 为 1,179,733）。
+
+| 核验项 | 结果 |
+|---|---|
+| 14 屏 | `<article class="plate">` = 14 |
+| 主操作落底部 | `primary-dock` 18 处、`btn-primary` 18 处；顶部状态条只读；底部三段 y 680–740 / 740–784 / 784–840 |
+| 自查表第 12 项 | 由「! 部分偏离」改为「✓ 通过」，注明「14 屏唯一主操作均在底部主操作区」 |
+| assumption 偏离记录 | 已关闭，改写为「已按评审裁决落底部」 |
+| 顶栏主操作残留 | 0（检索 `顶栏主操作｜顶部找星｜主操作仍在顶栏｜主操作在顶栏`） |
+| 硬约束 | 「空间站」0 次；fps / pick 串只出现在对照区与组件规范，不在屏内 |
+| 版本标记 | 文首 `v1.1 · 2026-11-14 · 主操作落底部（评审裁决）` |
+
+**结论：v1.1 为实现基准。** 稿与实现同源：改实现要回改稿，改稿要同步实现。
+
 ## 下一步
 
-1. **出 v1.1**：在同一 open-design 项目 `xingcha-ui-v1` 上重排 14 屏，主操作入底部；按 `docs/findings/2026-11-14-open-design-handoff.md` 的教训，prompt 里写死文件契约，产物用 `list_files` 核对存在，不能只信 `status: succeeded`。`start_run` 还必须**显式传 `agent:"claude"`**（省略会回落到未登录的 `amr` 并 1 秒内失败，见全局账本 `2026-11-14-start_run不指定agent会回落到未登录的amr.md`），下发后立即 `get_run` 复核 `agentId` 与 `status`。
-2. 稿核对通过后按工程主流程推进：`/to-spec` → `/to-tickets`（`.scratch/spacewalker/issues/074+`）→ `/implement`（每票 `/tdd` + `/code-review`）→ `/retro`。
-3. token 落地以 v1.1 第 02 节表格为准，代码里不写裸值。
+1. 工程主流程：`/to-spec`（spec 已发布，见 `.scratch/spacewalker/issues/074-ui-chrome-v1.1-spec.md`）→ `/to-tickets`（子票 075+）→ `/implement`（每票 `/tdd` + `/code-review`）→ `/retro`。
+2. token 落地以 v1.1 第 02 节表格为准，代码里不写裸值。
+3. 后续所有 `start_run` 必须**显式传 `agent:"claude"`**，下发后立即 `get_run` 复核（全局账本 `2026-11-14-start_run不指定agent会回落到未登录的amr.md`）；终态用 `list_files` 验 mtime/size，不信 `succeeded` 声明。
