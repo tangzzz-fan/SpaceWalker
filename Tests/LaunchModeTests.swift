@@ -3,8 +3,8 @@ import XCTest
 @testable import SpaceWalker
 
 final class LaunchModeTests: XCTestCase {
-    func testDefaultRouteIsSolarSystem() {
-        XCTAssertEqual(LaunchMode.initialRoute(environment: [:]), .solarSystem)
+    func testDefaultRouteIsSky() {
+        XCTAssertEqual(LaunchMode.initialRoute(environment: [:]), .sky)
     }
 
     func testSkyRouteFromEnvironment() {

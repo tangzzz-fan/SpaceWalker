@@ -1561,13 +1561,13 @@ final class SkySeasonTests: XCTestCase {
 final class AppRouteTests: XCTestCase {
     func testRouteSwitchIsReduced() {
         var state = AppState()
-        XCTAssertEqual(state.route, .solarSystem)
-        makeAppReducer()(&state, .route(.sky))
         XCTAssertEqual(state.route, .sky)
+        makeAppReducer()(&state, .route(.tiangong))
+        XCTAssertEqual(state.route, .tiangong)
     }
 
     func testInitialRouteFromEnvironment() {
-        XCTAssertEqual(LaunchMode.initialRoute(environment: [:]), .solarSystem)
+        XCTAssertEqual(LaunchMode.initialRoute(environment: [:]), .sky)
         XCTAssertEqual(LaunchMode.initialRoute(environment: ["SPACEWALKER_MODE": "sky"]), .sky)
     }
 

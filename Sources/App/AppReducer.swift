@@ -9,6 +9,7 @@ func makeAppReducer() -> Reducer<AppState, AppAction> {
             SolarSystemReducer.reduce(&state.space, spaceAction)
         case .route(let route):
             state.route = route
+            state.chrome = ChromeState.derive(route: route)
         case .flagsLoaded(let flags):
             state.flags = flags
         }
