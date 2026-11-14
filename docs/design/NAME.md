@@ -1,6 +1,6 @@
 # 上架命名决策
 
-> 状态：**建议方案待拍板**（可一行改动回退，代码侧只动 `CFBundleDisplayName` 与界面标题）
+> 状态：**已确认并落地**（2026-11-14 拍板；代码侧只动 `CFBundleDisplayName` 与定位权限文案）
 > 日期：2026-11-14
 > 结论：上架名 **星槎**，副标题「举机观星 · 太阳系 · 天宫一号」
 
@@ -84,9 +84,11 @@
 
 ---
 
-## 6. 改动范围（确认后执行）
+## 6. 改动范围（已执行）
 
-- `CFBundleDisplayName` → 星槎（桌面图标名）
-- 应用内三处标题：星图页标题、太阳系页标题、天宫页标题保持各自模块名，**不再重复 App 名**
-- `docs/PRD.md` 产品名、`README`、App Store 元数据
+- [x] `project.yml` 的 `CFBundleDisplayName` → **星槎**（xcodegen 同步到 `Supporting/Info.plist`）
+- [x] `NSLocationWhenInUseUsageDescription` 里的产品名 → 星槎
+- [x] 产物校验：`PlistBuddy` 读构建后的 `SpaceWalker.app/Info.plist` 得 `星槎`
+- [ ] App Store Connect 元数据与截图（上架时填）
 - **不改** Xcode target / bundle id / 目录名（SpaceWalker 作为工程代号保留，改名成本与收益不成比例）
+- 应用内三个模块的标题仍是「星图 / 太阳系 / 天宫一号」，**不重复 App 名**
