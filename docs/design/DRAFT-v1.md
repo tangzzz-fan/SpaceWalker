@@ -52,6 +52,6 @@
 
 ## 下一步
 
-1. **出 v1.1**：在同一 open-design 项目 `xingcha-ui-v1` 上重排 14 屏，主操作入底部；按 `docs/findings/2026-11-14-open-design-handoff.md` 的教训，prompt 里写死文件契约，产物用 `list_files` 核对存在，不能只信 `status: succeeded`。
+1. **出 v1.1**：在同一 open-design 项目 `xingcha-ui-v1` 上重排 14 屏，主操作入底部；按 `docs/findings/2026-11-14-open-design-handoff.md` 的教训，prompt 里写死文件契约，产物用 `list_files` 核对存在，不能只信 `status: succeeded`。`start_run` 还必须**显式传 `agent:"claude"`**（省略会回落到未登录的 `amr` 并 1 秒内失败，见全局账本 `2026-11-14-start_run不指定agent会回落到未登录的amr.md`），下发后立即 `get_run` 复核 `agentId` 与 `status`。
 2. 稿核对通过后按工程主流程推进：`/to-spec` → `/to-tickets`（`.scratch/spacewalker/issues/074+`）→ `/implement`（每票 `/tdd` + `/code-review`）→ `/retro`。
 3. token 落地以 v1.1 第 02 节表格为准，代码里不写裸值。
