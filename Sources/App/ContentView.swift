@@ -18,10 +18,27 @@ struct ContentView: View {
             }
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
-            ChromeTabBar(tabs: store.state.chrome.tabs) { route in
-                store.dispatch(.route(route))
+            VStack(alignment: .trailing, spacing: 0) {
+                ChromeVersionBadge()
+                ChromeTabBar(tabs: store.state.chrome.tabs) { route in
+                    store.dispatch(.route(route))
+                }
             }
+            .background(ChromeTokens.surface.opacity(0.92))
         }
+        .sheet(isPresented: diagnosticsBinding) {
+            ChromeDiagnosticsSheet()
+        }
+    }
+
+    private var diagnosticsBinding: Binding<Bool> {
+        Binding(
+            get: { store.state.chrome.diagnosticsVisible },
+            set: { presented in
+                guard !presented, store.state.chrome.diagnosticsVisible else { return }
+                store.dispatch(.chrome(.toggleDiagnostics))
+            }
+        )
     }
 }
 
@@ -32,11 +49,15 @@ enum ChromeTokens {
     static let surface = Color(red: 5 / 255, green: 7 / 255, blue: 13 / 255)
     static let hairline = Color.white.opacity(0.10)
     static let labelSize: CGFloat = 12
+    static let captionSize: CGFloat = 11
+    static let bodySize: CGFloat = 13
     static let indicatorSize: CGFloat = 4
     static let labelSpacing: CGFloat = 4
     static let horizontalPadding: CGFloat = 8
+    static let tightPadding: CGFloat = 2
     static let minTouchHeight: CGFloat = 44
     static let barHeight: CGFloat = 56
+    static let diagnosticsHoldDuration: Double = 3
 }
 
 struct ChromeTabBar: View {

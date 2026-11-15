@@ -150,7 +150,6 @@ extension SkyView {
             }
         }
         if LaunchMode.perfLogEnabled(environment: ProcessInfo.processInfo.environment) {
-            let showsHUD = LaunchMode.fpsHUDEnabled(environment: ProcessInfo.processInfo.environment)
             session.track(Task {
                 var loggedBudget = false
                 while !Task.isCancelled {
@@ -158,11 +157,10 @@ extension SkyView {
                         loggedBudget = true
                         SessionLog.append(scene.budget())
                     }
-                    let summary = session.perf.tick(
+                    session.perf.tick(
                         now: ProcessInfo.processInfo.systemUptime,
                         layers: layerLabel
                     )
-                    if showsHUD { perfSummary = summary }
                     try? await Task.sleep(for: .seconds(1))
                 }
             })

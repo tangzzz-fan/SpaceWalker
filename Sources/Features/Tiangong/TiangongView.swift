@@ -7,7 +7,6 @@ struct TiangongView: View {
     @Bindable var session: TiangongSession
 
     @State private var environment: RealityViewEnvironment?
-    @State private var probeLine: String?
     @State private var showsHistory = false
     @State private var dragMode: DragMode = .none
     @State private var lastDrag: CGSize = .zero
@@ -81,7 +80,7 @@ struct TiangongView: View {
             }
             // 碰撞体与投影要等渲染就绪，立刻自检会全空。
             try? await Task.sleep(for: .seconds(1.2))
-            probeLine = session.scene.verifyPicking()
+            SessionLog.append("tiangong.pick " + session.scene.verifyPicking())
         }
         .onChange(of: showsHistory) { _, open in
             if open {
@@ -313,12 +312,6 @@ struct TiangongView: View {
             Text("任务 \(session.mission.phase.ordinal)/3 · \(TiangongMission.summary(session.mission)) · 第 \(session.completedOrbits + 1) 圈")
                 .font(.caption2)
                 .foregroundStyle(.secondary)
-            if let probeLine {
-                Text("pick · \(probeLine)")
-                    .font(.caption2)
-                    .foregroundStyle(.tertiary)
-                    .monospacedDigit()
-            }
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 10)

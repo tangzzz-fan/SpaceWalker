@@ -1,7 +1,37 @@
 import Foundation
 
+struct DiagnosticsSettings: Equatable, Sendable {
+    var fpsHUD: Bool
+    var perfLog: Bool
+    var pickProbe: Bool
+    var coordinateStatus: Bool
+    var overrides: [String]
+}
+
 enum LaunchMode {
     static let environmentKey = "SPACEWALKER_MODE"
+    static let environmentPrefix = "SPACEWALKER_"
+
+    static func environment(_ injected: [String: String]? = nil) -> [String: String] {
+        injected ?? ProcessInfo.processInfo.environment
+    }
+
+    static func diagnostics(environment: [String: String]) -> DiagnosticsSettings {
+        DiagnosticsSettings(
+            fpsHUD: fpsHUDEnabled(environment: environment),
+            perfLog: perfLogEnabled(environment: environment),
+            pickProbe: pickProbeEnabled(environment: environment),
+            coordinateStatus: environment["SPACEWALKER_COORDS"] == "1",
+            overrides: environment.keys
+                .filter { $0.hasPrefix(environmentPrefix) }
+                .sorted()
+                .compactMap { key in environment[key].map { "\(key)=\($0)" } }
+        )
+    }
+
+    static func diagnosticsPanelOnLaunch(environment: [String: String]) -> Bool {
+        environment["SPACEWALKER_DIAGNOSTICS"] == "1"
+    }
 
     static func initialRoute(environment: [String: String]) -> AppRoute {
         switch environment[environmentKey] {

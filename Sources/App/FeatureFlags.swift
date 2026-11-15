@@ -20,13 +20,11 @@ enum AppFeature: String, TypedFeatureFlag, CaseIterable {
         return "SPACEWALKER_FLAG_" + suffix
     }
 
-    var isOverridden: Bool {
-        ProcessInfo.processInfo.environment[overrideKey] != nil
+    func override(environment: [String: String]) -> Bool? {
+        guard let raw = environment[overrideKey] else { return nil }
+        return raw == "1"
     }
 
-    var overrideValue: Bool {
-        ProcessInfo.processInfo.environment[overrideKey] == "1"
-    }
 }
 
 struct FeatureFlags: Equatable, Sendable {

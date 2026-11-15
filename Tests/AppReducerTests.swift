@@ -50,4 +50,24 @@ final class AppReducerTests: XCTestCase {
         XCTAssertEqual(state.chrome.tabs.map(\.isSelected), [false, false, true])
         XCTAssertEqual(state.chrome.route, state.route)
     }
+
+    func testDefaultDebugOverlayIsOff() {
+        let chrome = AppState().chrome
+        XCTAssertEqual(chrome.debugOverlay, .off)
+        XCTAssertFalse(chrome.diagnosticsVisible)
+    }
+
+    func testToggleDiagnosticsOpensPanelWithoutLeakingOverlayToMainUI() {
+        let opened = reduce([.chrome(.toggleDiagnostics)])
+        XCTAssertTrue(opened.chrome.diagnosticsVisible)
+        XCTAssertEqual(opened.chrome.debugOverlay, .off)
+        let closed = reduce([.chrome(.toggleDiagnostics)], from: opened)
+        XCTAssertFalse(closed.chrome.diagnosticsVisible)
+    }
+
+    func testRouteChangeClosesDiagnosticsPanel() {
+        let state = reduce([.chrome(.toggleDiagnostics), .route(.tiangong)])
+        XCTAssertEqual(state.chrome.route, .tiangong)
+        XCTAssertFalse(state.chrome.diagnosticsVisible)
+    }
 }

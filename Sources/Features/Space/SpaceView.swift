@@ -9,7 +9,6 @@ struct SpaceView: View {
     @State private var scene = SolarSystemScene()
     #if DEBUG
     @State private var probe = ProbeRecorder()
-    @State private var fpsLine: String?
     #endif
     @State private var environment: RealityViewEnvironment?
     @State private var rig = OrbitRig()
@@ -17,7 +16,6 @@ struct SpaceView: View {
     @State private var showsCredits = false
     @State private var ticker = Timer.publish(every: 1.0 / 30.0, on: .main, in: .common).autoconnect()
     @State private var lastTick = ProcessInfo.processInfo.systemUptime
-    @State private var probeLine: String?
     @State private var labelPoint: CGPoint?
     @State private var lastProbe: TimeInterval = 0
 
@@ -152,17 +150,6 @@ struct SpaceView: View {
             Text(rateLine)
                 .font(.caption)
                 .foregroundStyle(.secondary)
-            if let fpsLine {
-                Text(fpsLine)
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-                    .monospacedDigit()
-            }
-            if let probeLine {
-                Text("pick · \(probeLine)")
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-            }
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 10)
@@ -380,7 +367,7 @@ struct SpaceView: View {
         }
 
         #if DEBUG
-        fpsLine = probe.tick(now: now, anchorPosition: nil).fpsOnlyLine
+        _ = probe.tick(now: now, anchorPosition: nil)
         #endif
 
         #if DEBUG
@@ -396,7 +383,6 @@ struct SpaceView: View {
         lastProbe = now
         let center = CGPoint(x: canvasSize.width / 2, y: canvasSize.height / 2)
         let hit = scene.pick(at: center)
-        probeLine = hit?.rawValue ?? "none"
         SessionLog.append(
             "space.pickProbe center=\(Int(center.x)),\(Int(center.y)) hit=\(hit?.rawValue ?? "none")"
         )

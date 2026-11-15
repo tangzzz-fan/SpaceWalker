@@ -15,7 +15,6 @@ struct SkyView: View {
     @State var showsFinder = false
     @State var showsAsterismBrowser = false
     @State var hud = DwellHUD()
-    @State var perfSummary: ProbeSummary?
     @State var diagnosticsStamp: TimeInterval = 0
 
     var body: some View {

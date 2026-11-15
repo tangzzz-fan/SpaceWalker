@@ -14,7 +14,6 @@ extension SkyView {
     var portraitOverlay: some View {
         VStack(alignment: .leading, spacing: 0) {
             topBar
-            perfBadge(alignment: .trailing)
             Spacer(minLength: 0)
             VStack(alignment: .leading, spacing: 10) {
                 activeCards
@@ -34,7 +33,6 @@ extension SkyView {
             HStack(alignment: .top, spacing: 10) {
                 VStack(alignment: .leading, spacing: 6) {
                     compactTopBar
-                    perfBadge(alignment: .leading)
                     Spacer(minLength: 0)
                 }
                 Spacer(minLength: 0)
@@ -57,20 +55,6 @@ extension SkyView {
         .padding(.horizontal, 14)
         .padding(.top, 6)
         .padding(.bottom, 8)
-    }
-
-    @ViewBuilder
-    func perfBadge(alignment: Alignment) -> some View {
-        if let summary = perfSummary {
-            Text(summary.fpsOnlyLine)
-                .font(.system(size: 10, design: .monospaced))
-                .foregroundStyle(.secondary)
-                .padding(.horizontal, 6)
-                .padding(.vertical, 3)
-                .background(.ultraThinMaterial, in: Capsule())
-                .frame(maxWidth: .infinity, alignment: alignment)
-                .padding(.top, 6)
-        }
     }
 
     /// 横屏顶栏只留最要紧的：坐标、时刻、当前天区。

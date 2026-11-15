@@ -29,6 +29,12 @@ enum SessionLog {
         return "\(machine) | \(system) | app \(version)(\(build)) | bundle \(bundle.bundleIdentifier ?? "-")"
     }
 
+    static func recentLines(_ count: Int) -> [String] {
+        guard let text = try? String(contentsOf: fileURL, encoding: .utf8) else { return [] }
+        let lines = text.split(separator: "\n").map(String.init)
+        return Array(lines.suffix(count))
+    }
+
     static func append(_ message: String) {
         let line = "[\(AppClock.elapsedMilliseconds())ms] \(message)\n"
         // 控制台也留一份：真机验收时可以直接 `log stream` 看，不必每次都把文件捞回来。
