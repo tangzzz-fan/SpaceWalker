@@ -42,6 +42,30 @@ enum ChromeTokens {
     static let panelDuration: Double = 0.28
     static let stateDuration: Double = 0.15
     static let diagnosticsHoldDuration: Double = 3
+    static let infoCardMaxHeightRatio: Double = 0.32
+    static let infoCardDismissDistance: CGFloat = 40
+}
+
+struct ChromeInfoCardBehavior: ViewModifier {
+    let ratio: Double
+    let onDismiss: () -> Void
+
+    func body(content: Content) -> some View {
+        content
+            .frame(maxHeight: UIScreen.main.bounds.height * ratio)
+            .transition(.move(edge: .bottom).combined(with: .opacity))
+            .gesture(
+                DragGesture(minimumDistance: 20)
+                    .onEnded { value in
+                        SessionLog.append(
+                            String(format: "chrome.card.drag dy=%.0f", value.translation.height)
+                        )
+                        if value.translation.height > ChromeTokens.infoCardDismissDistance {
+                            onDismiss()
+                        }
+                    }
+            )
+    }
 }
 
 final class ChromeActionRegistry {

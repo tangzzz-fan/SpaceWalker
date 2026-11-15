@@ -81,7 +81,10 @@ struct SkyView: View {
         .onChange(of: showsFinder) { _, _ in syncMode() }
         .onChange(of: showsAsterismBrowser) { _, _ in syncMode() }
         .onChange(of: showsLayers) { _, _ in syncMode() }
-        .onChange(of: session.selected?.name) { _, _ in syncMode() }
+        .onChange(of: session.selected?.name) { _, name in
+            store.dispatch(.chrome(.select(name.map(ChromeSelection.star))))
+            syncMode()
+        }
         .onDisappear {
             session.pause()
             session.observer.disable()
@@ -189,6 +192,12 @@ struct SkyView: View {
                     SessionLog.append("sky.select name=\(hit?.name ?? "none") mag=\(hit?.magnitude ?? 0)")
                 }
         )
+    }
+
+    func dismissSelection() {
+        session.selected = nil
+        session.selectedGroup = nil
+        store.dispatch(.chrome(.dismissCard))
     }
 
     private func registerActions() {

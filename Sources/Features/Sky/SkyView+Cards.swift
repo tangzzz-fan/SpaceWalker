@@ -23,7 +23,7 @@ extension SkyView {
         if let selectedGroup = session.selectedGroup {
             groupCard(selectedGroup)
         }
-        if let selected = session.selected {
+        if store.state.chrome.infoCard != nil, let selected = session.selected {
             starCard(selected)
         }
     }

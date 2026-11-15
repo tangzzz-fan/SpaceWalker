@@ -45,9 +45,13 @@ struct TiangongView: View {
                     if session.dockingActive {
                         dockingCard
                             .padding(.bottom, 10)
-                    } else if let selected = session.selected {
+                    } else if store.state.chrome.infoCard != nil, let selected = session.selected {
                         infoCard(selected)
                             .padding(.bottom, 10)
+                            .modifier(ChromeInfoCardBehavior(
+                                ratio: store.state.chrome.infoCard?.maxHeightRatio
+                                    ?? ChromeTokens.infoCardMaxHeightRatio
+                            ) { dismissSelection() })
                     }
                     if session.cutawayMode {
                         cutawayCard
@@ -60,10 +64,14 @@ struct TiangongView: View {
         }
         .preferredColorScheme(.dark)
         .onAppear(perform: registerActions)
+        .onAppear(perform: syncLaunchSelection)
         .onChange(of: session.reentryPhase) { _, _ in syncMode() }
         .onChange(of: session.drawingMode) { _, _ in syncMode() }
         .onChange(of: session.cutawayMode) { _, _ in syncMode() }
         .onChange(of: session.dockingActive) { _, _ in syncMode() }
+        .onChange(of: session.separated) { _, separated in
+            store.dispatch(.chrome(.setSeparation(Set(separated.map(\.rawValue)))))
+        }
         .onChange(of: session.selected) { _, selected in
             store.dispatch(.chrome(.select(selected.map(ChromeSelection.module))))
             syncMode()
@@ -115,21 +123,26 @@ struct TiangongView: View {
     /// 部件名常驻在投影位置上。几何只到「示意」的程度，命名交给标签，
     /// 用户至少能回答「这是哪一段」——062 的降级方案。
     private var labelLayer: some View {
-        // TimelineView 自己按 0.1s 刷新，不把锚点写回 @State——
-        // 写回状态会让整个 body 重建，RealityView 跟着重算，画面会闪。
-        TimelineView(.periodic(from: .now, by: 0.1)) { _ in
+        let labels = store.state.chrome.visibleLabels
+        return TimelineView(.periodic(from: .now, by: 0.1)) { _ in
             let anchors = session.labelAnchors()
             ZStack {
-                ForEach(TiangongModuleID.allCases) { id in
-                    if let point = anchors[id] {
-                        Text(id.title)
-                            .font(.caption2.weight(.medium))
-                            .foregroundStyle(.primary)
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 3)
-                            .background(.ultraThinMaterial, in: Capsule())
-                            .overlay(Capsule().stroke(.white.opacity(0.12), lineWidth: 0.5))
-                            .position(x: point.x, y: point.y - 24)
+                ForEach(labels, id: \.id) { label in
+                    if let id = TiangongModuleID(rawValue: label.id),
+                       let point = anchors[id] {
+                        Path { path in
+                            path.move(to: point)
+                            path.addLine(to: CGPoint(x: point.x, y: point.y - 18))
+                        }
+                        .stroke(ChromeTokens.strongHairline, lineWidth: 1)
+                        Text(label.title)
+                            .font(.system(size: ChromeTokens.captionSize, weight: .medium))
+                            .foregroundStyle(ChromeTokens.primaryText)
+                            .padding(.horizontal, ChromeTokens.horizontalPadding)
+                            .padding(.vertical, ChromeTokens.tightPadding)
+                            .background(ChromeTokens.surface1.opacity(0.86), in: Capsule())
+                            .overlay(Capsule().stroke(ChromeTokens.hairline, lineWidth: 1))
+                            .position(x: point.x, y: point.y - 30)
                     }
                 }
             }
@@ -300,6 +313,19 @@ struct TiangongView: View {
             .onEnded { value in
                 session.pick(at: value.location)
             }
+    }
+
+    private func syncLaunchSelection() {
+        store.dispatch(.chrome(.setSeparation(Set(session.separated.map(\.rawValue)))))
+        if let selected = session.selected {
+            store.dispatch(.chrome(.select(.module(selected))))
+            store.dispatch(.chrome(.setMode(.card)))
+        }
+    }
+
+    private func dismissSelection() {
+        session.selected = nil
+        store.dispatch(.chrome(.dismissCard))
     }
 
     private func registerActions() {
@@ -482,13 +508,8 @@ struct TiangongView: View {
             } else {
                 VStack {
                     Spacer()
-                    HStack(spacing: 12) {
-                        Text(TiangongReentry.caption(session.reentryPhase) ?? "")
-                            .font(.caption.weight(.medium))
-                        Button("跳过") { session.skipReentry() }
-                            .buttonStyle(.bordered)
-                            .controlSize(.small)
-                    }
+                    Text(TiangongReentry.caption(session.reentryPhase) ?? "")
+                        .font(.caption.weight(.medium))
                     .padding(.horizontal, 16)
                     .padding(.vertical, 10)
                     .background(.ultraThinMaterial, in: Capsule())

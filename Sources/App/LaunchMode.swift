@@ -224,6 +224,10 @@ enum LaunchMode {
         return Set(raw.split(separator: ",").compactMap { TiangongModuleID(rawValue: String($0)) })
     }
 
+    static func tiangongSelectedOnLaunch(environment: [String: String]) -> TiangongModuleID? {
+        environment["SPACEWALKER_TG_SELECT"].flatMap(TiangongModuleID.init(rawValue:))
+    }
+
     static func tiangongDockingOnLaunch(environment: [String: String]) -> Bool {
         environment["SPACEWALKER_TG_DOCK"] == "1"
     }

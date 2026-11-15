@@ -60,6 +60,7 @@ final class TiangongSession {
 
     init() {
         separated = LaunchMode.tiangongSeparated(environment: ProcessInfo.processInfo.environment)
+        selected = LaunchMode.tiangongSelectedOnLaunch(environment: ProcessInfo.processInfo.environment)
         SessionLog.append("tiangong.session boot separated=\(separated.count)")
     }
 

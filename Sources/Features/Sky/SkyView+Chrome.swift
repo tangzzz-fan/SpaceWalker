@@ -17,6 +17,10 @@ extension SkyView {
             VStack(alignment: .leading, spacing: 10) {
                 activeCards
             }
+            .modifier(ChromeInfoCardBehavior(
+                ratio: store.state.chrome.infoCard?.maxHeightRatio
+                    ?? ChromeTokens.infoCardMaxHeightRatio
+            ) { dismissSelection() })
         }
         .padding(.horizontal, ChromeTokens.edgePadding)
         .padding(.bottom, ChromeTokens.horizontalPadding)

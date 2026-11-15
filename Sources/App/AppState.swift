@@ -13,6 +13,7 @@ enum ChromeAction: Equatable, Sendable {
     case setMode(ChromeMode)
     case select(ChromeSelection?)
     case setStatus(String)
+    case setSeparation(Set<String>)
     case dismissCard
 }
 

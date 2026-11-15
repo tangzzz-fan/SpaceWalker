@@ -53,10 +53,14 @@ struct SpaceView: View {
 
             VStack(alignment: .leading, spacing: 0) {
                 Spacer(minLength: 0)
-                if let selectedBody {
+                if store.state.chrome.infoCard != nil, let selectedBody {
                     infoCard(selectedBody)
                         .padding(.horizontal, ChromeTokens.edgePadding)
                         .padding(.bottom, ChromeTokens.horizontalPadding)
+                        .modifier(ChromeInfoCardBehavior(
+                            ratio: store.state.chrome.infoCard?.maxHeightRatio
+                                ?? ChromeTokens.infoCardMaxHeightRatio
+                        ) { store.dispatch(.space(.select(nil))) })
                 }
             }
         }

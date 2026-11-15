@@ -12,6 +12,7 @@ func makeAppReducer() -> Reducer<AppState, AppAction> {
                     route: state.route,
                     mode: body == nil ? .normal : .card,
                     selection: body.map(ChromeSelection.body),
+                    separation: state.chrome.separation,
                     diagnosticsEnabled: state.chrome.diagnosticsVisible
                 )
             }
@@ -36,6 +37,7 @@ private func reduceChrome(_ state: inout AppState, _ action: ChromeAction) {
             route: state.route,
             mode: mode,
             selection: state.chrome.selection,
+            separation: state.chrome.separation,
             diagnosticsEnabled: state.chrome.diagnosticsVisible
         )
     case .select(let selection):
@@ -43,14 +45,23 @@ private func reduceChrome(_ state: inout AppState, _ action: ChromeAction) {
             route: state.route,
             mode: state.chrome.mode,
             selection: selection,
+            separation: state.chrome.separation,
             diagnosticsEnabled: state.chrome.diagnosticsVisible
         )
     case .setStatus(let detail):
         state.chrome.statusLine.detail = detail
+    case .setSeparation(let separation):
+        state.chrome = ChromeState.derive(
+            route: state.route,
+            mode: state.chrome.mode,
+            selection: state.chrome.selection,
+            separation: separation,
+            diagnosticsEnabled: state.chrome.diagnosticsVisible
+        )
     case .dismissCard:
         state.chrome = ChromeState.derive(
             route: state.route,
-            selection: nil,
+            separation: state.chrome.separation,
             diagnosticsEnabled: state.chrome.diagnosticsVisible
         )
     }

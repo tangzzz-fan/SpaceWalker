@@ -105,9 +105,15 @@ struct ChromeControl: Equatable, Sendable {
     var symbol: String
 }
 
+enum ChromeCardPlacement: Equatable, Sendable {
+    case abovePrimary
+}
+
 struct ChromeInfoCard: Equatable, Sendable {
     var selection: ChromeSelection
     var title: String
+    var maxHeightRatio: Double
+    var placement: ChromeCardPlacement
 }
 
 struct ChromeLabel: Equatable, Sendable {
@@ -127,11 +133,13 @@ struct ChromeState: Equatable, Sendable {
     var contextControls: [ChromeControl]
     var visibleLabels: [ChromeLabel]
     var infoCard: ChromeInfoCard?
+    var separation: Set<String>
 
     static func derive(
         route: AppRoute,
         mode: ChromeMode = .normal,
         selection: ChromeSelection? = nil,
+        separation: Set<String> = [],
         diagnosticsEnabled: Bool = false
     ) -> ChromeState {
         ChromeState(
@@ -146,10 +154,11 @@ struct ChromeState: Equatable, Sendable {
             mode: mode,
             selection: selection,
             statusLine: statusLine(route: route, mode: mode, selection: selection),
-            primaryAction: primaryAction(route: route, mode: mode),
+            primaryAction: primaryAction(route: route, mode: mode, selection: selection, separation: separation),
             contextControls: contextControls(route: route, mode: mode),
             visibleLabels: labels(for: selection),
-            infoCard: card(for: selection)
+            infoCard: card(for: selection),
+            separation: separation
         )
     }
 
@@ -195,7 +204,12 @@ struct ChromeState: Equatable, Sendable {
         }
     }
 
-    private static func primaryAction(route: AppRoute, mode: ChromeMode) -> ChromePrimaryAction {
+    private static func primaryAction(
+        route: AppRoute,
+        mode: ChromeMode,
+        selection: ChromeSelection?,
+        separation: Set<String>
+    ) -> ChromePrimaryAction {
         switch route {
         case .sky:
             switch mode {
@@ -220,7 +234,15 @@ struct ChromeState: Equatable, Sendable {
         case .tiangong:
             switch mode {
             case .card:
-                return ChromePrimaryAction(id: .tiangongToggleSeparation, title: "装回", isEnabled: true)
+                let separated = selection.flatMap { value -> Bool? in
+                    guard case .module(let id) = value else { return nil }
+                    return separation.contains(id.rawValue)
+                } ?? false
+                return ChromePrimaryAction(
+                    id: .tiangongToggleSeparation,
+                    title: separated ? "装回" : "分离",
+                    isEnabled: true
+                )
             case .docking:
                 return ChromePrimaryAction(id: .tiangongApproach, title: "推进", isEnabled: true)
             case .cutaway:
@@ -307,6 +329,11 @@ struct ChromeState: Equatable, Sendable {
 
     private static func card(for selection: ChromeSelection?) -> ChromeInfoCard? {
         guard let selection else { return nil }
-        return ChromeInfoCard(selection: selection, title: selection.title)
+        return ChromeInfoCard(
+            selection: selection,
+            title: selection.title,
+            maxHeightRatio: 0.32,
+            placement: .abovePrimary
+        )
     }
 }

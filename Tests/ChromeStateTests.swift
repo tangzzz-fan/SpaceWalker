@@ -54,7 +54,15 @@ final class ChromeStateTests: XCTestCase {
         XCTAssertEqual(star.primaryAction.title, "定位")
 
         let module = ChromeState.derive(route: .tiangong, mode: .card, selection: .module(.lab))
-        XCTAssertEqual(module.primaryAction.title, "装回")
+        XCTAssertEqual(module.primaryAction.title, "分离")
+
+        let separated = ChromeState.derive(
+            route: .tiangong,
+            mode: .card,
+            selection: .module(.lab),
+            separation: ["lab"]
+        )
+        XCTAssertEqual(separated.primaryAction.title, "装回")
 
         let cutaway = ChromeState.derive(route: .tiangong, mode: .cutaway)
         XCTAssertEqual(cutaway.primaryAction.title, "退出剖面")
@@ -67,7 +75,8 @@ final class ChromeStateTests: XCTestCase {
         let selected = reduce([
             .route(.tiangong),
             .chrome(.select(.module(.lab))),
-            .chrome(.setMode(.card))
+            .chrome(.setMode(.card)),
+            .chrome(.setSeparation(["lab"]))
         ])
         XCTAssertEqual(selected.chrome.mode, .card)
         XCTAssertEqual(selected.chrome.selection, .module(.lab))
@@ -84,6 +93,58 @@ final class ChromeStateTests: XCTestCase {
         XCTAssertEqual(state.chrome.mode, .normal)
         XCTAssertNil(state.chrome.selection)
         XCTAssertEqual(state.chrome.primaryAction.title, "开始拆解")
+    }
+
+    func testNilSelectionProducesNoLabelsAndNoCard() {
+        for route in routes {
+            let chrome = ChromeState.derive(route: route)
+            XCTAssertNil(chrome.selection)
+            XCTAssertTrue(chrome.visibleLabels.isEmpty)
+            XCTAssertNil(chrome.infoCard)
+        }
+    }
+
+    func testModuleSelectionProducesExactlyOneLabelAndOneCard() {
+        let chrome = ChromeState.derive(route: .tiangong, mode: .card, selection: .module(.lab))
+        XCTAssertEqual(chrome.visibleLabels, [ChromeLabel(id: "lab", title: "实验舱")])
+        XCTAssertEqual(chrome.infoCard?.title, "实验舱")
+        XCTAssertLessThanOrEqual(chrome.infoCard?.maxHeightRatio ?? 1, 0.32)
+        XCTAssertEqual(chrome.infoCard?.placement, .abovePrimary)
+    }
+
+    func testStarAndBodySelectionsProduceCardsButNoModuleLabels() {
+        let star = ChromeState.derive(route: .sky, mode: .card, selection: .star("织女星"))
+        XCTAssertTrue(star.visibleLabels.isEmpty)
+        XCTAssertEqual(star.infoCard?.title, "织女星")
+
+        let body = ChromeState.derive(route: .solarSystem, mode: .card, selection: .body(.saturn))
+        XCTAssertTrue(body.visibleLabels.isEmpty)
+        XCTAssertEqual(body.infoCard?.placement, .abovePrimary)
+    }
+
+    func testDismissCardClearsSelectionLabelsAndCard() {
+        let opened = AppState(
+            route: .tiangong,
+            diagnosticsEnabled: false
+        )
+        let state = reduce([
+            .chrome(.select(.module(.lab))),
+            .chrome(.setMode(.card)),
+            .chrome(.dismissCard)
+        ], from: opened)
+        XCTAssertNil(state.chrome.selection)
+        XCTAssertTrue(state.chrome.visibleLabels.isEmpty)
+        XCTAssertNil(state.chrome.infoCard)
+        XCTAssertEqual(state.chrome.mode, .normal)
+    }
+
+    func testSetModePreservesSelectionDerivedContent() {
+        let state = reduce([
+            .chrome(.select(.module(.lab))),
+            .chrome(.setMode(.card))
+        ])
+        XCTAssertEqual(state.chrome.visibleLabels.count, 1)
+        XCTAssertNotNil(state.chrome.infoCard)
     }
 
     func testUserFacingChromeHasNoDebugStrings() {
