@@ -1,0 +1,69 @@
+080 人工门禁 · agent 侧静态复验（不代替人工判定）
+日期：2026-11-15 11:55 CST
+基准：HEAD 16ec7ed，工作区干净（main）
+
+【为什么要重做】
+门禁项 5 的既有证据来自 076（09:29 的三张截图与一次静态扫描），而 077/078/079
+重写了三个主视图、ChromeLayout、ChromeState 与底部三段，"主界面零调试串"、
+"开关不影响渲染" 的结论在最终 HEAD 上没有被重新取证过。本文件在最终代码上重跑。
+
+【0】基线
+- 模拟器全量单测：xcodebuild test -scheme SpaceWalker
+  -destination 'platform=iOS Simulator,name=iPhone 18 Pro'
+  → /tmp/spacewalker-080-verify.log：Executed 388 tests, 0 failures / TEST SUCCEEDED
+- 真机包重新编译：xcodebuild -project SpaceWalker.xcodeproj -scheme SpaceWalker
+  -destination 'generic/platform=iOS' -derivedDataPath build build
+  → /tmp/spacewalker-080-device-build.log：BUILD SUCCEEDED
+  签名 Apple Development: zhenzhi Tang (7H6TJ2PN25)，
+  iOS Team Provisioning Profile: *（cc581e26-…）
+  注意：原 build/Build/Products/Debug-iphoneos/SpaceWalker.app 是 11/08 的旧包，
+  早于 075–079 全部改动，不重新编译就取证会量到旧代码。
+
+【1】主界面零调试串（076 验收要求「0 处需可断言」）
+命令：grep -rnE 'Text\((fpsLine|probeLine|"pick ·|perfSummary|fpsOnlyLine)' Sources/
+结果：0 处
+
+宽口径复核：grep -rnE 'Text\([^)]*(fps|[Ff][Pp][Ss]|pick|坐标|probe)' <App + 三个主视图>
+结果：6 处命中，逐条判读全部是**内容文案，不是调试读数**：
+  StarFinderView.swift:161  Text(pick.group.title)
+  StarFinderView.swift:171  Text("\(pick.altitudeText) · 最佳 \(pick.seasonText)")
+  TonightTourView.swift:51/54/64  Text(stop.pick.group.title) 等
+    → pick 是「今夜可观测星组」数据模型（group / altitudeText / seasonText），
+      与 pickProbe 自检无关。
+  SkyView+Cards.swift:524  Text("坐标系：J2000 赤道坐标，尚未做时间与地理位置的周日旋转对齐。")
+    → creditsSheet 素材来源页的科普说明，不是坐标系状态 HUD。
+结论：最终 HEAD 上主界面仍为 0 处 fps / pick 自检 / 坐标状态调试串；
+      sky.perf（每 5 秒一行）与 tiangong.fps（每 2 秒一行）只进 SessionLog。
+
+【2】诊断面板入口与默认态
+  ChromeLayout.swift:68   static let diagnosticsHoldDuration: Double = 3
+  ChromeLayout.swift:119  .onLongPressGesture(minimumDuration: ChromeTokens.diagnosticsHoldDuration)
+  ChromeState.swift:159   debugOverlay: .off（默认）
+  AppReducerTests.swift:56-71 覆盖 debugOverlay 默认、toggle 不泄漏 overlay、切路由关面板
+  LaunchModeTests.swift:24-69 覆盖 diagnostics 默认全关、override 汇总、无头面板开关
+  → 静态与单测层面成立；「长按 3 秒真机实际进面板」仍属门禁项 5 的人工复验。
+
+【3】取证开关清单（兼容性对照位）
+  Sources/ 内 SPACEWALKER_* 键共 45 个；其中 SPACEWALKER_TG_* 共 13 个：
+  CUTAWAY DIST DOCK DRAWING FREEZE HISTORY NOLABEL PHASE PITCH REENTRY SELECT SEPARATED YAW
+  另有 THEME / DIAGNOSTICS / TG_SELECT / TG_SEPARATED 为 077–079 新增无头取证开关。
+
+【4】本次复验暴露的三处文档/措辞问题（不改代码，交人裁决）
+  a) tools/device.sh log 的参数只有 --interval / --once / --grep，
+     不接受文件名。080 checklist 里写的 `tools/device.sh log 080-device-perf.log`
+     会直接报「未知参数」。正确写法见 080-device-perf-runbook.md。
+  b) tools/device.sh shot 的参数是**完整输出路径**，
+     `shot 080-device-sky` 会在 cwd 生成无扩展名文件；应写 .png 全路径。
+  c) 076 证据里「LaunchMode.environment() 是唯一读取 ProcessInfo 的入口」不字面成立：
+     最终 HEAD 仍有 48 处 ProcessInfo.processInfo.environment（075 时为 47 处，
+     不是 077–079 引入的回归），其中 2 处直接下标取值、绕过 LaunchMode helper：
+       Sources/Features/Sky/DeviceAttitude.swift:11   SPACEWALKER_MOTIONLOG
+       Sources/Features/Space/SpaceView.swift:290      SPACEWALKER_SELECT
+     076 实际做到的是「诊断开关逻辑集中到 LaunchMode.diagnostics(environment:)」
+     与 AppFeature 可注入；启动预览类开关一直是调用点读进程环境再传给纯函数。
+     这不改变门禁项 5 的「既有 SPACEWALKER_TG_* 行为不变」判定，但措辞需收敛。
+  d) 门禁项 3 的判据与 PRD NFR-01 不符，详见 080-device-perf-runbook.md「判据口径」。
+
+【5】边界
+  本文件只做静态与单测复核，不判定真机帧率、盲测、稿实现同源，
+  也不改 080 的 status（保持 ready-for-human）。

@@ -1,0 +1,263 @@
+[7ms] # iPhone17,1 | Version 27.0 (Build 24A437) | app 1.0(1) | bundle com.tango.spacewalker
+[85ms] sky.session boot
+[86ms] tiangong.session boot separated=0
+[165ms] sky.catalog stars=2996 elapsedMs=24
+[166ms] sky.motion started intervalMs=17
+[501ms] sky.orient angle=0
+[501ms] sky.layout 402x574 portrait
+[611ms] sky.budget entities=17 meshes=13 constellation=724 asterism=814 pattern=98
+[611ms] sky.perf avg=0.0 min=0.0 hitch=0.0% thermal=nominal layers=line+outline+asterism
+[612ms] sky.motion convention=device->reference
+[612ms] sky.region name=Oct distance=2.3
+[613ms] app.flags culture=1 deep=0
+[4771ms] sky.region name=Cha distance=1.0
+[4803ms] sky.highlight id=Car lines=18 pos=2983 segs=18
+[4902ms] sky.highlight id=Vel lines=7 pos=2983 segs=7
+[5287ms] sky.region name=Pup distance=2.1
+[5734ms] sky.perf avg=60.0 min=42.1 hitch=0.0% thermal=nominal layers=line+outline+asterism
+[5787ms] sky.region name=CMa distance=2.9
+[5853ms] sky.highlight id=Lep lines=10 pos=2983 segs=10
+[5969ms] sky.highlight id=Lep lines=10 pos=2983 segs=10
+[6303ms] sky.region name=Eri distance=1.9
+[6821ms] sky.region name=Dor distance=1.6
+[6970ms] sky.highlight id=Car lines=18 pos=2983 segs=18
+[7087ms] sky.highlight id=Vel lines=7 pos=2983 segs=7
+[7203ms] sky.highlight id=Pup lines=11 pos=2983 segs=11
+[7320ms] sky.region name=Pup distance=0.3
+[7838ms] sky.highlight id=Pup lines=11 pos=2983 segs=11
+[8476ms] sky.constellation dwell=Pup
+[10804ms] sky.highlight id=Pyx lines=3 pos=2983 segs=3
+[10887ms] sky.region name=Pyx distance=0.0
+[10918ms] sky.perf avg=60.0 min=42.7 hitch=0.0% thermal=nominal layers=line+outline+asterism
+[10953ms] sky.asterism dwell=天狗
+[11405ms] sky.region name=Pup distance=2.5
+[11922ms] sky.region name=Pyx distance=1.2
+[12938ms] sky.region name=Vel distance=1.6
+[12970ms] sky.highlight id=Vel lines=7 pos=2983 segs=7
+[13571ms] sky.constellation dwell=Vel
+[15188ms] sky.highlight id=Vel lines=7 pos=2983 segs=7
+[15789ms] sky.constellation dwell=Vel
+[16052ms] sky.perf avg=59.6 min=31.1 hitch=0.0% thermal=nominal layers=line+outline+asterism
+[17788ms] sky.asterism dwell=天狗
+[18055ms] sky.region name=Pyx distance=1.8
+[18306ms] sky.highlight id=Pyx lines=3 pos=2983 segs=3
+[18573ms] sky.region name=Hya distance=4.8
+[19022ms] sky.highlight id=Hya lines=18 pos=2983 segs=18
+[19739ms] sky.highlight id=Hya lines=18 pos=2983 segs=18
+[20339ms] sky.constellation dwell=Hya
+[20494ms] sky.highlight id=Hya lines=18 pos=2983 segs=18
+[21122ms] sky.constellation dwell=Hya
+[21270ms] sky.perf avg=58.6 min=23.0 hitch=0.8% thermal=nominal layers=line+outline+asterism
+[22690ms] sky.region name=Pup distance=1.9
+[23139ms] sky.asterism dwell=天狗
+[25106ms] sky.highlight id=Pyx lines=3 pos=2983 segs=3
+[25223ms] sky.region name=Pyx distance=0.0
+[25762ms] sky.constellation dwell=Pyx
+[26407ms] sky.perf avg=55.4 min=6.6 hitch=1.7% thermal=nominal layers=line+outline+asterism
+[28024ms] sky.highlight id=Pup lines=11 pos=2983 segs=11
+[28324ms] sky.region name=Pup distance=1.9
+[28857ms] sky.highlight id=Pup lines=11 pos=2983 segs=11
+[29457ms] sky.constellation dwell=Pup
+[30874ms] sky.region name=CMa distance=2.1
+[31141ms] sky.highlight id=Mon lines=8 pos=2983 segs=8
+[31374ms] sky.region name=Mon distance=0.0
+[31525ms] sky.perf avg=59.9 min=42.0 hitch=0.0% thermal=nominal layers=line+outline+asterism
+[31741ms] sky.constellation dwell=Mon
+[32906ms] sky.region name=Cnc distance=0.0
+[32911ms] sky.highlight id=Cnc lines=4 pos=2983 segs=4
+[33625ms] sky.dwell name=Asellus Australis mag=3.94 offset=2.1
+[33724ms] sky.highlight id=Cnc lines=4 pos=2983 segs=4
+[34325ms] sky.constellation dwell=Cnc
+[36692ms] sky.perf avg=60.1 min=47.4 hitch=0.0% thermal=nominal layers=line+outline+asterism
+[40175ms] sky.highlight id=Cnc lines=4 pos=2983 segs=4
+[40593ms] sky.region name=Hya distance=1.5
+[41009ms] sky.highlight id=Pyx lines=3 pos=2983 segs=3
+[41093ms] sky.region name=Pup distance=0.6
+[41225ms] sky.highlight id=Vel lines=7 pos=2983 segs=7
+[41608ms] sky.region name=Vel distance=0.0
+[41891ms] sky.perf avg=60.0 min=42.3 hitch=0.0% thermal=nominal layers=line+outline+asterism
+[42426ms] sky.asterism dwell=天狗
+[42627ms] sky.region name=Pyx distance=1.9
+[43292ms] sky.highlight id=Hya lines=18 pos=2983 segs=18
+[43643ms] sky.region name=Vir distance=1.1
+[44677ms] sky.highlight id=Vir lines=12 pos=2983 segs=12
+[45693ms] sky.region name=Crv distance=4.0
+[45893ms] sky.highlight id=Crt lines=9 pos=2983 segs=9
+[46192ms] sky.region name=Crt distance=0.0
+[46494ms] sky.constellation dwell=Crt
+[47024ms] sky.perf avg=59.0 min=26.9 hitch=0.8% thermal=nominal layers=line+outline+asterism
+[47128ms] sky.highlight id=Hya lines=18 pos=2983 segs=18
+[47225ms] sky.region name=Hya distance=0.0
+[47244ms] sky.highlight id=Hya lines=18 pos=2983 segs=18
+[47728ms] sky.region name=Pyx distance=1.5
+[48093ms] sky.highlight id=Ant lines=2 pos=2983 segs=2
+[48242ms] sky.region name=Hya distance=0.0
+[48247ms] sky.highlight id=Hya lines=18 pos=2983 segs=18
+[48277ms] sky.highlight id=Crt lines=9 pos=2983 segs=9
+[48293ms] sky.highlight id=Hya lines=18 pos=2983 segs=18
+[48544ms] sky.highlight id=Cen lines=15 pos=2983 segs=15
+[48693ms] sky.highlight id=Cen lines=15 pos=2983 segs=15
+[48744ms] sky.region name=Cen distance=1.4
+[49261ms] sky.region name=Cir distance=2.3
+[49560ms] sky.highlight id=Mus lines=6 pos=2983 segs=6
+[49760ms] sky.region name=Car distance=0.0
+[49764ms] sky.highlight id=Car lines=18 pos=2983 segs=18
+[50277ms] sky.region name=Cir distance=1.0
+[50427ms] sky.highlight id=TrA lines=3 pos=2983 segs=3
+[50794ms] sky.region name=Aps distance=2.1
+[51295ms] sky.region name=Oct distance=2.9
+[52078ms] sky.perf avg=60.1 min=42.5 hitch=0.0% thermal=nominal layers=line+outline+asterism
+[57176ms] sky.perf avg=60.1 min=44.6 hitch=0.0% thermal=nominal layers=line+outline+asterism
+[62413ms] sky.perf avg=60.0 min=46.3 hitch=0.0% thermal=nominal layers=line+outline+asterism
+[67528ms] sky.perf avg=59.9 min=44.5 hitch=0.0% thermal=nominal layers=line+outline+asterism
+[72695ms] sky.perf avg=60.0 min=44.9 hitch=0.0% thermal=nominal layers=line+outline+asterism
+[77863ms] sky.perf avg=60.1 min=44.8 hitch=0.0% thermal=nominal layers=line+outline+asterism
+[83097ms] sky.perf avg=59.9 min=45.0 hitch=0.0% thermal=nominal layers=line+outline+asterism
+[88281ms] sky.perf avg=59.9 min=44.0 hitch=0.0% thermal=nominal layers=line+outline+asterism
+[93465ms] sky.perf avg=60.0 min=43.9 hitch=0.0% thermal=nominal layers=line+outline+asterism
+[94568ms] sky.highlight id=Oct lines=3 pos=2983 segs=3
+[94684ms] sky.highlight id=Phe lines=7 pos=2983 segs=7
+[94868ms] sky.highlight id=Cet lines=15 pos=2983 segs=15
+[94900ms] sky.region name=Cet distance=0.0
+[95501ms] sky.highlight id=Cet lines=15 pos=2983 segs=15
+[95802ms] sky.highlight id=Cet lines=15 pos=2983 segs=15
+[96402ms] sky.constellation dwell=Cet
+[96819ms] sky.highlight id=Eri lines=26 pos=2983 segs=26
+[97001ms] sky.region name=Eri distance=0.0
+[97385ms] sky.highlight id=Col lines=4 pos=2983 segs=4
+[97501ms] sky.region name=Car distance=0.0
+[97868ms] sky.highlight id=Cae lines=3 pos=2983 segs=3
+[98019ms] sky.region name=Eri distance=2.9
+[98168ms] sky.highlight id=Eri lines=26 pos=2983 segs=26
+[98600ms] sky.perf avg=59.9 min=41.0 hitch=0.0% thermal=nominal layers=line+outline+asterism
+[98769ms] sky.constellation dwell=Eri
+[103801ms] sky.perf avg=60.0 min=48.0 hitch=0.0% thermal=nominal layers=line+outline+asterism
+[105752ms] sky.region name=Lep distance=0.0
+[105903ms] sky.highlight id=Lep lines=10 pos=2983 segs=10
+[106471ms] sky.highlight id=Lep lines=10 pos=2983 segs=10
+[107070ms] sky.constellation dwell=Lep
+[108968ms] sky.perf avg=59.0 min=21.8 hitch=0.8% thermal=nominal layers=line+outline+asterism
+[110903ms] sky.region name=Col distance=0.0
+[110921ms] sky.highlight id=Col lines=4 pos=2983 segs=4
+[111020ms] sky.highlight id=CMa lines=11 pos=2983 segs=11
+[111254ms] sky.highlight id=Mon lines=8 pos=2983 segs=8
+[111404ms] sky.region name=CMi distance=2.2
+[111921ms] sky.region name=Cnc distance=1.8
+[112253ms] sky.asterism dwell=水位
+[112420ms] sky.region name=Gem distance=0.0
+[112971ms] sky.dwell name=Wasat mag=3.50 offset=1.4
+[114104ms] sky.perf avg=59.6 min=30.9 hitch=0.0% thermal=nominal layers=line+outline+asterism
+[114487ms] sky.highlight id=Gem lines=11 pos=2983 segs=11
+[115088ms] sky.constellation dwell=Gem
+[118105ms] sky.region name=CMi distance=1.2
+[118137ms] sky.highlight id=Mon lines=8 pos=2983 segs=8
+[118472ms] sky.highlight id=Pyx lines=3 pos=2983 segs=3
+[118623ms] sky.region name=Hya distance=1.0
+[118806ms] sky.highlight id=Hya lines=18 pos=2983 segs=18
+[119255ms] sky.perf avg=60.1 min=41.3 hitch=0.0% thermal=nominal layers=line+outline+asterism
+[119406ms] sky.constellation dwell=Hya
+[120156ms] sky.region name=Sex distance=3.1
+[120506ms] sky.highlight id=Leo lines=9 pos=2983 segs=9
+[120655ms] sky.region name=Leo distance=0.0
+[121107ms] sky.constellation dwell=Leo
+[121688ms] sky.region name=Hya distance=0.0
+[121693ms] sky.highlight id=Hya lines=18 pos=2983 segs=18
+[121739ms] sky.highlight id=Mon lines=8 pos=2983 segs=8
+[121956ms] sky.highlight id=Eri lines=26 pos=2983 segs=26
+[122188ms] sky.region name=Eri distance=0.0
+[122307ms] sky.highlight id=Eri lines=26 pos=2983 segs=26
+[122790ms] sky.highlight id=Col lines=4 pos=2983 segs=4
+[122939ms] sky.highlight id=Pup lines=11 pos=2983 segs=11
+[123207ms] sky.region name=Pup distance=0.9
+[123721ms] sky.region name=CMa distance=0.0
+[124239ms] sky.region name=Lep distance=2.2
+[124389ms] sky.perf avg=60.1 min=43.0 hitch=0.0% thermal=nominal layers=line+outline+asterism
+[124739ms] sky.region name=Col distance=3.5
+[125125ms] sky.highlight id=Eri lines=26 pos=2983 segs=26
+[125255ms] sky.region name=Eri distance=0.0
+[125274ms] sky.highlight id=Eri lines=26 pos=2983 segs=26
+[125757ms] sky.region name=Cet distance=2.1
+[125890ms] sky.highlight id=Eri lines=26 pos=2983 segs=26
+[126272ms] sky.region name=Eri distance=0.0
+[126474ms] sky.highlight id=Eri lines=26 pos=2983 segs=26
+[126757ms] sky.highlight id=Eri lines=26 pos=2983 segs=26
+[127357ms] sky.constellation dwell=Eri
+[128974ms] sky.highlight id=Eri lines=26 pos=2983 segs=26
+[129356ms] sky.region name=Cet distance=0.0
+[129360ms] sky.highlight id=Cet lines=15 pos=2983 segs=15
+[129541ms] sky.perf avg=60.0 min=39.6 hitch=0.0% thermal=nominal layers=line+outline+asterism
+[129991ms] sky.constellation dwell=Cet
+[132458ms] sky.region name=Psc distance=4.5
+[132625ms] sky.asterism dwell=垒壁阵
+[132908ms] sky.highlight id=Psc lines=23 pos=2983 segs=23
+[133525ms] sky.constellation dwell=Psc
+[134109ms] sky.highlight id=Peg lines=14 pos=2983 segs=14
+[134523ms] sky.region name=Peg distance=0.0
+[134725ms] sky.constellation dwell=Peg
+[134750ms] sky.perf avg=58.2 min=25.6 hitch=1.7% thermal=nominal layers=line+outline+asterism
+[135843ms] sky.highlight id=Psc lines=23 pos=2983 segs=23
+[135893ms] sky.highlight id=Psc lines=23 pos=2983 segs=23
+[136074ms] sky.region name=Psc distance=0.0
+[136108ms] sky.highlight id=Psc lines=23 pos=2983 segs=23
+[136208ms] sky.highlight id=Cet lines=15 pos=2983 segs=15
+[136326ms] sky.highlight id=Eri lines=26 pos=2983 segs=26
+[136591ms] sky.region name=Eri distance=0.0
+[136675ms] sky.highlight id=Cae lines=3 pos=2983 segs=3
+[137093ms] sky.region name=Col distance=3.8
+[137609ms] sky.region name=Pic distance=0.7
+[137843ms] sky.highlight id=Pic lines=2 pos=2983 segs=2
+[138508ms] sky.highlight id=Dor lines=7 pos=2983 segs=7
+[138576ms] sky.asterism dwell=金鱼
+[138625ms] sky.region name=Dor distance=1.5
+[139026ms] sky.highlight id=Dor lines=7 pos=2983 segs=7
+[139143ms] sky.region name=Cae distance=3.4
+[139175ms] sky.highlight id=Cae lines=3 pos=2983 segs=3
+[139374ms] sky.highlight id=Eri lines=26 pos=2983 segs=26
+[139641ms] sky.region name=Eri distance=0.0
+[139825ms] sky.highlight id=Cae lines=3 pos=2983 segs=3
+[139957ms] sky.perf avg=60.0 min=35.1 hitch=0.0% thermal=nominal layers=line+outline+asterism
+[140159ms] sky.region name=Cae distance=1.3
+[140609ms] sky.asterism dwell=天园
+[141177ms] sky.region name=Pic distance=2.8
+[142710ms] sky.region name=Cae distance=2.3
+[143728ms] sky.region name=Pic distance=3.0
+[145141ms] sky.perf avg=60.0 min=40.9 hitch=0.0% thermal=nominal layers=line+outline+asterism
+[145260ms] sky.region name=Cae distance=3.3
+[150342ms] sky.perf avg=60.0 min=44.9 hitch=0.0% thermal=nominal layers=line+outline+asterism
+[151344ms] sky.highlight id=Cae lines=3 pos=2983 segs=3
+[151494ms] sky.region name=Eri distance=3.1
+[151611ms] sky.highlight id=Eri lines=26 pos=2983 segs=26
+[152494ms] sky.highlight id=Cae lines=3 pos=2983 segs=3
+[152510ms] sky.region name=Cae distance=0.0
+[153028ms] sky.region name=Col distance=0.9
+[153545ms] sky.region name=Pic distance=3.8
+[153862ms] sky.asterism dwell=天园
+[155430ms] sky.mode follow=0 manual=1
+[155460ms] sky.perf avg=60.1 min=38.4 hitch=0.0% thermal=nominal layers=line+outline+asterism
+[156666ms] sky.align started headingAvailable=true
+[156682ms] sky.align location=31.251,120.605 sidereal=234.68
+[156684ms] sky.align location=31.251,120.605 sidereal=234.68
+[156752ms] sky.align heading=-1.0 mag=125.5 acc=17.8
+[157163ms] sky.region name=Cam distance=1.1
+[157378ms] sky.asterism dwell=传舍
+[159112ms] sky.align heading=-1.0 mag=126.6 acc=17.7
+[159276ms] sky.align heading=-1.0 mag=127.6 acc=17.7
+[160660ms] sky.perf avg=59.9 min=44.1 hitch=0.0% thermal=nominal layers=line+outline+asterism
+[161944ms] sky.mode follow=1 manual=0
+[162447ms] sky.highlight id=Cam lines=7 pos=2983 segs=7
+[162830ms] sky.region name=Cep distance=2.3
+[163079ms] sky.highlight id=Cam lines=7 pos=2983 segs=7
+[163345ms] sky.region name=Cam distance=0.0
+[163679ms] sky.constellation dwell=Cam
+[163709ms] sky.mode follow=0 manual=1
+[165728ms] sky.mode follow=1 manual=0
+[165748ms] sky.perf avg=59.8 min=47.8 hitch=0.0% thermal=nominal layers=line+outline+asterism
+[166678ms] sky.align heading=126.2(magnetic) accuracy=16.2 azimuth=34.7 offset=91.5
+[166914ms] sky.region name=Aql distance=1.1
+[167330ms] sky.highlight id=Aql lines=9 pos=2983 segs=9
+[167931ms] sky.constellation dwell=Aql
+[168965ms] sky.region name=Cap distance=3.8
+[169464ms] sky.region name=Aqr distance=4.0
+[169530ms] sky.highlight id=Aqr lines=14 pos=2983 segs=14
+[170030ms] sky.highlight id=Aqr lines=14 pos=2983 segs=14
+[170895ms] sky.perf avg=59.9 min=40.7 hitch=0.0% thermal=nominal layers=line+outline+asterism
