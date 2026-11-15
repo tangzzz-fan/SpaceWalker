@@ -5,6 +5,7 @@ import UIKit
 
 struct SkyView: View {
     @Environment(Store<AppState, AppAction>.self) var store
+    let actions: ChromeActionRegistry
     @Environment(\.verticalSizeClass) var verticalSizeClass
 
     @Bindable var session: SkySession
@@ -14,6 +15,7 @@ struct SkyView: View {
     @State var fengshenFocus: AsterismFocus?
     @State var showsFinder = false
     @State var showsAsterismBrowser = false
+    @State var showsLayers = false
     @State var hud = DwellHUD()
     @State var diagnosticsStamp: TimeInterval = 0
 
@@ -75,9 +77,17 @@ struct SkyView: View {
             refreshField()
             refreshTonight()
         }
+        .onAppear(perform: registerActions)
+        .onChange(of: showsFinder) { _, _ in syncMode() }
+        .onChange(of: showsAsterismBrowser) { _, _ in syncMode() }
+        .onChange(of: showsLayers) { _, _ in syncMode() }
+        .onChange(of: session.selected?.name) { _, _ in syncMode() }
         .onDisappear {
             session.pause()
             session.observer.disable()
+        }
+        .sheet(isPresented: $showsLayers) {
+            SkyLayersSheet(session: session)
         }
         .sheet(isPresented: $showsAsterismBrowser) {
             AsterismBrowserView { name in
@@ -181,6 +191,96 @@ struct SkyView: View {
         )
     }
 
+    private func registerActions() {
+        let store = self.store
+        actions.primary = { id in
+            switch id {
+            case .skyFind:
+                showsFinder = true
+            case .skyDismiss:
+                showsFinder = false
+                showsAsterismBrowser = false
+                showsCredits = false
+                showsLayers = false
+                session.selected = nil
+            case .skyLocate:
+                if let star = session.selected { startGuide(to: star) }
+            case .skyAlign:
+                toggleAlignment()
+                showsFinder = false
+            default:
+                break
+            }
+        }
+        actions.control = { id in
+            switch id {
+            case .skyLayers, .skyCategoryStars, .skyCategoryConstellations, .skyCategoryAsterisms:
+                showsLayers = true
+            case .skyTonight, .skyLocateMethod:
+                toggleAlignment()
+            case .skyAttitude:
+                session.setFollowsAttitude(!session.followsAttitude)
+            case .skyCity:
+                showsFinder = true
+            case .skyResetTime:
+                session.observer.resetClock()
+                refreshField()
+                refreshTonight()
+            case .credits:
+                showsCredits = true
+            case .history:
+                showsAsterismBrowser = true
+            default:
+                break
+            }
+        }
+    }
+
+    private func syncMode() {
+        let store = self.store
+        let mode: ChromeMode
+        if showsFinder {
+            mode = .finder
+        } else if showsAsterismBrowser {
+            mode = .asterisms
+        } else if showsLayers || showsCredits {
+            mode = .history
+        } else if session.selected != nil || session.infoRegion != nil || session.identifiedPattern != nil {
+            mode = .card
+        } else {
+            mode = .normal
+        }
+        store.dispatch(.chrome(.setMode(mode)))
+    }
+}
+
+struct SkyLayersSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    @Environment(Store<AppState, AppAction>.self) private var store
+    @Bindable var session: SkySession
+
+    var body: some View {
+        NavigationStack {
+            List {
+                Toggle("星座连线", isOn: $session.showsConstellations)
+                Toggle("星座轮廓", isOn: $session.showsOutlines)
+                if store.state.flags.cultureEnabled {
+                    Toggle("星官连线", isOn: $session.showsAsterisms)
+                }
+                if store.state.flags.deepEnabled {
+                    Toggle("星群（大三角）", isOn: $session.showsPatterns)
+                }
+            }
+            .navigationTitle("图层")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("完成") { dismiss() }
+                }
+            }
+        }
+        .preferredColorScheme(.dark)
+    }
 }
 
 struct DwellRing: View {

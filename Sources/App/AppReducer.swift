@@ -7,17 +7,51 @@ func makeAppReducer() -> Reducer<AppState, AppAction> {
             break
         case .space(let spaceAction):
             SolarSystemReducer.reduce(&state.space, spaceAction)
+            if case .select(let body) = spaceAction {
+                state.chrome = ChromeState.derive(
+                    route: state.route,
+                    mode: body == nil ? .normal : .card,
+                    selection: body.map(ChromeSelection.body),
+                    diagnosticsEnabled: state.chrome.diagnosticsVisible
+                )
+            }
         case .route(let route):
             state.route = route
             state.chrome = ChromeState.derive(route: route)
         case .chrome(let chromeAction):
-            switch chromeAction {
-            case .toggleDiagnostics:
-                state.chrome.diagnosticsVisible.toggle()
-                state.chrome.debugOverlay = .off
-            }
+            reduceChrome(&state, chromeAction)
         case .flagsLoaded(let flags):
             state.flags = flags
         }
+    }
+}
+
+private func reduceChrome(_ state: inout AppState, _ action: ChromeAction) {
+    switch action {
+    case .toggleDiagnostics:
+        state.chrome.diagnosticsVisible.toggle()
+        state.chrome.debugOverlay = .off
+    case .setMode(let mode):
+        state.chrome = ChromeState.derive(
+            route: state.route,
+            mode: mode,
+            selection: state.chrome.selection,
+            diagnosticsEnabled: state.chrome.diagnosticsVisible
+        )
+    case .select(let selection):
+        state.chrome = ChromeState.derive(
+            route: state.route,
+            mode: state.chrome.mode,
+            selection: selection,
+            diagnosticsEnabled: state.chrome.diagnosticsVisible
+        )
+    case .setStatus(let detail):
+        state.chrome.statusLine.detail = detail
+    case .dismissCard:
+        state.chrome = ChromeState.derive(
+            route: state.route,
+            selection: nil,
+            diagnosticsEnabled: state.chrome.diagnosticsVisible
+        )
     }
 }

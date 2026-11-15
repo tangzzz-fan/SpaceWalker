@@ -1,31 +1,6 @@
 import SwiftUI
 import TGReduxKit
 
-struct ChromeVersionBadge: View {
-    @Environment(Store<AppState, AppAction>.self) private var store
-
-    var body: some View {
-        Text(versionLabel)
-            .font(.system(size: ChromeTokens.captionSize, design: .monospaced))
-            .foregroundStyle(ChromeTokens.secondaryText.opacity(0.6))
-            .padding(.horizontal, ChromeTokens.horizontalPadding)
-            .padding(.vertical, ChromeTokens.tightPadding)
-            .contentShape(Rectangle())
-            .onLongPressGesture(minimumDuration: ChromeTokens.diagnosticsHoldDuration) {
-                store.dispatch(.chrome(.toggleDiagnostics))
-            }
-            .accessibilityLabel("版本号，长按三秒打开诊断面板")
-            .accessibilityHint("诊断数据只在此面板中显示")
-    }
-
-    private var versionLabel: String {
-        let bundle = Bundle.main
-        let version = bundle.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "-"
-        let build = bundle.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "-"
-        return "v\(version)(\(build))"
-    }
-}
-
 struct ChromeDiagnosticsSheet: View {
     @Environment(\.dismiss) private var dismiss
 

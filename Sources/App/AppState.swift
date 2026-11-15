@@ -8,42 +8,12 @@ enum AppRoute: Equatable, Hashable, Sendable {
     static let defaultRoute: AppRoute = .sky
 }
 
-struct ChromeTab: Equatable, Sendable {
-    var route: AppRoute
-    var title: String
-    var isSelected: Bool
-}
-
-struct DebugOverlay: Equatable, Sendable {
-    var fps: Bool
-    var pickProbe: Bool
-    var coordinateStatus: Bool
-
-    static let off = DebugOverlay(fps: false, pickProbe: false, coordinateStatus: false)
-}
-
 enum ChromeAction: Equatable, Sendable {
     case toggleDiagnostics
-}
-
-struct ChromeState: Equatable, Sendable {
-    var route: AppRoute
-    var tabs: [ChromeTab]
-    var debugOverlay: DebugOverlay
-    var diagnosticsVisible: Bool
-
-    static func derive(route: AppRoute, diagnosticsEnabled: Bool = false) -> ChromeState {
-        ChromeState(
-            route: route,
-            tabs: [
-                ChromeTab(route: .sky, title: "星图", isSelected: route == .sky),
-                ChromeTab(route: .solarSystem, title: "太阳系", isSelected: route == .solarSystem),
-                ChromeTab(route: .tiangong, title: "天宫一号", isSelected: route == .tiangong)
-            ],
-            debugOverlay: .off,
-            diagnosticsVisible: diagnosticsEnabled
-        )
-    }
+    case setMode(ChromeMode)
+    case select(ChromeSelection?)
+    case setStatus(String)
+    case dismissCard
 }
 
 struct AppState: State {

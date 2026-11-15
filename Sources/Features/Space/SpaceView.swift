@@ -5,6 +5,7 @@ import TGReduxKit
 
 struct SpaceView: View {
     @Environment(Store<AppState, AppAction>.self) private var store
+    let actions: ChromeActionRegistry
 
     @State private var scene = SolarSystemScene()
     #if DEBUG
@@ -51,26 +52,67 @@ struct SpaceView: View {
             }
 
             VStack(alignment: .leading, spacing: 0) {
-                topBar
                 Spacer(minLength: 0)
                 if let selectedBody {
                     infoCard(selectedBody)
-                        .padding(.bottom, 10)
+                        .padding(.horizontal, ChromeTokens.edgePadding)
+                        .padding(.bottom, ChromeTokens.horizontalPadding)
                 }
-                controlBar
             }
-            .padding(.horizontal, 16)
-            .padding(.top, 8)
-            .padding(.bottom, 18)
         }
         .preferredColorScheme(.dark)
         .task {
             await loadEnvironment()
             applyDebugPreselection()
         }
+        .onAppear(perform: registerActions)
+        .onChange(of: selectedBody != nil) { _, hasSelection in
+            store.dispatch(.chrome(.setMode(hasSelection ? .card : .normal)))
+        }
+        .onChange(of: Int(state.days)) { _, _ in updateStatus() }
+        .onChange(of: state.isPaused) { _, _ in updateStatus() }
+        .onAppear(perform: updateStatus)
         .onReceive(ticker) { _ in tick() }
         .sheet(isPresented: $showsCredits) {
             creditsSheet
+        }
+    }
+
+    private func updateStatus() {
+        let phase = state.isPaused ? "已暂停" : "运行中"
+        store.dispatch(.chrome(.setStatus("\(phase) · 第 \(Int(state.days)) 天")))
+    }
+
+    private func registerActions() {
+        let store = self.store
+        actions.primary = { id in
+            switch id {
+            case .spaceOverview:
+                rig = OrbitRig()
+                store.dispatch(.space(.select(nil)))
+            case .spaceFocus:
+                rig = OrbitRig()
+            default:
+                break
+            }
+        }
+        actions.control = { id in
+            switch id {
+            case .spacePause:
+                store.dispatch(.space(.togglePause))
+            case .spaceRate:
+                let current = store.state.space.rateInRange
+                let next = current + 1 > SolarSystemState.rateRange.upperBound
+                    ? SolarSystemState.rateRange.lowerBound
+                    : current + 1
+                store.dispatch(.space(.setRate(next)))
+            case .spaceOrbits:
+                store.dispatch(.space(.toggleOrbits))
+            case .credits, .history:
+                showsCredits = true
+            default:
+                break
+            }
         }
     }
 
@@ -142,27 +184,6 @@ struct SpaceView: View {
     @State private var lastDrag: CGSize = .zero
     @State private var lastMagnification: CGFloat = 1
 
-    private var topBar: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text("第 \(Int(state.days)) 天")
-                .font(.system(size: 22, weight: .semibold, design: .rounded))
-                .monospacedDigit()
-            Text(rateLine)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-        }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 10)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
-    }
-
-    private var rateLine: String {
-        let rate = String(format: "%.1f", state.rateInRange)
-        return state.isPaused
-            ? "已暂停 · \(rate) 天/秒"
-            : "\(rate) 天/秒 · 拖动旋转 · 双指缩放 · 点选天体"
-    }
-
     private func infoCard(_ body: SolarBody) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(alignment: .firstTextBaseline) {
@@ -206,71 +227,6 @@ struct SpaceView: View {
             }
             .padding(10)
         }
-    }
-
-    private var controlBar: some View {
-        HStack(spacing: 14) {
-            Button {
-                store.dispatch(.space(.togglePause))
-            } label: {
-                Image(systemName: state.isPaused ? "play.fill" : "pause.fill")
-                    .frame(width: 28, height: 28)
-            }
-            .accessibilityLabel(state.isPaused ? "继续" : "暂停")
-
-            Slider(
-                value: Binding(
-                    get: { state.rateInRange },
-                    set: { store.dispatch(.space(.setRate($0))) }
-                ),
-                in: SolarSystemState.rateRange
-            )
-            .frame(maxWidth: .infinity)
-            .accessibilityLabel("时间流速")
-
-            Button {
-                store.dispatch(.space(.toggleOrbits))
-            } label: {
-                Image(systemName: state.showsOrbits ? "circle.dashed" : "circle")
-                    .frame(width: 28, height: 28)
-            }
-            .accessibilityLabel(state.showsOrbits ? "隐藏轨道" : "显示轨道")
-
-            Button {
-                rig = OrbitRig()
-            } label: {
-                Image(systemName: "arrow.counterclockwise")
-                    .frame(width: 28, height: 28)
-            }
-            .accessibilityLabel("重置视角")
-
-            Button {
-                store.dispatch(.route(.tiangong))
-            } label: {
-                Image(systemName: "antenna.radiowaves.left.and.right")
-                    .frame(width: 28, height: 28)
-            }
-            .accessibilityLabel("天宫一号")
-
-            Button {
-                store.dispatch(.route(.sky))
-            } label: {
-                Image(systemName: "sparkles")
-                    .frame(width: 28, height: 28)
-            }
-            .accessibilityLabel("星图")
-
-            Button {
-                showsCredits = true
-            } label: {
-                Image(systemName: "info.circle")
-                    .frame(width: 28, height: 28)
-            }
-            .accessibilityLabel("素材来源")
-        }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 10)
-        .background(.ultraThinMaterial, in: Capsule())
     }
 
     private var creditsSheet: some View {

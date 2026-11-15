@@ -4,6 +4,7 @@ import TGReduxKit
 
 struct TiangongView: View {
     @Environment(Store<AppState, AppAction>.self) private var store
+    let actions: ChromeActionRegistry
     @Bindable var session: TiangongSession
 
     @State private var environment: RealityViewEnvironment?
@@ -40,7 +41,6 @@ struct TiangongView: View {
                 reentryOverlay
             } else {
                 VStack(alignment: .leading, spacing: 0) {
-                    topBar
                     Spacer(minLength: 0)
                     if session.dockingActive {
                         dockingCard
@@ -53,14 +53,27 @@ struct TiangongView: View {
                         cutawayCard
                             .padding(.bottom, 10)
                     }
-                    controlBar
                 }
-                .padding(.horizontal, 16)
-                .padding(.top, 8)
-                .padding(.bottom, 18)
+                .padding(.horizontal, ChromeTokens.edgePadding)
+                .padding(.bottom, ChromeTokens.horizontalPadding)
             }
         }
         .preferredColorScheme(.dark)
+        .onAppear(perform: registerActions)
+        .onChange(of: session.reentryPhase) { _, _ in syncMode() }
+        .onChange(of: session.drawingMode) { _, _ in syncMode() }
+        .onChange(of: session.cutawayMode) { _, _ in syncMode() }
+        .onChange(of: session.dockingActive) { _, _ in syncMode() }
+        .onChange(of: session.selected) { _, selected in
+            store.dispatch(.chrome(.select(selected.map(ChromeSelection.module))))
+            syncMode()
+        }
+        .onChange(of: showsHistory) { _, open in
+            if open {
+                session.markMilestonesRead()
+            }
+            syncMode()
+        }
         .task {
             environment = SpaceEnvironment.load()
             if LaunchMode.tiangongDrawing(environment: ProcessInfo.processInfo.environment),
@@ -81,11 +94,6 @@ struct TiangongView: View {
             // 碰撞体与投影要等渲染就绪，立刻自检会全空。
             try? await Task.sleep(for: .seconds(1.2))
             SessionLog.append("tiangong.pick " + session.scene.verifyPicking())
-        }
-        .onChange(of: showsHistory) { _, open in
-            if open {
-                session.markMilestonesRead()
-            }
         }
         .onReceive(dockTicker) { _ in
             session.stepClock(delta: 0.1)
@@ -294,28 +302,80 @@ struct TiangongView: View {
             }
     }
 
-    private var topBar: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            HStack(alignment: .firstTextBaseline, spacing: 8) {
-                Text(TiangongHistory.name)
-                    .font(.system(size: 22, weight: .semibold, design: .rounded))
-                Text(TiangongHistory.kind)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+    private func registerActions() {
+        let store = self.store
+        actions.primary = { id in
+            switch id {
+            case .tiangongDisassemble:
+                session.selected = .lab
+                if !session.separated.contains(.lab) {
+                    session.toggleDisassembly(.lab)
+                }
+                store.dispatch(.chrome(.select(.module(.lab))))
+                store.dispatch(.chrome(.setMode(.card)))
+            case .tiangongToggleSeparation:
+                guard let module = session.selected else { return }
+                session.toggleDisassembly(module)
+            case .tiangongApproach:
+                session.moveShip(drag: .zero, magnification: 0.95)
+            case .tiangongExitCutaway:
+                session.toggleCutawayMode()
+            case .tiangongExitDrawing:
+                session.toggleDrawingMode()
+            case .tiangongReentryControl:
+                session.skipReentry()
+            case .tiangongDismiss:
+                showsHistory = false
+                session.closeReentry()
+            default:
+                break
             }
-            Text("1:\(Int(TiangongScale.ratio)) 展示 · 全长 \(formatted(TiangongModel.totalLength)) · 最大直径 \(formatted(TiangongModel.maxDiameter))")
-                .font(.caption2)
-                .foregroundStyle(.secondary)
-            Text(TiangongHistory.facts.prefix(2).map { "\($0.label) \($0.value)" }.joined(separator: " · "))
-                .font(.caption2)
-                .foregroundStyle(.secondary)
-            Text("任务 \(session.mission.phase.ordinal)/3 · \(TiangongMission.summary(session.mission)) · 第 \(session.completedOrbits + 1) 圈")
-                .font(.caption2)
-                .foregroundStyle(.secondary)
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 10)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
+        actions.control = { id in
+            switch id {
+            case .tiangongCutaway:
+                session.toggleCutawayMode()
+            case .tiangongDrawing:
+                session.toggleDrawingMode()
+            case .tiangongReentry:
+                if session.canStartReentry { session.startReentry() }
+            case .tiangongResetView:
+                session.resetView()
+            case .tiangongFrontView:
+                session.applyView(.front)
+            case .tiangongSideView:
+                session.applyView(.side)
+            case .tiangongTopView:
+                session.applyView(.top)
+            case .tiangongCoarse, .tiangongFine:
+                session.toggleControlMode()
+            case .tiangongHistory, .tiangongCredits, .history, .credits:
+                showsHistory = true
+            default:
+                break
+            }
+        }
+    }
+
+    private func syncMode() {
+        let store = self.store
+        let mode: ChromeMode
+        if session.reentryActive {
+            mode = .reentry
+        } else if session.drawingMode {
+            mode = .drawing
+        } else if session.cutawayMode {
+            mode = .cutaway
+        } else if session.dockingActive {
+            mode = .docking
+        } else if showsHistory {
+            mode = .history
+        } else if session.selected != nil {
+            mode = .card
+        } else {
+            mode = .normal
+        }
+        store.dispatch(.chrome(.setMode(mode)))
     }
 
     private func infoCard(_ module: TiangongModuleID) -> some View {
@@ -477,89 +537,6 @@ struct TiangongView: View {
         .padding(24)
     }
 
-    private var controlBar: some View {
-        HStack(spacing: 12) {
-            Button {
-                session.resetView()
-            } label: {
-                Image(systemName: "arrow.counterclockwise")
-                    .frame(width: 28, height: 28)
-            }
-            .accessibilityLabel("重置视角")
-
-            Button {
-                store.dispatch(.route(.solarSystem))
-            } label: {
-                Image(systemName: "circle.hexagongrid")
-                    .frame(width: 28, height: 28)
-            }
-            .accessibilityLabel("太阳系")
-
-            Button {
-                store.dispatch(.route(.sky))
-            } label: {
-                Image(systemName: "sparkles")
-                    .frame(width: 28, height: 28)
-            }
-            .accessibilityLabel("星图")
-
-            Button {
-                if session.dockingActive {
-                    session.endDocking()
-                } else {
-                    session.beginDocking()
-                }
-            } label: {
-                Image(systemName: session.dockingActive ? "xmark.circle" : "arrow.up.forward.circle")
-                    .frame(width: 28, height: 28)
-            }
-            .accessibilityLabel(session.dockingActive ? "退出对接" : "对接任务")
-
-            Button {
-                session.toggleCutawayMode()
-            } label: {
-                Image(systemName: session.cutawayMode ? "circle.lefthalf.filled" : "circle.dotted")
-                    .frame(width: 28, height: 28)
-            }
-            .accessibilityLabel(session.cutawayMode ? "退出剖面" : "剖面")
-
-            Button {
-                session.toggleDrawingMode()
-            } label: {
-                Image(systemName: session.drawingMode ? "ruler.fill" : "ruler")
-                    .frame(width: 28, height: 28)
-            }
-            .accessibilityLabel(session.drawingMode ? "退出工程图" : "工程图")
-
-            Button {
-                session.toggleOrbitPace()
-            } label: {
-                Image(systemName: session.orbitPace == TiangongOrbitClock.paceSlow ? "tortoise" : "hare")
-                    .frame(width: 28, height: 28)
-            }
-            .accessibilityLabel("切换轨道速度")
-
-            Button {
-                session.startReentry()
-            } label: {
-                Image(systemName: "flame")
-                    .frame(width: 28, height: 28)
-            }
-            .disabled(!session.canStartReentry)
-            .accessibilityLabel("最后一圈")
-
-            Button {
-                showsHistory = true
-            } label: {
-                Image(systemName: "info.circle")
-                    .frame(width: 28, height: 28)
-            }
-            .accessibilityLabel("史实")
-        }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 10)
-        .background(.ultraThinMaterial, in: Capsule())
-    }
 }
 
 struct TiangongHistorySheet: View {

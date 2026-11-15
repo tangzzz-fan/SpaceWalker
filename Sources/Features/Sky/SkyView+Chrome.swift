@@ -10,20 +10,16 @@ extension SkyView {
         verticalSizeClass == .compact
     }
 
-    /// 竖屏：顶栏在上，卡片与底栏依次叠在下方。
+    /// 竖屏：状态条与底部三段由 ContentView 统一提供，这里只放信息卡。
     var portraitOverlay: some View {
         VStack(alignment: .leading, spacing: 0) {
-            topBar
             Spacer(minLength: 0)
             VStack(alignment: .leading, spacing: 10) {
                 activeCards
             }
-            hintBar
-                .padding(.top, 10)
         }
-        .padding(.horizontal, 16)
-        .padding(.top, 8)
-        .padding(.bottom, 18)
+        .padding(.horizontal, ChromeTokens.edgePadding)
+        .padding(.bottom, ChromeTokens.horizontalPadding)
     }
 
     /// 横屏：高度只剩 390pt，顶栏和卡片不能都往下堆。
@@ -43,13 +39,6 @@ extension SkyView {
                     .frame(maxWidth: .infinity, alignment: .trailing)
                 }
                 .frame(width: 340)
-            }
-            // 横屏宽度富余，底栏按内容收紧居中；竖屏那条通栏胶囊在横屏会太空。
-            HStack(spacing: 0) {
-                Spacer(minLength: 0)
-                hintBar
-                    .fixedSize(horizontal: true, vertical: false)
-                Spacer(minLength: 0)
             }
         }
         .padding(.horizontal, 14)
@@ -146,71 +135,11 @@ extension SkyView {
         .allowsHitTesting(false)
     }
 
-    var topBar: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text("星图")
-                .font(.system(size: 22, weight: .semibold, design: .rounded))
-            Text(skySubtitle)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-            Text(session.isManual ? "手动 · 拖动旋转" : "姿态跟随 · 转动手机环顾")
-                .font(.caption2)
-                .foregroundStyle(.secondary)
-            Text(session.observer.statusText)
-                .font(.caption2)
-                .foregroundStyle(session.observer.isOn ? .primary : .secondary)
-            if session.observer.stage == .ready {
-                timeScrubber
-            }
-            if let region = session.currentRegion {
-                Button {
-                    openRegion(region)
-                } label: {
-                    HStack(spacing: 4) {
-                        Image(systemName: regionSymbol(region))
-                        Text("当前天区 \(region.title) · 查看来头")
-                    }
-                    .font(.caption2)
-                }
-                .buttonStyle(.plain)
-                .foregroundStyle(.secondary)
-                .padding(.top, 2)
-            }
-            if session.observer.isOn, !session.observer.hasHeading {
-                Button {
-                    calibrateFacingNorth()
-                } label: {
-                    Label("手机水平朝正北时点此", systemImage: "location.north.line")
-                        .font(.caption2)
-                }
-                .buttonStyle(.bordered)
-                .padding(.top, 2)
-            }
-        }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 10)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
-    }
-
     func regionSymbol(_ region: SkyRegion) -> String {
         switch region {
         case .constellation: "book.closed"
         case .pattern: "triangle"
         }
-    }
-
-    var skySubtitle: String {
-        guard session.observer.stage == .ready,
-              let latitude = session.observer.latitude,
-              let longitude = session.observer.longitude,
-              let sidereal = session.observer.currentSiderealDegrees()
-        else {
-            let stars = session.catalog?.stars ?? []
-            let base = "\(stars.count) 颗恒星 · \(stars.filter(\.isSelectable).count) 颗可选中 · \(Constellations.all.count) 个星座"
-            return store.state.flags.cultureEnabled ? "\(base) · \(AsterismCatalog.all.count) 个星官" : base
-        }
-        let base = String(format: "%.1f°N %.1f°E · 恒星时 %.1f°", latitude, longitude, sidereal)
-        return session.observer.clock.isNow ? base : "\(base) · \(timeOffsetLabel)"
     }
 
     var timeScrubber: some View {
@@ -264,119 +193,6 @@ extension SkyView {
         return String(format: "%@%d:%02d", sign, magnitude / 60, magnitude % 60)
     }
 
-    var hintBar: some View {
-        HStack(spacing: 8) {
-            if session.isManual {
-                Button {
-                    session.resetOrientation()
-                } label: {
-                    Image(systemName: "arrow.counterclockwise")
-                        .frame(width: 28, height: 28)
-                }
-                .accessibilityLabel("重置视角")
-            }
-
-            // 姿态可用才给这个开关：没有陀螺仪的机器只有手动一条路。
-            if session.canFollowAttitude {
-                Button {
-                    session.setFollowsAttitude(!session.followsAttitude)
-                } label: {
-                    Image(systemName: session.followsAttitude ? "hand.draw" : "gyroscope")
-                        .frame(width: 28, height: 28)
-                }
-                .accessibilityLabel(session.followsAttitude ? "切到手动拖动" : "切到姿态跟随")
-            }
-
-            Spacer()
-
-            Button {
-                showsFinder = true
-            } label: {
-                Label("找星", systemImage: "magnifyingglass")
-                    .font(.caption2)
-                    .lineLimit(1)
-                    .fixedSize()
-            }
-            .accessibilityLabel("搜索并定位一颗星")
-
-            Menu {
-                Toggle(isOn: $session.showsConstellations) {
-                    Label("星座连线", systemImage: "link")
-                }
-                Toggle(isOn: $session.showsOutlines) {
-                    Label("星座轮廓", systemImage: "square.on.circle")
-                }
-                if store.state.flags.deepEnabled {
-                    Divider()
-                    Toggle(isOn: $session.showsPatterns) {
-                        Label("星群（大三角）", systemImage: "triangle")
-                    }
-                }
-            } label: {
-                Label(
-                    "星座",
-                    systemImage: session.showsPatterns
-                        ? "triangle"
-                        : (session.showsConstellations ? "link" : (session.showsOutlines ? "square.on.circle" : "link.badge.plus"))
-                )
-                .font(.caption2)
-                .lineLimit(1)
-                .fixedSize()
-            }
-            .accessibilityLabel("星座连线、轮廓与星群")
-
-            if store.state.flags.cultureEnabled {
-                Menu {
-                    Toggle(isOn: $session.showsAsterisms) {
-                        Label("显示星官连线", systemImage: "circle.grid.3x3")
-                    }
-                    Button {
-                        showsAsterismBrowser = true
-                    } label: {
-                        Label("浏览星官", systemImage: "list.bullet")
-                    }
-                } label: {
-                    Label("星官", systemImage: "circle.grid.3x3")
-                        .font(.caption2)
-                        .lineLimit(1)
-                        .fixedSize()
-                        .foregroundStyle(session.showsAsterisms ? Color(red: 0.94, green: 0.82, blue: 0.56) : .primary)
-                }
-                .accessibilityLabel("中国星官连线与目录")
-            }
-
-            Button {
-                toggleAlignment()
-            } label: {
-                Label("今夜", systemImage: session.observer.isOn ? "location.fill" : "location")
-                    .font(.caption2)
-                    .lineLimit(1)
-                    .fixedSize()
-            }
-            .accessibilityLabel("对齐今夜此刻的真实天空")
-
-            Button {
-                store.dispatch(.route(.solarSystem))
-            } label: {
-                Image(systemName: "sun.max")
-                    .frame(width: 28, height: 28)
-            }
-            .accessibilityLabel("太阳系")
-
-            Button {
-                showsCredits = true
-            } label: {
-                Image(systemName: "info.circle")
-                    .frame(width: 28, height: 28)
-            }
-            .accessibilityLabel("素材来源")
-        }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 10)
-        .background(.ultraThinMaterial, in: Capsule())
-    }
-
-    /// 当前点亮了哪几层，写进 `sky.perf`，掉帧时能对上号。
     var layerLabel: String {
         var parts: [String] = []
         if session.showsConstellations { parts.append("line") }
