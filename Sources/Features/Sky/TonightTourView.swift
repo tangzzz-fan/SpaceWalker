@@ -34,7 +34,6 @@ struct TonightTourView: View {
                 }
             }
         }
-        .preferredColorScheme(.dark)
     }
 
     private func card(_ stop: TonightStop) -> some View {

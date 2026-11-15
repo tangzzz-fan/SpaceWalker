@@ -45,7 +45,7 @@ extension SkyView {
                 .frame(width: 340)
             }
         }
-        .padding(.horizontal, 14)
+        .padding(.horizontal, ChromeTokens.cardPadding)
         .padding(.top, 6)
         .padding(.bottom, 8)
     }
@@ -56,17 +56,17 @@ extension SkyView {
         VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 10) {
                 Text("星图")
-                    .font(.system(size: 16, weight: .semibold, design: .rounded))
+                    .font(.system(size: ChromeTokens.primarySize, weight: .semibold))
                 Text(compactSubtitle)
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
+                    .font(.system(size: ChromeTokens.captionSize))
+                    .foregroundStyle(ChromeTokens.secondaryText)
                     .lineLimit(1)
                 if session.observer.isOn, !session.observer.hasHeading {
                     Button {
                         calibrateFacingNorth()
                     } label: {
                         Image(systemName: "location.north.line")
-                            .font(.caption2)
+                            .font(.system(size: ChromeTokens.captionSize))
                     }
                     .buttonStyle(.borderless)
                     .accessibilityLabel("手机水平朝正北时点此")
@@ -79,10 +79,10 @@ extension SkyView {
                             Image(systemName: regionSymbol(region))
                             Text(region.title)
                         }
-                        .font(.caption2)
+                        .font(.system(size: ChromeTokens.captionSize))
                     }
                     .buttonStyle(.plain)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(ChromeTokens.secondaryText)
                     .accessibilityLabel("当前天区 \(region.title)，查看来头")
                 }
             }
@@ -92,7 +92,7 @@ extension SkyView {
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
+        .background(ChromeTokens.surface1, in: RoundedRectangle(cornerRadius: ChromeTokens.cardPadding))
     }
 
     var compactSubtitle: String {
@@ -149,7 +149,7 @@ extension SkyView {
     var timeScrubber: some View {
         HStack(spacing: 8) {
             Image(systemName: "clock.arrow.circlepath")
-                .font(.caption2)
+                .font(.system(size: ChromeTokens.captionSize))
             Slider(value: timeOffsetBinding, in: -12...12) { editing in
                 guard !editing else { return }
                 session.tonightStamp = 0
@@ -158,7 +158,7 @@ extension SkyView {
             .controlSize(.mini)
             .frame(width: 140)
             Text(timeOffsetLabel)
-                .font(.caption2.monospacedDigit())
+                .font(.system(size: ChromeTokens.captionSize, design: .monospaced))
                 .frame(width: 52, alignment: .leading)
             Button {
                 session.observer.resetClock()
@@ -166,7 +166,7 @@ extension SkyView {
                 refreshTonight()
             } label: {
                 Image(systemName: "arrow.counterclockwise")
-                    .font(.caption2)
+                    .font(.system(size: ChromeTokens.captionSize))
             }
             .buttonStyle(.plain)
             .opacity(session.observer.clock.isNow ? 0.3 : 1)

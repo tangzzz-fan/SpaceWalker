@@ -57,6 +57,12 @@ final class LaunchModeTests: XCTestCase {
         XCTAssertEqual(LaunchMode.environment(["SPACEWALKER_MODE": "tiangong"]), ["SPACEWALKER_MODE": "tiangong"])
     }
 
+    func testThemeIsInjectableForHeadlessEvidence() {
+        XCTAssertEqual(LaunchMode.theme(environment: [:]), .dark)
+        XCTAssertEqual(LaunchMode.theme(environment: ["SPACEWALKER_THEME": "light"]), .light)
+        XCTAssertEqual(AppState(theme: .light).chrome.theme, .light)
+    }
+
     func testDiagnosticsPanelCanBeOpenedForHeadlessEvidence() {
         XCTAssertFalse(LaunchMode.diagnosticsPanelOnLaunch(environment: [:]))
         XCTAssertTrue(LaunchMode.diagnosticsPanelOnLaunch(environment: ["SPACEWALKER_DIAGNOSTICS": "1"]))

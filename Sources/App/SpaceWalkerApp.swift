@@ -20,7 +20,8 @@ struct SpaceWalkerApp: App {
                     route: LaunchMode.initialRoute(environment: ProcessInfo.processInfo.environment),
                     diagnosticsEnabled: LaunchMode.diagnosticsPanelOnLaunch(
                         environment: ProcessInfo.processInfo.environment
-                    )
+                    ),
+                    theme: LaunchMode.theme(environment: ProcessInfo.processInfo.environment)
                 ),
                 reducer: makeAppReducer(),
                 middlewares: [makeFlagsMiddleware(resolver: resolver)]

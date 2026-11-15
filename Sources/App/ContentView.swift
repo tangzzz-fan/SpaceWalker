@@ -27,6 +27,7 @@ struct ContentView: View {
         .sheet(isPresented: diagnosticsBinding) {
             ChromeDiagnosticsSheet()
         }
+        .preferredColorScheme(store.state.chrome.theme == .dark ? .dark : .light)
     }
 
     private var diagnosticsBinding: Binding<Bool> {

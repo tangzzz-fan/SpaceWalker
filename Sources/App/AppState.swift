@@ -14,6 +14,7 @@ enum ChromeAction: Equatable, Sendable {
     case select(ChromeSelection?)
     case setStatus(String)
     case setSeparation(Set<String>)
+    case setTheme(ChromeTheme)
     case dismissCard
 }
 
@@ -27,10 +28,15 @@ struct AppState: State {
         route: AppRoute = AppRoute.defaultRoute,
         space: SolarSystemState = SolarSystemState(),
         flags: FeatureFlags = FeatureFlags(),
-        diagnosticsEnabled: Bool = false
+        diagnosticsEnabled: Bool = false,
+        theme: ChromeTheme = .dark
     ) {
         self.route = route
-        self.chrome = ChromeState.derive(route: route, diagnosticsEnabled: diagnosticsEnabled)
+        self.chrome = ChromeState.derive(
+            route: route,
+            diagnosticsEnabled: diagnosticsEnabled,
+            theme: theme
+        )
         self.space = space
         self.flags = flags
     }

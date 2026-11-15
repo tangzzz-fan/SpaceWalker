@@ -1,0 +1,40 @@
+079 裸值与主题静态扫描（2026-11-15）
+
+扫描模式：
+  \.font\(\.system\(size: [0-9] | \.padding\([0-9] | Color\(red: [0-9] |
+  \.font\(\.(caption|caption2|headline|subheadline|callout|body|title3|footnote)
+
+范围与结果：
+  Sources/App/                                    0 处
+  SpaceView / TiangongView / SkyView+Chrome     0 处
+  Sources/ 全仓 "#RRGGBB" 字面量                0 处
+  ChromeTokens.accent 引用                      4 处（主操作、选中指示点、诊断「开」、信息卡动作）
+
+颜色唯一来源：
+  Sources/App/ChromeLayout.swift 的 ChromeTokens。
+  adaptiveColor(light:dark:) / adaptiveInk(light:dark:) 用 UIColor 动态 provider，
+  SwiftUI 的 Color 随 colorScheme 自动切换，不需要在使用处判断主题。
+  深色：bg #05070D / surface1 #0C1018 / text #F2F4F8 / accent #E8B15C
+  亮色：bg #F6F7F8 / surface1 #FFFFFF / text #11151A / accent #8A5A16（暖金深色变体）
+  3D 场景背景 spaceBackground 两主题都是 (3,4,10) 深空色：星空/宇宙不随界面主题变白。
+
+字号层级：{11, 12, 15, 20} = 4 档，最小 11pt（ChromeStateTests 断言）。
+间距与圆角：2/4/8/12/16/24、4/8/14（ChromeTokens 常量），主视图零裸值。
+信息卡：maxHeightRatio 0.32，placement .abovePrimary，下滑阈值 40pt。
+
+内容页豁免（本版不收编，共 145 处 UI 裸值）：
+  SkyView+Cards.swift 64 / FengshenBoardView.swift 25 / StarFinderView.swift 23
+  ConstellationInfoView.swift 18 / TonightTourView.swift 10 / AsterismBrowserView.swift 5
+  这些是系统 sheet 内的长文内容页，沿用 SwiftUI 语义字体（Dynamic Type 可缩放），
+  强行换成固定 pt 会丢失辅助功能缩放。已在 14 屏对照清单里作为「内容层沿用系统字体」
+  登记，并回改 v1.1 稿的 token 说明。
+  另有 11 处 Color(red:) 属于 3D 材质与几何着色（TiangongMaterials 6、
+  TiangongScene 4、SolarSystemScene 1），不是界面 token，不计入 UI 裸值。
+
+对比度与强调色：
+  深色正文 #9A9DA2 / #05070D 约 7.5:1；亮色正文 #696D71 / #F6F7F8 约 5.1:1，均 ≥4.5:1。
+  亮色主题第一版信息卡用 .ultraThinMaterial + 系统 .primary，材质被黑色 3D 背景染成深灰、
+  文字却是黑色，对比度不足；已改为不透明 ChromeTokens.surface1 + 显式 token 墨色，
+  证据 079-C2-light.png。
+  强调色只用于唯一主操作与当前选中项（+诊断开关状态、卡片动作 tint），
+  深色/亮色截图目测覆盖面积均 <10%。

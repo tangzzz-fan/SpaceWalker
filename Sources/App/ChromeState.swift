@@ -1,5 +1,10 @@
 import Foundation
 
+enum ChromeTheme: String, Equatable, Sendable, CaseIterable {
+    case dark
+    case light
+}
+
 enum ChromeMode: Equatable, Sendable, CaseIterable {
     case normal
     case card
@@ -134,13 +139,15 @@ struct ChromeState: Equatable, Sendable {
     var visibleLabels: [ChromeLabel]
     var infoCard: ChromeInfoCard?
     var separation: Set<String>
+    var theme: ChromeTheme
 
     static func derive(
         route: AppRoute,
         mode: ChromeMode = .normal,
         selection: ChromeSelection? = nil,
         separation: Set<String> = [],
-        diagnosticsEnabled: Bool = false
+        diagnosticsEnabled: Bool = false,
+        theme: ChromeTheme = .dark
     ) -> ChromeState {
         ChromeState(
             route: route,
@@ -158,7 +165,8 @@ struct ChromeState: Equatable, Sendable {
             contextControls: contextControls(route: route, mode: mode),
             visibleLabels: labels(for: selection),
             infoCard: card(for: selection),
-            separation: separation
+            separation: separation,
+            theme: theme
         )
     }
 

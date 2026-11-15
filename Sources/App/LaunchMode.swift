@@ -29,6 +29,10 @@ enum LaunchMode {
         )
     }
 
+    static func theme(environment: [String: String]) -> ChromeTheme {
+        environment["SPACEWALKER_THEME"] == "light" ? .light : .dark
+    }
+
     static func diagnosticsPanelOnLaunch(environment: [String: String]) -> Bool {
         environment["SPACEWALKER_DIAGNOSTICS"] == "1"
     }

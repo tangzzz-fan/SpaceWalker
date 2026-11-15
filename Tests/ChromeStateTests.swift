@@ -147,6 +147,48 @@ final class ChromeStateTests: XCTestCase {
         XCTAssertNotNil(state.chrome.infoCard)
     }
 
+    func testDefaultThemeIsDark() {
+        XCTAssertEqual(AppState().chrome.theme, .dark)
+    }
+
+    func testSetThemePreservesRouteSelectionAndStructure() {
+        let state = reduce([
+            .route(.tiangong),
+            .chrome(.select(.module(.lab))),
+            .chrome(.setMode(.card)),
+            .chrome(.setTheme(.light))
+        ])
+        XCTAssertEqual(state.chrome.theme, .light)
+        XCTAssertEqual(state.chrome.route, .tiangong)
+        XCTAssertEqual(state.chrome.selection, .module(.lab))
+        XCTAssertEqual(state.chrome.primaryAction.title, "分离")
+        XCTAssertEqual(state.chrome.tabs.map(\.isSelected), [false, false, true])
+    }
+
+    func testRouteChangePreservesTheme() {
+        let state = reduce([.chrome(.setTheme(.light)), .route(.sky)])
+        XCTAssertEqual(state.chrome.theme, .light)
+    }
+
+    func testTypographyUsesAtMostFourSizesAndMinimumEleven() {
+        let sizes = [
+            ChromeTokens.captionSize,
+            ChromeTokens.labelSize,
+            ChromeTokens.bodySize,
+            ChromeTokens.primarySize,
+            ChromeTokens.titleSize
+        ]
+        XCTAssertLessThanOrEqual(Set(sizes).count, 4)
+        XCTAssertGreaterThanOrEqual(sizes.min() ?? 0, 11)
+    }
+
+    func testInfoCardHeightRatioIsAtMostThirtyTwoPercent() {
+        XCTAssertLessThanOrEqual(ChromeTokens.infoCardMaxHeightRatio, 0.32)
+        let card = ChromeState.derive(route: .sky, selection: .star("织女星")).infoCard
+        XCTAssertEqual(card?.maxHeightRatio, ChromeTokens.infoCardMaxHeightRatio)
+        XCTAssertEqual(card?.placement, .abovePrimary)
+    }
+
     func testUserFacingChromeHasNoDebugStrings() {
         for route in routes {
             for mode in ChromeMode.allCases {

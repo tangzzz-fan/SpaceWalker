@@ -52,7 +52,6 @@ struct ChromeDiagnosticsSheet: View {
                 }
             }
         }
-        .preferredColorScheme(.dark)
     }
 
     private func diagnosticRow(_ title: String, _ enabled: Bool) -> some View {

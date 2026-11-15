@@ -50,7 +50,6 @@ struct SkyView: View {
                 portraitOverlay
             }
         }
-        .preferredColorScheme(.dark)
         .task {
             await load()
             await runPickProbe()
@@ -288,7 +287,6 @@ struct SkyLayersSheet: View {
                 }
             }
         }
-        .preferredColorScheme(.dark)
     }
 }
 

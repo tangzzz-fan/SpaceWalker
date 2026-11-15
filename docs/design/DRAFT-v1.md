@@ -71,3 +71,13 @@ run `88fab827-fba1-4199-8c37-252dc7a0b2b5`：`status=succeeded`、`agentId=claud
 1. 工程主流程：`/to-spec`（spec 已发布，见 `.scratch/spacewalker/issues/074-ui-chrome-v1.1-spec.md`）→ `/to-tickets`（子票 075+）→ `/implement`（每票 `/tdd` + `/code-review`）→ `/retro`。
 2. token 落地以 v1.1 第 02 节表格为准，代码里不写裸值。
 3. 后续所有 `start_run` 必须**显式传 `agent:"claude"`**，下发后立即 `get_run` 复核（全局账本 `2026-11-14-start_run不指定agent会回落到未登录的amr.md`）；终态用 `list_files` 验 mtime/size，不信 `succeeded` 声明。
+
+## 实现对照（2026-11-15，075–079 落地后）
+
+075–079 已实现底部三段、44pt 只读状态条、三 tab、诊断面板、选中态标签与信息卡、深浅双主题。证据与逐屏差异见 `docs/gates/M3/079-14-screen-diff.md`，裸值扫描见 `079-token-scan.txt`。
+
+稿侧同步回改：A1 状态条示例文案 5 处（不谎称已对齐今夜），末尾新增「实现对照（2026-11-15）」一节，写明本版验收范围、亮色强调色变体 `#8A5A16`、内容层沿用系统 Dynamic Type，以及 A2 读数块 / C1 任务条 / C4 容差环与四类判据 / A5 内嵌时间滑杆为**设计意图、非本版验收项**。这些组件要变成验收项需另票实现后再改稿。
+
+实现侧同步回改：C7 删除再入浮层里重复的「跳过」按钮；亮色信息卡由半透明材质改为不透明 token 表面，修掉灰底黑字；主操作文案随真实分离态派生。
+
+真机 60fps、5 人盲测、标签降级结论仍由 080 人工门禁判定，本记录不代判。

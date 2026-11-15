@@ -1,34 +1,58 @@
 import SwiftUI
 import TGReduxKit
+import UIKit
 
 enum ChromeTokens {
-    static let background = Color(red: 5 / 255, green: 7 / 255, blue: 13 / 255)
+    static func adaptiveColor(
+        light: (CGFloat, CGFloat, CGFloat),
+        dark: (CGFloat, CGFloat, CGFloat)
+    ) -> Color {
+        Color(UIColor { traits in
+            let value = traits.userInterfaceStyle == .dark ? dark : light
+            return UIColor(red: value.0 / 255, green: value.1 / 255, blue: value.2 / 255, alpha: 1)
+        })
+    }
+
+    static func adaptiveInk(_ lightOpacity: CGFloat, _ darkOpacity: CGFloat) -> Color {
+        Color(UIColor { traits in
+            let dark = traits.userInterfaceStyle == .dark
+            let ink: UIColor = dark ? .white : .black
+            return ink.withAlphaComponent(dark ? darkOpacity : lightOpacity)
+        })
+    }
+
+    static let background = adaptiveColor(light: (246, 247, 248), dark: (5, 7, 13))
+    static let spaceBackground = adaptiveColor(light: (3, 4, 10), dark: (3, 4, 10))
     static let surface = background
-    static let surface1 = Color(red: 12 / 255, green: 16 / 255, blue: 24 / 255)
-    static let surface2 = Color(red: 20 / 255, green: 25 / 255, blue: 34 / 255)
-    static let primaryText = Color(red: 242 / 255, green: 244 / 255, blue: 248 / 255)
-    static let secondaryText = primaryText.opacity(0.62)
-    static let tertiaryText = primaryText.opacity(0.52)
-    static let disabledText = primaryText.opacity(0.38)
-    static let hairline = Color.white.opacity(0.10)
-    static let strongHairline = Color.white.opacity(0.18)
-    static let accent = Color(red: 232 / 255, green: 177 / 255, blue: 92 / 255)
-    static let accentPressed = Color(red: 209 / 255, green: 154 / 255, blue: 69 / 255)
-    static let cyan = Color(red: 111 / 255, green: 168 / 255, blue: 200 / 255)
+    static let surface1 = adaptiveColor(light: (255, 255, 255), dark: (12, 16, 24))
+    static let surface2 = adaptiveColor(light: (230, 233, 236), dark: (20, 25, 34))
+    static let primaryText = adaptiveColor(light: (17, 21, 26), dark: (242, 244, 248))
+    static let secondaryText = adaptiveColor(light: (105, 109, 113), dark: (154, 157, 162))
+    static let tertiaryText = adaptiveColor(light: (128, 132, 136), dark: (130, 133, 138))
+    static let disabledText = adaptiveColor(light: (160, 164, 168), dark: (100, 103, 108))
+    static let hairline = adaptiveInk(0.12, 0.10)
+    static let strongHairline = adaptiveInk(0.24, 0.18)
+    static let accent = adaptiveColor(light: (138, 90, 22), dark: (232, 177, 92))
+    static let accentPressed = adaptiveColor(light: (110, 71, 16), dark: (209, 154, 69))
+    static let cyan = adaptiveColor(light: (47, 107, 234), dark: (111, 168, 200))
 
     static let captionSize: CGFloat = 11
     static let labelSize: CGFloat = 12
-    static let bodySize: CGFloat = 13
+    static let bodySize: CGFloat = 12
     static let primarySize: CGFloat = 15
     static let titleSize: CGFloat = 20
 
     static let radiusPanel: CGFloat = 14
     static let radiusTag: CGFloat = 4
+    static let contextRadius: CGFloat = 8
     static let indicatorSize: CGFloat = 4
     static let labelSpacing: CGFloat = 4
-    static let edgePadding: CGFloat = 16
-    static let horizontalPadding: CGFloat = 8
     static let tightPadding: CGFloat = 2
+    static let compactPadding: CGFloat = 4
+    static let horizontalPadding: CGFloat = 8
+    static let cardPadding: CGFloat = 12
+    static let edgePadding: CGFloat = 16
+    static let sectionSpacing: CGFloat = 24
 
     static let statusBarHeight: CGFloat = 44
     static let primaryDockHeight: CGFloat = 60
@@ -45,6 +69,7 @@ enum ChromeTokens {
     static let infoCardMaxHeightRatio: Double = 0.32
     static let infoCardDismissDistance: CGFloat = 40
 }
+
 
 struct ChromeInfoCardBehavior: ViewModifier {
     let ratio: Double
@@ -98,6 +123,11 @@ struct ChromeStatusBar: View {
             Menu {
                 Button("素材来源") { actions.control?(.credits) }
                 Button("史实与里程碑") { actions.control?(.history) }
+                Button(store.state.chrome.theme == .dark ? "切换亮色" : "切换深色") {
+                    store.dispatch(.chrome(.setTheme(
+                        store.state.chrome.theme == .dark ? .light : .dark
+                    )))
+                }
                 Text(versionLabel)
             } label: {
                 Image(systemName: "ellipsis")
@@ -166,7 +196,7 @@ struct ChromeContextDock: View {
                         .frame(maxWidth: .infinity, minHeight: ChromeTokens.buttonHeight)
                         .foregroundStyle(ChromeTokens.secondaryText)
                         .background(ChromeTokens.surface1.opacity(0.72))
-                        .clipShape(RoundedRectangle(cornerRadius: ChromeTokens.radiusTag + 4))
+                        .clipShape(RoundedRectangle(cornerRadius: ChromeTokens.contextRadius))
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
@@ -221,7 +251,7 @@ struct ChromeBottomBar: View {
                 store.dispatch(.route(route))
             }
         }
-        .background(ChromeTokens.surface.opacity(0.94))
+        .background(ChromeTokens.surface1)
         .overlay(alignment: .top) {
             Rectangle()
                 .fill(ChromeTokens.hairline)

@@ -30,7 +30,7 @@ struct SpaceView: View {
 
     var body: some View {
         ZStack {
-            Color(red: 0.012, green: 0.016, blue: 0.038)
+            ChromeTokens.spaceBackground
                 .ignoresSafeArea()
 
             if let environment {
@@ -43,10 +43,10 @@ struct SpaceView: View {
 
             if let selectedBody, let labelPoint {
                 Text(selectedBody.name)
-                    .font(.caption.weight(.semibold))
+                    .font(.system(size: ChromeTokens.labelSize, weight: .semibold))
                     .padding(.horizontal, 10)
                     .padding(.vertical, 5)
-                    .background(.ultraThinMaterial, in: Capsule())
+                    .background(ChromeTokens.surface1, in: Capsule())
                     .position(x: labelPoint.x, y: labelPoint.y - 34)
                     .allowsHitTesting(false)
             }
@@ -64,7 +64,6 @@ struct SpaceView: View {
                 }
             }
         }
-        .preferredColorScheme(.dark)
         .task {
             await loadEnvironment()
             applyDebugPreselection()
@@ -192,44 +191,44 @@ struct SpaceView: View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(alignment: .firstTextBaseline) {
                 Text(body.name)
-                    .font(.headline)
+                    .font(.system(size: ChromeTokens.primarySize, weight: .semibold))
                 Text(body.latinName)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .font(.system(size: ChromeTokens.labelSize))
+                    .foregroundStyle(ChromeTokens.secondaryText)
                 Spacer()
                 Text(body.kind == .star ? "恒星" : "行星")
-                    .font(.caption2)
+                    .font(.system(size: ChromeTokens.captionSize))
                     .padding(.horizontal, 8)
                     .padding(.vertical, 3)
-                    .background(.white.opacity(0.12), in: Capsule())
+                    .background(ChromeTokens.surface2, in: Capsule())
                     .padding(.trailing, 24)
             }
             Text("直径 \(formatted(body.diameterKilometers)) km")
-                .font(.caption)
-                .foregroundStyle(.secondary)
+                .font(.system(size: ChromeTokens.labelSize))
+                .foregroundStyle(ChromeTokens.secondaryText)
             if body.semiMajorAxisAU > 0 {
                 Text(String(format: "距日 %.3f AU · 公转 %.1f 地球日", body.semiMajorAxisAU, body.orbitalPeriodDays))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .font(.system(size: ChromeTokens.labelSize))
+                    .foregroundStyle(ChromeTokens.secondaryText)
             }
             Text(body.blurb)
-                .font(.caption)
+                .font(.system(size: ChromeTokens.labelSize))
                 .fixedSize(horizontal: false, vertical: true)
             Text("比例为可读性做了非线性压缩，非真实比例")
-                .font(.caption2)
-                .foregroundStyle(.secondary.opacity(0.8))
+                .font(.system(size: ChromeTokens.captionSize))
+                .foregroundStyle(ChromeTokens.tertiaryText)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(14)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16))
+        .padding(ChromeTokens.cardPadding)
+        .background(ChromeTokens.surface1, in: RoundedRectangle(cornerRadius: ChromeTokens.edgePadding))
         .overlay(alignment: .topTrailing) {
             Button {
                 store.dispatch(.space(.select(nil)))
             } label: {
                 Image(systemName: "xmark.circle.fill")
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(ChromeTokens.secondaryText)
             }
-            .padding(10)
+            .padding(ChromeTokens.horizontalPadding)
         }
     }
 
@@ -237,7 +236,7 @@ struct SpaceView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 14) {
                 Text("素材来源")
-                    .font(.title3.weight(.semibold))
+                    .font(.system(size: ChromeTokens.titleSize, weight: .semibold))
 
                 creditRow(
                     title: "星空底图",
@@ -253,15 +252,15 @@ struct SpaceView: View {
                 )
 
                 Text("NASA 未参与本项目，也未对其背书。本应用不使用 NASA 标识。")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .font(.system(size: ChromeTokens.labelSize))
+                    .foregroundStyle(ChromeTokens.secondaryText)
 
                 Text("底图原始为 OpenEXR 线性 HDR，构建期做了 +0.9EV 曝光与轻度饱和调整后转存为 sRGB JPEG。行星为程序化几何，比例经非线性压缩。")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .font(.system(size: ChromeTokens.labelSize))
+                    .foregroundStyle(ChromeTokens.secondaryText)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(20)
+            .padding(ChromeTokens.edgePadding)
         }
         .presentationDetents([.medium])
     }
@@ -269,10 +268,10 @@ struct SpaceView: View {
     private func creditRow(title: String, detail: String) -> some View {
         VStack(alignment: .leading, spacing: 3) {
             Text(title)
-                .font(.subheadline.weight(.medium))
+                .font(.system(size: ChromeTokens.bodySize, weight: .medium))
             Text(detail)
-                .font(.caption)
-                .foregroundStyle(.secondary)
+                .font(.system(size: ChromeTokens.labelSize))
+                .foregroundStyle(ChromeTokens.secondaryText)
                 .fixedSize(horizontal: false, vertical: true)
         }
     }

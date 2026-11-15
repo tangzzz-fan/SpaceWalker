@@ -19,7 +19,7 @@ struct TiangongView: View {
 
     var body: some View {
         ZStack {
-            Color(red: 0.012, green: 0.016, blue: 0.038)
+            ChromeTokens.spaceBackground
                 .ignoresSafeArea()
 
             if let environment {
@@ -44,10 +44,10 @@ struct TiangongView: View {
                     Spacer(minLength: 0)
                     if session.dockingActive {
                         dockingCard
-                            .padding(.bottom, 10)
+                            .padding(.bottom, ChromeTokens.horizontalPadding)
                     } else if store.state.chrome.infoCard != nil, let selected = session.selected {
                         infoCard(selected)
-                            .padding(.bottom, 10)
+                            .padding(.bottom, ChromeTokens.horizontalPadding)
                             .modifier(ChromeInfoCardBehavior(
                                 ratio: store.state.chrome.infoCard?.maxHeightRatio
                                     ?? ChromeTokens.infoCardMaxHeightRatio
@@ -55,14 +55,13 @@ struct TiangongView: View {
                     }
                     if session.cutawayMode {
                         cutawayCard
-                            .padding(.bottom, 10)
+                            .padding(.bottom, ChromeTokens.horizontalPadding)
                     }
                 }
                 .padding(.horizontal, ChromeTokens.edgePadding)
                 .padding(.bottom, ChromeTokens.horizontalPadding)
             }
         }
-        .preferredColorScheme(.dark)
         .onAppear(perform: registerActions)
         .onAppear(perform: syncLaunchSelection)
         .onChange(of: session.reentryPhase) { _, _ in syncMode() }
@@ -163,7 +162,7 @@ struct TiangongView: View {
                         .stroke(.white.opacity(0.5), style: StrokeStyle(lineWidth: 0.8, dash: [3, 3]))
 
                         Text(dimension.title)
-                            .font(.system(size: 11, weight: .medium, design: .monospaced))
+                            .font(.system(size: ChromeTokens.captionSize, weight: .medium, design: .monospaced))
                             .foregroundStyle(.white.opacity(0.92))
                             .padding(.horizontal, 5)
                             .padding(.vertical, 2)
@@ -201,12 +200,12 @@ struct TiangongView: View {
                         .controlSize(.mini)
                     }
                 }
-                .padding(6)
-                .background(.ultraThinMaterial, in: Capsule())
+                .padding(ChromeTokens.compactPadding)
+                .background(ChromeTokens.surface1, in: Capsule())
             }
             Spacer()
         }
-        .padding(.horizontal, 16)
+        .padding(.horizontal, ChromeTokens.edgePadding)
         .padding(.top, 168)
     }
 
@@ -408,30 +407,31 @@ struct TiangongView: View {
         VStack(alignment: .leading, spacing: 5) {
             HStack(alignment: .firstTextBaseline, spacing: 6) {
                 Image(systemName: "shippingbox")
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
+                    .font(.system(size: ChromeTokens.captionSize))
+                    .foregroundStyle(ChromeTokens.secondaryText)
                 Text(module.title)
-                    .font(.headline)
+                    .font(.system(size: ChromeTokens.primarySize, weight: .semibold))
                 Spacer(minLength: 6)
             }
             Text(module.detail)
-                .font(.caption2)
-                .foregroundStyle(.secondary)
+                .font(.system(size: ChromeTokens.captionSize))
+                .foregroundStyle(ChromeTokens.secondaryText)
             if TiangongDisassembly.isDismantlable(module) {
                 Button(session.separated.contains(module) ? "装回" : "分离") {
                     session.toggleDisassembly(module)
                 }
                 .buttonStyle(.bordered)
+                .tint(ChromeTokens.accent)
                 .controlSize(.small)
                 .padding(.top, 2)
             }
             Text("点空白处取消选择 · 神舟不参与拆装")
-                .font(.caption2)
-                .foregroundStyle(.tertiary)
+                .font(.system(size: ChromeTokens.captionSize))
+                .foregroundStyle(ChromeTokens.tertiaryText)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(14)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16))
+        .padding(ChromeTokens.cardPadding)
+        .background(ChromeTokens.surface1, in: RoundedRectangle(cornerRadius: ChromeTokens.edgePadding))
     }
 
     private func formatted(_ meters: Float) -> String {
@@ -442,10 +442,10 @@ struct TiangongView: View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(alignment: .firstTextBaseline, spacing: 6) {
                 Image(systemName: "dot.scope")
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
+                    .font(.system(size: ChromeTokens.captionSize))
+                    .foregroundStyle(ChromeTokens.secondaryText)
                 Text(session.dockingHeadline ?? "")
-                    .font(.headline)
+                    .font(.system(size: ChromeTokens.primarySize, weight: .semibold))
                 Spacer(minLength: 6)
                 Button(session.controlMode == .coarse ? "粗调" : "精调") {
                     session.toggleControlMode()
@@ -468,37 +468,37 @@ struct TiangongView: View {
                         .controlSize(.small)
                 } else {
                     Text("打开一次史实面板，解锁「最后一圈」。")
-                        .font(.caption2)
-                        .foregroundStyle(.tertiary)
+                        .font(.system(size: ChromeTokens.captionSize))
+                        .foregroundStyle(ChromeTokens.tertiaryText)
                 }
             }
             Text("拖动平移 · 捏合推进 · 双指旋转调姿态")
-                .font(.caption2)
-                .foregroundStyle(.secondary)
+                .font(.system(size: ChromeTokens.captionSize))
+                .foregroundStyle(ChromeTokens.secondaryText)
             Text("姿态偏差 \(Int(max(abs(session.shipYaw), abs(session.shipPitch))))° / 容差 \(Int(TiangongDocking.angleTolerance))°")
-                .font(.caption2)
-                .foregroundStyle(.secondary)
+                .font(.system(size: ChromeTokens.captionSize))
+                .foregroundStyle(ChromeTokens.secondaryText)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(14)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16))
+        .padding(ChromeTokens.cardPadding)
+        .background(ChromeTokens.surface1, in: RoundedRectangle(cornerRadius: ChromeTokens.edgePadding))
     }
 
     private var cutawayCard: some View {
         VStack(alignment: .leading, spacing: 6) {
             Text("剖面")
-                .font(.caption2.weight(.semibold))
-                .foregroundStyle(.secondary)
+                .font(.system(size: ChromeTokens.captionSize, weight: .semibold))
+                .foregroundStyle(ChromeTokens.secondaryText)
             Text("睡眠区 · 健身区 · 设备机柜 · Ø0.8 m 转移通道")
-                .font(.caption2)
-                .foregroundStyle(.secondary)
+                .font(.system(size: ChromeTokens.captionSize))
+                .foregroundStyle(ChromeTokens.secondaryText)
             Text("剖开的是密封舱外壳；内部为示意，不按真实尺寸还原。")
-                .font(.caption2)
-                .foregroundStyle(.tertiary)
+                .font(.system(size: ChromeTokens.captionSize))
+                .foregroundStyle(ChromeTokens.tertiaryText)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(14)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16))
+        .padding(ChromeTokens.cardPadding)
+        .background(ChromeTokens.surface1, in: RoundedRectangle(cornerRadius: ChromeTokens.edgePadding))
     }
 
     private var reentryOverlay: some View {
@@ -509,10 +509,10 @@ struct TiangongView: View {
                 VStack {
                     Spacer()
                     Text(TiangongReentry.caption(session.reentryPhase) ?? "")
-                        .font(.caption.weight(.medium))
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 10)
-                    .background(.ultraThinMaterial, in: Capsule())
+                        .font(.system(size: ChromeTokens.labelSize, weight: .medium))
+                    .padding(.horizontal, ChromeTokens.edgePadding)
+                    .padding(.vertical, ChromeTokens.horizontalPadding)
+                    .background(ChromeTokens.surface1, in: Capsule())
                     .padding(.bottom, 60)
                 }
             }
@@ -523,21 +523,21 @@ struct TiangongView: View {
     private var reentryCard: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("最后一圈")
-                .font(.caption2.weight(.semibold))
-                .foregroundStyle(.secondary)
+                .font(.system(size: ChromeTokens.captionSize, weight: .semibold))
+                .foregroundStyle(ChromeTokens.secondaryText)
             if let closing = TiangongHistory.closing {
                 Text(closing.headline)
-                    .font(.system(size: 26, weight: .semibold, design: .rounded))
+                    .font(.system(size: ChromeTokens.titleSize, weight: .semibold))
                 HStack(alignment: .firstTextBaseline, spacing: 10) {
                     Text(closing.date)
                         .font(.system(.title3, design: .monospaced))
                     Text(closing.place)
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                        .font(.system(size: ChromeTokens.bodySize))
+                        .foregroundStyle(ChromeTokens.secondaryText)
                 }
                 Text(closing.body)
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
+                    .font(.system(size: ChromeTokens.bodySize))
+                    .foregroundStyle(ChromeTokens.secondaryText)
             }
             HStack(spacing: 10) {
                 Button("再看一次") { session.replayReentry() }
@@ -549,13 +549,13 @@ struct TiangongView: View {
             }
             .padding(.top, 2)
             Text("史实条目与出处见 docs/research/realitykit-ios26-primary-sources.md 第 15 条。")
-                .font(.caption2)
-                .foregroundStyle(.tertiary)
+                .font(.system(size: ChromeTokens.captionSize))
+                .foregroundStyle(ChromeTokens.tertiaryText)
         }
-        .padding(22)
+        .padding(ChromeTokens.edgePadding)
         .frame(maxWidth: 360, alignment: .leading)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 22))
-        .padding(24)
+        .background(ChromeTokens.surface1, in: RoundedRectangle(cornerRadius: ChromeTokens.radiusPanel))
+        .padding(ChromeTokens.sectionSpacing)
     }
 
 }
@@ -568,17 +568,17 @@ struct TiangongHistorySheet: View {
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(TiangongHistory.name)
-                        .font(.title3.weight(.semibold))
+                        .font(.system(size: ChromeTokens.titleSize, weight: .semibold))
                     Text(TiangongHistory.kind)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .font(.system(size: ChromeTokens.labelSize))
+                        .foregroundStyle(ChromeTokens.secondaryText)
                 }
                 Spacer()
                 Button {
                     dismiss()
                 } label: {
                     Image(systemName: "xmark.circle.fill")
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(ChromeTokens.secondaryText)
                 }
                 .accessibilityLabel("关闭")
             }
@@ -586,10 +586,10 @@ struct TiangongHistorySheet: View {
             ForEach(TiangongHistory.facts) { fact in
                 VStack(alignment: .leading, spacing: 2) {
                     Text(fact.label)
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
+                        .font(.system(size: ChromeTokens.captionSize))
+                        .foregroundStyle(ChromeTokens.secondaryText)
                     Text(fact.value)
-                        .font(.subheadline)
+                        .font(.system(size: ChromeTokens.bodySize))
                 }
             }
 
@@ -597,35 +597,34 @@ struct TiangongHistorySheet: View {
                 Divider()
                     .padding(.vertical, 2)
                 Text("任务里程碑")
-                    .font(.caption2.weight(.semibold))
-                    .foregroundStyle(.secondary)
+                    .font(.system(size: ChromeTokens.captionSize, weight: .semibold))
+                    .foregroundStyle(ChromeTokens.secondaryText)
                 ForEach(TiangongHistory.milestones) { milestone in
                     VStack(alignment: .leading, spacing: 3) {
                         HStack(alignment: .firstTextBaseline, spacing: 6) {
                             Text(milestone.date)
-                                .font(.caption.monospacedDigit())
-                                .foregroundStyle(.secondary)
+                                .font(.system(size: ChromeTokens.labelSize, design: .monospaced))
+                                .foregroundStyle(ChromeTokens.secondaryText)
                             Text(milestone.title)
-                                .font(.subheadline.weight(.medium))
+                                .font(.system(size: ChromeTokens.bodySize, weight: .medium))
                         }
                         Text(milestone.detail)
-                            .font(.caption)
+                            .font(.system(size: ChromeTokens.labelSize))
                         Text(milestone.source)
-                            .font(.caption2)
-                            .foregroundStyle(.tertiary)
+                            .font(.system(size: ChromeTokens.captionSize))
+                            .foregroundStyle(ChromeTokens.tertiaryText)
                     }
                     .padding(.vertical, 2)
                 }
             }
 
             Text("史实条目与出处见 docs/research/realitykit-ios26-primary-sources.md 第 15 条。")
-                .font(.caption2)
-                .foregroundStyle(.tertiary)
+                .font(.system(size: ChromeTokens.captionSize))
+                .foregroundStyle(ChromeTokens.tertiaryText)
 
             Spacer(minLength: 0)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(20)
-        .preferredColorScheme(.dark)
+        .padding(ChromeTokens.edgePadding)
     }
 }
