@@ -496,7 +496,7 @@ final class TiangongSession {
 }
 
 extension TiangongSession {
-    /// 帧率只打日志，不上屏——NFR-01 要的是真机 60 秒的平均与下限，
+    /// 帧率只打日志，不上屏——NFR-01 要的是真机 30s 录屏的平均与下限，
     /// 用 `ProbeRecorder` 的 SceneEvents.Update 间隔，比 CADisplayLink 接近真实负载。
     @discardableResult
     func logFrameRate(now: TimeInterval) -> String {

@@ -25,7 +25,7 @@
 `docs/design/PRD-UI-v1.md` §1 现实约束行、`docs/design/DRAFT-v1.md` 实现对照节、
 `079-14-screen-diff.md` 两处，均已改为「60fps 是体验目标，数值验收判据以 PRD NFR-01 为准」。
 这是按 issue-tracker「以 PRD 为准并回写」做的机械同步，不是数值判据变更；
-`TiangongSession.swift` 注释里「真机 60 秒」与 PRD 30s 不符的问题仍在，修正另行提交。
+`TiangongSession.swift:499` 注释「真机 60 秒」与 PRD 30s 不符，已于同日改为「真机 30s 录屏」（仅注释，零行为变化）。
 
 ## 2. 设备与偏差
 
