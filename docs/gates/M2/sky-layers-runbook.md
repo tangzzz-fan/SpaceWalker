@@ -42,7 +42,7 @@ xcrun devicectl device install app --device <UDID> \
 ```bash
 xcrun devicectl device process launch --device <UDID> \
   --environment-variables '{"SPACEWALKER_MODE":"sky","SPACEWALKER_LAYERS":"1","SPACEWALKER_FPS":"1"}' \
-  com.tango.spacewalker
+  com.tango.xingcha
 ```
 
 - `SPACEWALKER_LAYERS=1`：连线 + 轮廓 + 星官 + 星群一次全开。
@@ -62,15 +62,15 @@ xcrun devicectl device process launch --device <UDID> \
 
 ## 5. 取回日志
 
-`SessionLog` 除了写文件，也会以 `notice` 级打到统一日志（subsystem `com.tango.spacewalker`，category `filelog`），所以两种取法都行。
+`SessionLog` 除了写文件，也会以 `notice` 级打到统一日志（subsystem `com.tango.xingcha`，category `filelog`），所以两种取法都行。
 
-**边跑边看（推荐，能同时看画面和读数）**：打开 Console.app，左侧选中 iPhone，右上搜索 `subsystem:com.tango.spacewalker`，等级选 Include Info/Debug。
+**边跑边看（推荐，能同时看画面和读数）**：打开 Console.app，左侧选中 iPhone，右上搜索 `subsystem:com.tango.xingcha`，等级选 Include Info/Debug。
 
 **事后取文件**：
 
 ```bash
 xcrun devicectl device copy from --device <UDID> \
-  --domain-type appDataContainer --domain-identifier com.tango.spacewalker \
+  --domain-type appDataContainer --domain-identifier com.tango.xingcha \
   --source Documents/session.log --destination ./session-device.log
 
 grep -E "sky.budget|sky.perf" ./session-device.log

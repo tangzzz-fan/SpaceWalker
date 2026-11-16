@@ -4,7 +4,7 @@ import os
 @MainActor
 enum SessionLog {
     static let fileName = "session.log"
-    private static let logger = Logger(subsystem: "com.tango.spacewalker", category: "filelog")
+    private static let logger = Logger(subsystem: "com.tango.xingcha", category: "filelog")
     private static let limit = 128 * 1024
 
     static var fileURL: URL {

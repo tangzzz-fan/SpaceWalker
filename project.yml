@@ -80,7 +80,7 @@ targets:
         product: TGFeatureFlag
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.tango.spacewalker
+        PRODUCT_BUNDLE_IDENTIFIER: com.tango.xingcha
         SUPPORTED_PLATFORMS: iphoneos iphonesimulator
         CODE_SIGN_IDENTITY: "Apple Development"
       configs:
@@ -94,7 +94,7 @@ targets:
       - path: Tests
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.tango.spacewalkertests
+        PRODUCT_BUNDLE_IDENTIFIER: com.tango.xingchatests
         GENERATE_INFOPLIST_FILE: YES
         CODE_SIGN_IDENTITY: "Apple Development"
     dependencies:
@@ -109,7 +109,7 @@ targets:
       - path: UITests
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.tango.spacewalkeruitests
+        PRODUCT_BUNDLE_IDENTIFIER: com.tango.xingchauitests
         GENERATE_INFOPLIST_FILE: YES
         CODE_SIGN_IDENTITY: "Apple Development"
     dependencies:

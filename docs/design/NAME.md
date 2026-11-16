@@ -90,5 +90,9 @@
 - [x] `NSLocationWhenInUseUsageDescription` 里的产品名 → 星槎
 - [x] 产物校验：`PlistBuddy` 读构建后的 `SpaceWalker.app/Info.plist` 得 `星槎`
 - [ ] App Store Connect 元数据与截图（上架时填）
-- **不改** Xcode target / bundle id / 目录名（SpaceWalker 作为工程代号保留，改名成本与收益不成比例）
+- ~~**不改** Xcode target / bundle id / 目录名（SpaceWalker 作为工程代号保留，改名成本与收益不成比例）~~
+  **2026-11-17 董事长裁决改 bundle id**：`com.tango.spacewalker` → **`com.tango.xingcha`**（测试 target 同步
+  `com.tango.xingchatests` / `com.tango.xingchauitests`；`SessionLog` 统一日志 subsystem 同步）。
+  时机：上架前改零迁移成本，上架后不可再改。Xcode target / 目录名仍保留 SpaceWalker 工程代号。
+  注意：旧 id 在真机上的 App 数据容器与新 id 不互通，080 人工重取证需用新包全新启动。
 - 应用内三个模块的标题仍是「星图 / 太阳系 / 天宫一号」，**不重复 App 名**

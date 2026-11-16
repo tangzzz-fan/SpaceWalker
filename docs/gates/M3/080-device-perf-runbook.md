@@ -70,7 +70,7 @@ PID=$(python3 -c "import json;d=json.load(open('/tmp/sw-procs.json'));print(next
 xcrun devicectl device process terminate --device "$SPACEWALKER_UDID" --pid "$PID"
 xcrun devicectl device process launch --device "$SPACEWALKER_UDID" \
   --environment-variables '{"SPACEWALKER_MODE":"tiangong","SPACEWALKER_FPS":"1"}' \
-  com.tango.spacewalker
+  com.tango.xingcha
 sleep 75                       # 068 要 70 秒；前 5 秒启动期在统计里排除
 tools/device.sh log --once > docs/gates/M3/080-device-perf-tiangong.log
 tools/device.sh shot docs/gates/M3/080-device-tiangong.png
@@ -98,6 +98,7 @@ grep 'thermal='      docs/gates/M3/080-device-perf-sky.log | grep -v 'thermal=no
 
 编译 `/tmp/spacewalker-080-device-build.log` → `BUILD SUCCEEDED`（签名 Apple Development: zhenzhi Tang）。
 两段日志首行均为 `# iPhone17,1 | Version 27.0 (Build 24A437) | app 1.0(1) | bundle com.tango.spacewalker`。
+（历史证据保留原样：2026-11-17 bundle id 已改为 `com.tango.xingcha`，本表数据取自旧 id 时期；旧 id 的 App 数据容器与新 id 不互通，重取证时日志从新容器取。）
 
 | 阶段 | 证据 | 样本（排除启动 5s） | 覆盖 | `avg` 样本均值 | `avg` 最低 | `min` 全局最低 | `min<30` 快照 |
 | --- | --- | --- | --- | --- | --- | --- | --- |

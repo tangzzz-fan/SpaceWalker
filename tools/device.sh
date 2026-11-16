@@ -8,7 +8,7 @@
 # 设备用第一条「有线连接」的真机；多台时用 SPACEWALKER_UDID 指定。
 set -uo pipefail
 
-BUNDLE_ID="com.tango.spacewalker"
+BUNDLE_ID="com.tango.xingcha"
 PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 APP_PATH="$PROJECT_DIR/build/Build/Products/Debug-iphoneos/SpaceWalker.app"
 UDID="${SPACEWALKER_UDID:-}"
