@@ -38,5 +38,5 @@ blocked_by: [075]
 - 静态扫描：`grep -rnE 'Text\((fpsLine|probeLine|"pick ·|perfSummary|fpsOnlyLine)' Sources/` → **0 处**；三个主视图的 fps / pick 读数改为只写 `SessionLog`，不再进 View。
 - 截图 `docs/gates/M3/076-default.png` 与 `076-debug-switches-on.png`（`SPACEWALKER_FPS=1 PICKPROBE=1 COORDS=1`）：**MD5 均为 `a4db0ad5cd06a0210c88caae2826e866`，像素完全一致**，证明调试开关不再改变主界面。
 - 截图 `docs/gates/M3/076-diagnostics-panel.png`（`SPACEWALKER_DIAGNOSTICS=1` 无头取证）：面板显示开关状态、启动参数、最近 40 行运行日志；正式入口为长按版本号 3 秒。
-- 兼容：`fpsHUDEnabled` / `pickProbeEnabled` / 所有 `SPACEWALKER_TG_*` 原函数签名与行为不变；`AppFeature` 改用可注入 `override(environment:)`，`LaunchMode.environment()` 是唯一读取 `ProcessInfo` 的入口。
+- 兼容：`fpsHUDEnabled` / `pickProbeEnabled` / 所有 `SPACEWALKER_TG_*` 原函数签名与行为不变；`AppFeature` 改用可注入 `override(environment:)`，**诊断开关逻辑**集中到 `LaunchMode.diagnostics(environment:)` 纯函数。（2026-11-16 措辞收敛：原写「`LaunchMode.environment()` 是唯一读取 `ProcessInfo` 的入口」不字面成立——080 复验 HEAD 仍有 48 处 `ProcessInfo` 读取，其中 `DeviceAttitude.swift:11` 的 `SPACEWALKER_MOTIONLOG` 与 `SpaceView.swift:290` 的 `SPACEWALKER_SELECT` 两处直接下标绕过 helper；这两处属启动预览类开关，调用点读进程环境后传给纯函数，不影响「既有 `SPACEWALKER_TG_*` 行为不变」的判定。见 `080-agent-verification.txt` §4c。）
 - 遗留：`SPACEWALKER_COORDS` 只作为诊断面板里的一个读数开关，没有对应的主界面渲染（这是本票刻意的）；`LaunchMode.diagnostics` 的 `overrides` 会把启动参数明文列在面板里，面板本身不对外入口暴露给普通用户。
