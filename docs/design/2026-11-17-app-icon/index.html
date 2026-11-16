@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>星槎 · App Icon 展示板</title>
+<style>
+  :root {
+    --deep: #05070D;
+    --deep-1: #0C1018;
+    --gold: #E8B15C;
+    --cyan: #6FA8C8;
+    --paper: #F2F4F8;
+    --line: rgba(242,244,248,0.10);
+    --muted: rgba(242,244,248,0.62);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--deep);
+    color: var(--paper);
+    font-family: system-ui, -apple-system, "PingFang SC", "Noto Sans SC", sans-serif;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 48px 24px 96px; }
+
+  header { border-bottom: 1px solid var(--line); padding-bottom: 32px; margin-bottom: 48px; }
+  header .kicker {
+    font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--gold); margin: 0 0 12px; font-weight: 600;
+  }
+  h1 { font-size: 34px; line-height: 1.2; margin: 0 0 8px; font-weight: 700; }
+  .sub { color: var(--muted); font-size: 15px; margin: 0; }
+
+  section { margin: 64px 0; }
+  .sec-head { display: flex; align-items: baseline; gap: 14px; margin-bottom: 24px; }
+  .sec-num {
+    font-size: 13px; color: var(--gold); font-weight: 600;
+    letter-spacing: 0.06em; min-width: 22px;
+  }
+  .sec-title { font-size: 19px; font-weight: 700; margin: 0; letter-spacing: 0.01em; }
+  .sec-desc { color: var(--muted); font-size: 14px; margin: 6px 0 0; }
+
+  .card {
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 32px;
+    background: var(--deep-1);
+  }
+  .stage {
+    display: flex; justify-content: center; align-items: center;
+    padding: 40px 16px;
+    border-radius: 14px;
+    border: 1px solid var(--line);
+    background:
+      radial-gradient(1200px 500px at 50% 0%, rgba(232,177,92,0.05), transparent 60%),
+      var(--deep);
+  }
+  .stage svg { display: block; }
+
+  .preview-row { display: flex; flex-wrap: wrap; gap: 28px; justify-content: center; align-items: flex-end; }
+  .preview-item { text-align: center; }
+  .preview-item .tile {
+    display: inline-flex; align-items: center; justify-content: center;
+    border: 1px solid var(--line); border-radius: 8px; padding: 8px;
+    background: var(--deep);
+  }
+  .preview-item .lbl { font-size: 12px; color: var(--muted); margin-top: 8px; font-variant-numeric: tabular-nums; }
+
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .cmp-item { text-align: center; }
+  .cmp-item .tile {
+    border: 1px solid var(--line); border-radius: 14px; padding: 28px 16px;
+    display: flex; justify-content: center; align-items: center;
+  }
+  .cmp-item h3 { font-size: 15px; margin: 14px 0 2px; }
+  .cmp-item p { font-size: 13px; color: var(--muted); margin: 0; }
+  .cmp-item .tag {
+    display: inline-block; font-size: 11px; letter-spacing: 0.06em;
+    color: var(--cyan); border: 1px solid rgba(111,168,200,0.4);
+    border-radius: 999px; padding: 2px 10px; margin-bottom: 12px;
+  }
+
+  .desk { border-radius: 14px; padding: 28px; text-align: center; border: 1px solid var(--line); }
+  .desk.light { background: #E9ECF2; }
+  .desk.dark { background: #0A0D14; }
+  .desk .icon-holder { display: inline-block; border-radius: 22px; overflow: hidden; box-shadow: 0 8px 24px rgba(0,0,0,0.35); }
+  .desk.light .icon-holder { box-shadow: 0 8px 24px rgba(0,0,0,0.18); }
+  .desk h3 { font-size: 14px; margin: 14px 0 0; font-weight: 600; }
+  .desk.light h3 { color: #11141A; }
+  .desk p { font-size: 12px; color: var(--muted); margin: 4px 0 0; }
+  .desk.light p { color: #5b616c; }
+
+  .swatches { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 14px; }
+  .swatch { border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: var(--deep-1); }
+  .swatch .chip { height: 56px; }
+  .swatch .meta { padding: 10px 12px; }
+  .swatch .name { font-size: 13px; font-weight: 600; }
+  .swatch .hex { font-size: 12px; color: var(--muted); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+
+  .notes { display: grid; grid-template-columns: 1fr; gap: 16px; }
+  .note { border: 1px solid var(--line); border-radius: 12px; padding: 20px 22px; background: var(--deep-1); }
+  .note h3 { font-size: 14px; margin: 0 0 8px; color: var(--gold); font-weight: 600; }
+  .note p, .note li { font-size: 14px; color: var(--paper); margin: 0 0 6px; }
+  .note ul { margin: 0; padding-left: 18px; }
+  .note li { margin: 0 0 4px; }
+  .note .dim { color: var(--muted); }
+
+  .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+
+  @media (max-width: 640px) {
+    .grid { grid-template-columns: 1fr; }
+    h1 { font-size: 26px; }
+    .preview-row { gap: 16px; }
+  }
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#05070D"/>
+      <stop offset="1" stop-color="#0C1018"/>
+    </linearGradient>
+    <linearGradient id="boatGold" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#EDBC6D"/>
+      <stop offset="1" stop-color="#D99A3F"/>
+    </linearGradient>
+    <linearGradient id="starGold" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#F4C97F"/>
+      <stop offset="1" stop-color="#E8B15C"/>
+    </linearGradient>
+    <g id="s">
+      <path d="M 0 -20 L 4.70 -6.47 L 19.02 -6.18 L 7.61 2.47 L 11.76 16.18 L 0 8 L -11.76 16.18 L -7.61 2.47 L -19.02 -6.18 L -4.70 -6.47 Z"/>
+    </g>
+
+    <symbol id="iconA" viewBox="0 0 1024 1024">
+      <rect width="1024" height="1024" fill="url(#bg)"/>
+      <use href="#s" fill="#6FA8C8" transform="translate(292 316)"/>
+      <use href="#s" fill="#6FA8C8" transform="translate(730 280) scale(0.7)"/>
+      <use href="#s" fill="#6FA8C8" transform="translate(660 180) scale(0.55)"/>
+      <path fill="url(#boatGold)" d="M 224 513 C 324 529 416 566 512 578 C 608 566 700 529 800 513 C 700 652 608 668 512 668 C 416 668 324 652 224 513 Z"/>
+      <path fill="url(#starGold)" d="M 512 373 L 539.0 450.8 L 621.4 452.5 L 555.7 502.2 L 579.6 581.0 L 512 534 L 444.4 581.0 L 468.3 502.2 L 402.6 452.5 L 485.0 450.8 Z"/>
+    </symbol>
+
+    <symbol id="iconB" viewBox="0 0 1024 1024">
+      <rect width="1024" height="1024" fill="url(#bg)"/>
+      <path fill="none" stroke="#6FA8C8" stroke-width="16" stroke-linecap="round" d="M 377.95 399.51 A 175 175 0 0 1 646.05 399.51"/>
+      <path fill="none" stroke="#6FA8C8" stroke-width="16" stroke-linecap="round" d="M 737.53 594.08 A 240 240 0 0 1 392.00 719.85"/>
+      <path fill="none" stroke="#6FA8C8" stroke-width="16" stroke-linecap="round" d="M 225.39 616.31 A 305 305 0 0 1 459.04 211.64"/>
+      <use href="#s" fill="#6FA8C8" transform="translate(300 290)"/>
+      <use href="#s" fill="#6FA8C8" transform="translate(770 500) scale(0.7)"/>
+      <use href="#s" fill="#6FA8C8" transform="translate(290 690) scale(0.55)"/>
+      <path fill="url(#starGold)" d="M 512 397 L 539.0 474.8 L 621.4 476.5 L 555.7 526.2 L 579.6 605.0 L 512 558 L 444.4 605.0 L 468.3 526.2 L 402.6 476.5 L 485.0 474.8 Z"/>
+    </symbol>
+  </defs>
+</svg>
+
+<div class="wrap">
+
+  <header>
+    <p class="kicker">星槎 · 票 082 · iOS 26</p>
+    <h1>星槎 App Icon</h1>
+    <p class="sub">深空仪器 · 克制 · 精密 · 安静 —— 一叶扁舟载一颗暖金星，行于冷青星点之间。</p>
+  </header>
+
+  <section>
+    <div class="sec-head">
+      <span class="sec-num">01</span>
+      <h2 class="sec-title">主稿 · 语义 A「星与槎合一」</h2>
+    </div>
+    <p class="sec-desc">1024 × 1024 · 无 alpha 通道 · 不预裁圆角（系统裁 squircle）· 无文字 · 无滤镜，仅少量单色线性渐变。下方显示 512。</p>
+    <div class="stage">
+      <svg viewBox="0 0 1024 1024" width="512" height="512"><use href="#iconA"/></svg>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <span class="sec-num">02</span>
+      <h2 class="sec-title">小尺寸可辨性 · 缩放预览</h2>
+    </div>
+    <p class="sec-desc">同一矢量按实际像素尺寸渲染，用于人审 40/60/80/120/180pt 下的可读性。</p>
+    <div class="preview-row">
+      <div class="preview-item"><span class="tile"><svg viewBox="0 0 1024 1024" width="40" height="40"><use href="#iconA"/></svg></span><div class="lbl">40</div></div>
+      <div class="preview-item"><span class="tile"><svg viewBox="0 0 1024 1024" width="60" height="60"><use href="#iconA"/></svg></span><div class="lbl">60</div></div>
+      <div class="preview-item"><span class="tile"><svg viewBox="0 0 1024 1024" width="80" height="80"><use href="#iconA"/></svg></span><div class="lbl">80</div></div>
+      <div class="preview-item"><span class="tile"><svg viewBox="0 0 1024 1024" width="120" height="120"><use href="#iconA"/></svg></span><div class="lbl">120</div></div>
+      <div class="preview-item"><span class="tile"><svg viewBox="0 0 1024 1024" width="180" height="180"><use href="#iconA"/></svg></span><div class="lbl">180</div></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <span class="sec-num">03</span>
+      <h2 class="sec-title">语义对比 · A vs B</h2>
+    </div>
+    <p class="sec-desc">A 同时容纳「星」与「船」；B 偏「观星」，三垣环抱中央暖金星。</p>
+    <div class="grid">
+      <div class="cmp-item">
+        <span class="tag">推荐</span>
+        <div class="tile"><svg viewBox="0 0 1024 1024" width="260" height="260"><use href="#iconA"/></svg></div>
+        <h3>语义 A · 星槎合一</h3>
+        <p>扁舟形弧线载一颗暖金星，同时盖住「星」与「船」。</p>
+      </div>
+      <div class="cmp-item">
+        <span class="tag">备选</span>
+        <div class="tile"><svg viewBox="0 0 1024 1024" width="260" height="260"><use href="#iconB"/></svg></div>
+        <h3>语义 B · 三垣环抱</h3>
+        <p>抽象星图，偏「观星」窄；不含「船」。</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <span class="sec-num">04</span>
+      <h2 class="sec-title">桌面底对照</h2>
+    </div>
+    <p class="sec-desc">图标自带深空满幅底，在浅色与深色桌面上均保持整体一致。</p>
+    <div class="grid">
+      <div class="desk light">
+        <span class="icon-holder"><svg viewBox="0 0 1024 1024" width="200" height="200"><use href="#iconA"/></svg></span>
+        <h3>浅色桌面</h3>
+        <p>icon 自带 #05070D 满幅底，不依赖桌面明暗。</p>
+      </div>
+      <div class="desk dark">
+        <span class="icon-holder"><svg viewBox="0 0 1024 1024" width="200" height="200"><use href="#iconA"/></svg></span>
+        <h3>深色桌面</h3>
+        <p>与深色桌面自然融合，暖金主体始终为唯一强调。</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <span class="sec-num">05</span>
+      <h2 class="sec-title">设计说明</h2>
+    </div>
+
+    <div class="notes">
+      <div class="note">
+        <h3>语义</h3>
+        <p>「星槎」出自晋·张华《博物志》浮槎上天河，即往来天河的舟。语义 A 用一叶金色实心月牙形船身（凹口朝上）载一颗暖金星，一个剪影同时盖住「星」与「船」，是唯一同时容纳二者、且不引入具体型号识别负担的方案。</p>
+      </div>
+
+      <div class="note">
+        <h3>色值 · 强调色纪律</h3>
+        <div class="swatches" style="margin-top:12px">
+          <div class="swatch"><div class="chip" style="background:#05070D"></div><div class="meta"><div class="name">深空底</div><div class="hex">#05070D</div></div></div>
+          <div class="swatch"><div class="chip" style="background:#0C1018"></div><div class="meta"><div class="name">深空底 · 一档</div><div class="hex">#0C1018</div></div></div>
+          <div class="swatch"><div class="chip" style="background:#E8B15C"></div><div class="meta"><div class="name">暖金 · 唯一强调</div><div class="hex">#E8B15C</div></div></div>
+          <div class="swatch"><div class="chip" style="background:#6FA8C8"></div><div class="meta"><div class="name">冷青 · 信息层</div><div class="hex">#6FA8C8</div></div></div>
+          <div class="swatch"><div class="chip" style="background:#F2F4F8"></div><div class="meta"><div class="name">主文字白</div><div class="hex">#F2F4F8</div></div></div>
+        </div>
+        <p style="margin-top:12px">暖金只落在主体图形（舟 + 星）上，冷青星点仅 3 颗、小而弱，强调色覆盖远小于 10%，不满屏金。</p>
+      </div>
+
+      <div class="note">
+        <h3>安全区</h3>
+        <p>主体（舟 + 星）bounding box 约 <span class="mono">x 224–800 · y 373–668</span>，全部收敛在画布中央 80% 安全区之内，距边缘 ≥ 10%，为 iOS squircle 裁切与平台 UI 留足余量。</p>
+      </div>
+
+      <div class="note">
+        <h3>40pt 可辨性论证</h3>
+        <ul>
+          <li>承重剪影是「金色实心月牙 + 五角星」两块<span class="dim">实心面</span>，与深空底对比约 10:1，远高于 3:1 阈值。</li>
+          <li>船为实心面而非细弧线，40pt 下读作「舟 / 月」而非「星轨」；冷青星点消失不损主识别。</li>
+          <li>无文字、无细线承重，缩放后仍为两块实心剪影，Spotlight 下可辨。</li>
+        </ul>
+      </div>
+
+      <div class="note">
+        <h3>红线合规</h3>
+        <ul>
+          <li>无 NASA 标识，无「空间站」意象，无现成航天机构徽标；素材全自制矢量。</li>
+          <li>「槎」字不进 icon，不放任何文字，文字解释由副标题承担。</li>
+        </ul>
+      </div>
+
+      <div class="note">
+        <h3>技术规格</h3>
+        <ul>
+          <li>iOS 26 目标；App Store Connect 收 1024×1024 PNG、无 alpha 通道、不预裁圆角（系统裁 squircle）。</li>
+          <li>无渐变堆砌、无毛玻璃、无发光描边滥用；仅少量单色线性渐变。</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+</div>
+</body>
+</html>

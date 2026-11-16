@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024" role="img" aria-label="星槎 App Icon">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#05070D"/>
+      <stop offset="1" stop-color="#0C1018"/>
+    </linearGradient>
+    <linearGradient id="boatGold" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#EDBC6D"/>
+      <stop offset="1" stop-color="#D99A3F"/>
+    </linearGradient>
+    <linearGradient id="starGold" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#F4C97F"/>
+      <stop offset="1" stop-color="#E8B15C"/>
+    </linearGradient>
+    <g id="s">
+      <path d="M 0 -20 L 4.70 -6.47 L 19.02 -6.18 L 7.61 2.47 L 11.76 16.18 L 0 8 L -11.76 16.18 L -7.61 2.47 L -19.02 -6.18 L -4.70 -6.47 Z"/>
+    </g>
+  </defs>
+
+  <rect width="1024" height="1024" fill="url(#bg)"/>
+
+  <use href="#s" fill="#6FA8C8" transform="translate(292 316)"/>
+  <use href="#s" fill="#6FA8C8" transform="translate(730 280) scale(0.7)"/>
+  <use href="#s" fill="#6FA8C8" transform="translate(660 180) scale(0.55)"/>
+
+  <path fill="url(#boatGold)" d="M 224 513 C 324 529 416 566 512 578 C 608 566 700 529 800 513 C 700 652 608 668 512 668 C 416 668 324 652 224 513 Z"/>
+
+  <path fill="url(#starGold)" d="M 512 373 L 539.0 450.8 L 621.4 452.5 L 555.7 502.2 L 579.6 581.0 L 512 534 L 444.4 581.0 L 468.3 502.2 L 402.6 452.5 L 485.0 450.8 Z"/>
+</svg>
