@@ -123,13 +123,56 @@ grep 'thermal='      docs/gates/M3/080-device-perf-sky.log | grep -v 'thermal=no
 唯一暖金主操作、≤3 个上下文控件、3 个带文字 tab，**无 fps / pick / 坐标调试串**；
 天宫默认态模型上 **0 个常驻标签**。长按 3 秒进诊断面板与 `SPACEWALKER_TG_*` 行为仍需真机人工复验。
 
+## 5b. 新包重取（2026-11-17，D5 执行，com.tango.xingcha，判定仍归人）
+
+A5 附条件兑现：旧 id App 已卸载（卸载前尝试备份 Documents 容器失败，
+`ContainerLookupErrorDomain -1`，旧容器数据不可达；旧证据日志/截图已归档在 §5，无未归档数据损失），
+`com.tango.xingcha` 新包全新安装启动，数据容器全新。
+
+- 代码：HEAD `f6df7a6`（含 `764ee14` 死按钮删除、`4ebab45` 新 id、`ca9dc65` iPhone-only、`0c795e5` icon）。
+- 包校验：`CFBundleIdentifier=com.tango.xingcha`、`UIDeviceFamily=[1]`、1.0(1)、
+  `ITSAppUsesNonExemptEncryption=false`、签名 Apple Development: zhenzhi Tang（Team UKXWZ3FS84）。
+- 设备：iPhone 16 Pro（iPhone17,1）✓ 基准机型一致；iOS 27.0（24A437）按 A5 接受；
+  本次连接为 **localNetwork（无线）**，非有线——`device.sh` 用 `SPACEWALKER_UDID` 显式指定绕过 wired 过滤。
+- 两段日志首行均为 `# iPhone17,1 | Version 27.0 (Build 24A437) | app 1.0(1) | bundle com.tango.xingcha`。
+- 过程记录：第一次 B 段采集因**人为触屏操作**作废（22–27s 间星官层被图层面板关闭、
+  54–56s 出现两次停留选中）；terminate 后重采，全程无操作。天宫段同样 terminate 真实 PID 后
+  以 `MODE=tiangong` 全新启动（对已运行进程再 launch 环境变量不生效，见 §3 坑 2）。
+
+| 阶段 | 证据 | 样本（排除启动 5s） | 覆盖 | `avg` 样本均值 | `avg` 最低 | `min` 全局最低 | `min<30` 快照 |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| B 星图（LAYERS=1） | `080-device-perf-sky-xingcha.log`、`080-device-sky-xingcha.png` | 10 条 | 5.6s → 52.2s | 60.03 | **59.9** | 43.9 | 0 / 10 |
+| C 天宫（默认视图） | `080-device-perf-tiangong-xingcha.log`、`080-device-tiangong-xingcha.png` | 41 条 | 5.2s → 85.3s | 60.00 | **60.0** | 43.5 | 0 / 41 |
+
+补充：10–40s 稳态 30s 窗口，B 阶段 `avg` 均值 60.03 / 最低 59.9；C 阶段 60.00 / 60.0。
+两段 `thermal` 全程 `nominal`；B 段 11 条快照图层标签全程 `line+outline+asterism` 无变化，
+两段日志均无 `sky.dwell / sky.zoom / sky.mode / sky.group` 等操作事件（无操作取证成立）。
+
+**按 A4 口径预判（不代判）**：B avg 均值 60.03 ≥ 55 ✓、窗口 avg 最低 59.9 ≥ 30 ✓；
+C avg 均值 60.00 ≥ 25 ✓、窗口 avg 最低 60.0 ≥ 20 ✓。与旧包参考数据（B 55.4 / C 26.8 低谷）
+相比本次全程贴 60fps 无低谷——差异可能来自新容器冷启动状态与无操作窗口，供人工判定时参考。
+
+**两点口径事实（登记，不代裁）**：
+1. `SPACEWALKER_LAYERS=1` 的会话标签受 feature flag 门控（`SkyView+Runtime.swift:51-52`：
+   `showsAsterisms=cultureEnabled`、`showsPatterns=deepEnabled`），本机 `app.flags culture=1 deep=0`，
+   故标签为 `line+outline+asterism`（星群层会话开关 off；场景实体已建：
+   `sky.budget … asterism=814 pattern=98`）。旧包参考取证同为该标签，口径一致。
+   「五层全开」若要求星群层会话开关也 on，需 `deepEnabled` 开关或代码支持，归人裁决。
+2. PRD NFR-01 要求「30s 录屏 + 帧率统计」，本节日志为 `FrameRateSampler` 快照统计，
+   **录屏证据仍缺**（§3 注记），须人工补录或由董事长裁决以日志统计替代。
+
+截图复核（门禁项 5 佐证，最终复验归 B5 人工）：星图屏状态条「姿态跟随 · 转动手机环顾」、
+唯一暖金主操作「找星」、3 个上下文控件（图层/今夜/姿态）、3 个带文字 tab，无卡片无调试串；
+天宫屏状态条「目标飞行器 · 1:20 展示」、主操作「开始拆解」、3 个上下文控件（剖面/工程图/再入）、
+模型上 **0 个常驻标签**，无 fps/pick/坐标串（`tiangong.pick ok=4/5` 仅在日志，076 收敛生效）。
+
 ## 6. 人工结论（待填写）
 
 - 执行日期：______ ｜ 执行人：______ ｜ 设备 / 系统：______
 - 判据采用：☑ PRD NFR-01（A/B 55/30，C 25/20）（A4 裁决 2026-11-17） ☐ 其他（写明）____________
 - 「下限」口径：☐ 最慢单帧 ☑ 30s 窗口统计 ☐ 百分位（P__） ☐ 其他 ________
   **口径细则（A4 裁决）：下限 = 稳态 30s 窗口内 `avg` 快照的最低值；avg 均值另须 ≥55/≥25。**
-- 30s 录屏 / Instruments 证据路径：____________________（须用 com.tango.xingcha 新包重取）
-- B 阶段：☐ 达标 ☐ 不达标 ｜ C 阶段：☐ 达标 ☐ 不达标（参考数据按裁决口径预判均达标，签字归人）
+- 30s 录屏 / Instruments 证据路径：____________________（新包日志统计已取，见 §5b；录屏仍缺，须补录或裁决以日志替代）
+- B 阶段：☐ 达标 ☐ 不达标 ｜ C 阶段：☐ 达标 ☐ 不达标（§5b 新包数据按裁决口径预判均达标，签字归人）
 - iOS 27.0 等价性：☑ 接受（附条件：新包重取后方可转正，见 §5 注记 2） ☐ 需换 26.6 基准机复测
 - 门禁项 3 是否通过：☐ 是 ☐ 否 ｜ 签字：______

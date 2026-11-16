@@ -1,0 +1,66 @@
+[7ms] # iPhone17,1 | Version 27.0 (Build 24A437) | app 1.0(1) | bundle com.tango.xingcha
+[48ms] sky.session boot
+[50ms] tiangong.session boot separated=0
+[906ms] tiangong.build ms=289 triangles=6244 entities=53 models=38
+[907ms] tiangong.attach modules=5
+[908ms] tiangong.budget triangles=6244
+[927ms] app.flags culture=1 deep=0
+[1102ms] probe.fps avg=49.6 min=49.6 hitches=0
+[1102ms] tiangong.fps avg=49.6 min=49.6 hitch=0
+[1768ms] tiangong.pick tiangong.pick ok=4/5 occluded=leftWing->lab failed=none
+[3199ms] tiangong.fps avg=60.0 min=41.6 hitch=0
+[5200ms] tiangong.fps avg=60.0 min=48.4 hitch=0
+[7200ms] probe.fps avg=60.0 min=48.3 hitches=0
+[7202ms] tiangong.fps avg=60.0 min=48.3 hitch=0
+[9200ms] tiangong.fps avg=60.0 min=45.2 hitch=0
+[11201ms] tiangong.fps avg=60.0 min=48.4 hitch=0
+[13201ms] probe.fps avg=60.0 min=48.3 hitches=0
+[13204ms] tiangong.fps avg=60.0 min=48.3 hitch=0
+[15201ms] tiangong.fps avg=60.0 min=43.5 hitch=0
+[17202ms] tiangong.fps avg=60.0 min=48.4 hitch=0
+[19202ms] probe.fps avg=60.0 min=47.3 hitches=0
+[19204ms] tiangong.fps avg=60.0 min=47.3 hitch=0
+[21202ms] tiangong.fps avg=60.0 min=45.7 hitch=0
+[23203ms] tiangong.fps avg=60.0 min=48.3 hitch=0
+[25203ms] probe.fps avg=60.0 min=48.1 hitches=0
+[25206ms] tiangong.fps avg=60.0 min=48.1 hitch=0
+[27203ms] tiangong.fps avg=60.0 min=44.4 hitch=0
+[29204ms] tiangong.fps avg=60.0 min=49.4 hitch=0
+[31204ms] probe.fps avg=60.0 min=48.3 hitches=0
+[31207ms] tiangong.fps avg=60.0 min=48.3 hitch=0
+[33204ms] tiangong.fps avg=60.0 min=45.4 hitch=0
+[35205ms] tiangong.fps avg=60.0 min=46.9 hitch=0
+[37205ms] probe.fps avg=60.0 min=47.9 hitches=0
+[37208ms] tiangong.fps avg=60.0 min=47.9 hitch=0
+[39205ms] tiangong.fps avg=60.0 min=44.8 hitch=0
+[41206ms] tiangong.fps avg=60.0 min=48.2 hitch=0
+[43206ms] probe.fps avg=60.0 min=47.3 hitches=0
+[43209ms] tiangong.fps avg=60.0 min=47.3 hitch=0
+[45206ms] tiangong.fps avg=60.0 min=44.0 hitch=0
+[47207ms] tiangong.fps avg=60.0 min=46.6 hitch=0
+[49207ms] probe.fps avg=60.0 min=48.3 hitches=0
+[49210ms] tiangong.fps avg=60.0 min=48.3 hitch=0
+[51207ms] tiangong.fps avg=60.0 min=45.4 hitch=0
+[53208ms] tiangong.fps avg=60.0 min=47.4 hitch=0
+[55208ms] probe.fps avg=60.0 min=48.3 hitches=0
+[55211ms] tiangong.fps avg=60.0 min=48.3 hitch=0
+[57208ms] tiangong.fps avg=60.0 min=45.8 hitch=0
+[59209ms] tiangong.fps avg=60.0 min=48.2 hitch=0
+[61209ms] probe.fps avg=60.0 min=47.6 hitches=0
+[61212ms] tiangong.fps avg=60.0 min=47.6 hitch=0
+[63209ms] tiangong.fps avg=60.0 min=44.7 hitch=0
+[65209ms] tiangong.fps avg=60.0 min=48.2 hitch=0
+[67210ms] probe.fps avg=60.0 min=49.1 hitches=0
+[67213ms] tiangong.fps avg=60.0 min=49.1 hitch=0
+[69210ms] tiangong.fps avg=60.0 min=45.9 hitch=0
+[71211ms] tiangong.fps avg=60.0 min=48.7 hitch=0
+[73211ms] probe.fps avg=60.0 min=47.6 hitches=0
+[73214ms] tiangong.fps avg=60.0 min=47.6 hitch=0
+[75211ms] tiangong.fps avg=60.0 min=44.9 hitch=0
+[77212ms] tiangong.fps avg=60.0 min=48.5 hitch=0
+[79212ms] probe.fps avg=60.0 min=48.2 hitches=0
+[79215ms] tiangong.fps avg=60.0 min=48.2 hitch=0
+[81212ms] tiangong.fps avg=60.0 min=45.6 hitch=0
+[83213ms] tiangong.fps avg=60.0 min=49.3 hitch=0
+[85313ms] probe.fps avg=60.0 min=57.1 hitches=0
+[85316ms] tiangong.fps avg=60.0 min=57.1 hitch=0
