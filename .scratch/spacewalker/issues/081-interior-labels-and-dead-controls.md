@@ -24,6 +24,14 @@ blocked_by: []
 - [x] 稿实现同源双向回改：open-design 稿 C4/C5 删按钮、plate-note 与「实现对照」节补记；`079-14-screen-diff.md` C5 降级「部分」、C4 更新；077 票遗留销账
 - [x] 截图归档 `docs/gates/M3/081-cutaway-no-interior-labels.png`、`081-docking-no-hold.png`
 
+## 出稿记录（2026-11-17）
+
+实现方案已出稿：`docs/design/2026-11-17-interior-labels/proposal.md`。
+推荐**常显**（随剖面态自动出现，无开关按钮）+ 复用 labelLayer 投影机制 + 三真实内景实体锚点；
+备选「恢复开关」不推荐（与 081 删死按钮裁决的收敛方向相悖）。
+待董事长确认三点：常显 vs 开关、字号 11pt token vs 稿 12pt、实现时机（080 后 vs 插队）。
+确认前不动代码。
+
 ## 待做（本票剩余范围：舱内标注设计意图 → 实现）
 
 - [ ] 剖面态三处标注（睡眠区 / 健身区 / 设备机柜）+ 1px 引线，只在剖面态出现（稿 C5：字体 12pt）

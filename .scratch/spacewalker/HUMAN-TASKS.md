@@ -44,7 +44,7 @@
 |---|---|---|
 | D1 | ~~icon 接入~~ **已完成**：`Sources/Resources/Assets.xcassets/AppIcon.appiconset/AppIcon-1024.png`（无 alpha），构建产物校验见 082 票 | — |
 | D2 | iPad 边界改 `"1"` + 全量回归（或 PRD-UI 回写） | A2 裁决 |
-| D3 | 081 舱内标注：先出稿（三处标注+1px 引线，SwiftUI overlay）→ 确认 → TDD 实现 + VoiceOver | 董事长点头开工（081 票 ready-for-agent） |
+| D3 | 081 舱内标注：**稿已出**（`docs/design/2026-11-17-interior-labels/proposal.md`，推荐常显+复用 labelLayer）→ 确认三决策点 → TDD 实现 + VoiceOver | 董事长确认方案；实现须 080 后或明示插队 |
 | D4 | ~~286 笔误回写~~ **已完成**（2026-11-17，PRD-UI §1 已改 288 并注出处） | — |
 | D5 | 真机接上后：代删旧 id App、装新包、代跑 B3 采集（判定仍归人） | 真机接数据线 |
 | D6 | 083 今夜对齐 chrome 缺口：先出稿（方案一贴稿 / 方案二最小反馈）→ 确认 → 实现 + 重拍截图第 3 张 | 董事长选方案；实现须 080 过后或明示插队 |
