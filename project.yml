@@ -64,6 +64,7 @@ targets:
       path: Supporting/Info.plist
       properties:
         CFBundleDisplayName: 星槎
+        ITSAppUsesNonExemptEncryption: false
         NSLocationWhenInUseUsageDescription: "星槎用你的大致位置与航向，把星图对齐到今夜此刻的真实天空。"
         UILaunchScreen:
           UIColorName: ""

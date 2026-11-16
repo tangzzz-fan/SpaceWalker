@@ -20,6 +20,8 @@
 	<string>1.0</string>
 	<key>CFBundleVersion</key>
 	<string>1</string>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>星槎用你的大致位置与航向，把星图对齐到今夜此刻的真实天空。</string>
 	<key>UILaunchScreen</key>
