@@ -21,8 +21,11 @@
 不是 NFR-01 的数值判据；`TiangongSession.swift` 里「NFR-01 要的是真机 60 秒」的注释同样与 PRD 的 30s 不符。
 门禁请按上表判定，不要按「≥60fps」判。
 
-**未裁决的措辞不一致**：`080-human-gate.md`、`074-ui-chrome-v1.1-spec.md`、
-`079-14-screen-diff.md` 仍写「60fps 硬指标」。是否统一回写，请人定；本次只改门禁清单与票 080 的判据行。
+**措辞不一致已统一回写（2026-11-16）**：`074-ui-chrome-v1.1-spec.md`（实现决策 9 与验收行）、
+`docs/design/PRD-UI-v1.md` §1 现实约束行、`docs/design/DRAFT-v1.md` 实现对照节、
+`079-14-screen-diff.md` 两处，均已改为「60fps 是体验目标，数值验收判据以 PRD NFR-01 为准」。
+这是按 issue-tracker「以 PRD 为准并回写」做的机械同步，不是数值判据变更；
+`TiangongSession.swift` 注释里「真机 60 秒」与 PRD 30s 不符的问题仍在，修正另行提交。
 
 ## 2. 设备与偏差
 
