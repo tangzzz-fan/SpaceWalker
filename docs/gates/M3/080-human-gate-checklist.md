@@ -14,9 +14,9 @@ agent 已完成的实现与取证：`076`（诊断开关唯一来源）、`077`�
 | --- | --- | --- | --- | --- |
 | 1 | 5 名未见过本产品的新用户，10 秒内 ≥4/5 能说出「看星星 + 拆飞船」；**同场加测 X-07/X-08（A6 裁决 2026-11-17）**：看三视角图认出天宫一号 ≥4/5、细节 1–5 分均值 ≥3 | 人（盲测） | `080-blindtest-notes.md` Part A + Part B + 5 份录音/笔记 | 待人工 |
 | 2 | 盲测给出「标签选中才显示」的降级结论：保持降级 / 恢复常驻，并写明理由 | 人（盲测结论） | `080-blindtest-notes.md` Part C | 待人工 |
-| 3 | **PRD NFR-01**：A/B 平均 ≥55fps、下限 ≥30fps；C 平均 ≥25fps、下限 ≥20fps；基准机型 iPhone 16 Pro / iOS 26.6，真机 30s 录屏 + 帧率统计；票 068 另要 C 阶段 70 秒（排除启动 5 秒） | 人（真机） | `080-device-perf-runbook.md`、`080-device-perf-{sky,tiangong}.log`、`080-device-*.png` | 待人工（agent 已取参考数据，见下） |
+| 3 | **PRD NFR-01**：A/B 平均 ≥55fps、下限 ≥30fps；C 平均 ≥25fps、下限 ≥20fps；基准机型 iPhone 16 Pro / iOS 26.6，取证方式按 A7 裁决以日志统计替代录屏；票 068 另要 C 阶段 70 秒（排除启动 5 秒） | 人（真机） | `080-device-perf-runbook.md` §5b、`080-device-perf-{sky,tiangong}-xingcha.log`、`080-device-*-xingcha.png` | **取证已闭环（2026-11-17 D5+A7）**：新包无操作重采 B avg 60.03/窗口最低 59.9、C 60.00/60.0，thermal 全程 nominal，按 A4 口径预判均达标；**仅剩 §6 人工签字** |
 | 4 | 稿与实现逐项复核，差异归零或全部登记为「设计意图、非验收项」 | 人（设计裁决） | `079-14-screen-diff.md` 的处置列逐条签字 | 待人工 |
-| 5 | 076 开关收敛复核：主界面 0 处 fps/pick/坐标串；长按状态条标题 3 秒进诊断面板；既有 `SPACEWALKER_TG_*` 取证开关行为不变 | 人（开发复核） | `080-agent-verification.txt`、`080-device-*.png`（最终 HEAD 真机重取）+ 076 三张旧图 + 真机复验记录 | 待人工 |
+| 5 | 076 开关收敛复核：主界面 0 处 fps/pick/坐标串；长按状态条标题 3 秒进诊断面板；既有 `SPACEWALKER_TG_*` 取证开关行为不变 | 人（开发复核） | `080-agent-verification.txt` §6（2026-11-17 新包预取证）、`080-device-{sky,tiangong,diagnostics}-xingcha.png` | **agent 预取证已闭环**：零调试串截图 ×2、诊断面板 DIAGNOSTICS=1 截图、13 个 TG_* 开关清单与 11-15 一致；**仅剩「长按 3s 手势」人工复验**（真机已恢复星图默认态待验） |
 
 > 门禁项 3 原写「iPhone 16 / iOS 26.6、60 秒平均 ≥60fps」，机型与阈值都与 PRD 不符，已按 PRD NFR-01 回写；
 > 详见 `080-device-perf-runbook.md` §1。

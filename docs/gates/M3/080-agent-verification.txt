@@ -67,3 +67,21 @@
 【5】边界
   本文件只做静态与单测复核，不判定真机帧率、盲测、稿实现同源，
   也不改 080 的 status（保持 ready-for-human）。
+
+━━━ 追加复验（2026-11-17 07:55，HEAD 3f674dd，com.tango.xingcha 新包）━━━
+
+【6】B5 预取证（真机 Tango / iPhone17,1 / iOS 27.0，无线连接）
+  a) 静态扫描在最终 HEAD 重跑：窄口径 Text(fpsLine|probeLine|…) 0 处；
+     ChromeTokens.diagnosticsHoldDuration = 3（ChromeLayout.swift:68/119）；
+     ChromeState debugOverlay 默认 .off；SPACEWALKER_* 键 45 个、
+     SPACEWALKER_TG_* 13 个清单与 11-15 版完全一致（无增删改名）。
+  b) 真机新包 DIAGNOSTICS=1 启动（天宫模式）：诊断面板正常弹出，
+     含四开关（帧率读数=关 / 帧率日志=开 / 拾取自检=关 / 坐标系状态=关）、
+     启动参数回显、运行日志最近 40 行（bundle com.tango.xingcha 确认新容器）。
+     截图：080-device-diagnostics-xingcha.png；日志：同名 .log。
+     → 「面板存在且可用、默认各读数关」已由 agent 证；
+       「长按状态条标题 3 秒进面板」的手势本身仍归人工复验。
+  c) 主界面零调试串：080-device-{sky,tiangong}-xingcha.png（默认态、无开关）
+     两屏均无 fps/pick/坐标串，已归档 runbook §5b。
+  d) 取证后已 terminate 并恢复默认态启动（MODE=sky/FPS=1/LAYERS=1），
+     真机当前停留在星图默认态，供人工继续 B5 长按复验。

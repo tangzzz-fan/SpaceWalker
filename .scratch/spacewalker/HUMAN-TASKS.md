@@ -35,7 +35,7 @@ B3 日志统计已代采（runbook §5b），**录屏与达标签字仍归人**�
 | B2 | 标签降级结论 | 同一批盲测观察「标签选中才显示」是否造成困惑；裁决保持降级/恢复常驻并写理由 | Part C 结论行 |
 | B3 | 真机帧率（NFR-01） | **日志统计已代采**（新包无操作重取，runbook §5b：B avg 60.03/最低 59.9，C 60.00/60.0，thermal 全程 nominal，按 A4 口径预判均达标）；**A7 已裁决（2026-11-17）：以日志替代录屏**，录屏不再要求；**剩余人工 = 仅 §6 达标签字**（A/B 平均≥55 下限≥30、C 平均≥25 下限≥20） | `080-device-perf-{sky,tiangong}-xingcha.log` + 截图已归档；§6 签字待人工 |
 | B4 | 稿实现同源签字 | 逐条过 `079-14-screen-diff.md` 处置列（14 屏，C5 已降「部分」）；差异归零或登记「设计意图、非验收项」；081 舱内标注若已实现需重截 C5 | diff 表逐条签字 |
-| B5 | 076 开关收敛复核 | 真机最终 HEAD：主界面 0 处 fps/pick/坐标串；长按状态条标题 3s 进诊断面板；`SPACEWALKER_TG_*` 取证开关行为不变；对照 `080-agent-verification.txt` | 真机复验记录 + 新截图 |
+| B5 | 076 开关收敛复核 | **agent 预取证已闭环（2026-11-17，verification §6）**：新包零调试串截图 ×2、DIAGNOSTICS=1 面板截图（四开关默认态+启动参数回显）、TG_* 13 键清单不变；真机已恢复星图默认态。**剩余人工 = 仅「长按状态条标题 3s 进面板」手势复验**（顺手在手机上长按即可） | `080-agent-verification.txt` §6 + `080-device-{sky,tiangong,diagnostics}-xingcha.png` |
 
 ## C. 上架执行（人工，ASC/开发者账号操作）
 
@@ -43,8 +43,8 @@ B3 日志统计已代采（runbook §5b），**录屏与达标签字仍归人**�
 |---|---|---|---|
 | C1 | 注册 Bundle ID + 建 App | developer.apple.com → Certificates,IDs → 注册 `com.tango.xingcha`；ASC → 我的 App → ＋，按 `docs/design/APPSTORE.md` §1 填 | ASC App 记录 |
 | C2 | 填写元数据 | 照抄 APPSTORE.md §2–§5：名称/副标题/类别/描述/关键词/宣传文本/隐私问卷（不收集数据）/审核备注/联系人；定价按 A3 | ASC 版本页 |
-| C3 | 隐私政策页 | 用 APPSTORE.md §4 建议文本做一页静态页（GitHub Pages 等），填联系邮箱，URL 入 ASC | 隐私政策 URL |
-| C4 | 截图挑选上传 | 080 过后跑 `tools/appstore-screenshots.sh`（6 画面自动采集到 `docs/design/appstore-screenshots/`）；人工核对构图/挑选/排序，可选加文案框；**A2 已裁 iPhone-only，无需 iPad 截图**；上传 ASC | ASC 截图（6.9" 竖屏） |
+| C3 | 隐私政策页 | **静态页已生成（2026-11-17）**：`docs/appstore/privacy/index.html`（自适应明暗、无外部依赖，可直接 GitHub Pages）。**剩余人工 = 填联系邮箱（页内唯一占位符）+ 托管 + URL 入 ASC** | 隐私政策 URL |
+| C4 | 截图挑选上传 | 6 张已采集并核对尺寸（全部 1320×2868 ✓，2026-11-17）：`docs/design/appstore-screenshots/`；080 过后（081/083/084 落地）跑 `tools/appstore-screenshots.sh` 重采受影响画面（第 3 张今夜态、天宫标注态）；人工核对构图/挑选/排序，可选加文案框；**A2 已裁 iPhone-only，无需 iPad 截图**；上传 ASC | ASC 截图（6.9" 竖屏） |
 | C5 | Archive 上传 | Xcode → Any iOS Device → Product Archive → Distribute（Apple Distribution 自动签名已配好，Team UKXWZ3FS84）；或 fastlane。版本号 1.0(1) 已在 Info.plist | ASC 构建版本 |
 | C6 | 提交审核 | 勾选构建版本 + 出口合规（已预答 NO，不弹问卷）+ 版权 `2026 Tang`；提交；被拒按意见回票 | 审核状态 |
 
