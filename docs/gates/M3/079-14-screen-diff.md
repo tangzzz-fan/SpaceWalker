@@ -11,7 +11,7 @@
 | A2 | 选中恒星 | 部分 | `078-A1-default.png`（默认）、`SkyView+Cards.starCard` | 稿有「视星等 / 距离 / 赤经」读数块，实现星卡内容较简 | **已回改稿**：读数块标为设计意图，本版不验收；保留星卡与「定位」主操作 |
 | A3 | 找星 | 部分 | `StarFinderView`（`showsFinder` sheet） | 稿是应用内嵌屏（分类 tab 与主操作「取消」同屏），实现是系统 sheet，底栏被模态遮住 | **已回改稿**：注明本版屏内交互以系统 sheet 呈现；主操作「取消」写在 `ChromeState.derive(.finder)`，由 sheet 关闭后回落「找星」 |
 | A4 | 星官浏览 | 部分 | `AsterismBrowserView`（`showsAsterismBrowser` sheet） | 同上，稿的「三垣 / 二十八宿 / 搜索」为内嵌底栏 | **已回改稿**：同上；`ChromeState.derive(.asterisms)` 的「完成 / 三分类控件」已落地 |
-| A5 | 今夜对齐 | 部分 | `TonightTourView`、`toggleAlignment()`、`timeScrubber`（横屏紧凑顶栏） | 稿的城市选择、18:00–06:00 时间滑杆为内嵌 HUD；实现保留既有对齐开关与时间滑杆 | **已回改稿**：标为设计意图，本版不验收；`derive(.tonight)` 的「对齐 / 定位 / 城市 / 重置」已落地 |
+| A5 | 今夜对齐 | 部分 | `TonightTourView`、`toggleAlignment()`、`timeScrubber`（横屏紧凑顶栏） | 稿的城市选择、18:00–06:00 时间滑杆为内嵌 HUD；实现保留既有对齐开关与时间滑杆 | **已回改稿**：标为设计意图，本版不验收。~~`derive(.tonight)` 已落地~~ **083 更正（2026-11-17）**：derive 分支存在但 `syncMode` 从不产出 `.tonight`，对齐态在 chrome 上零反馈（死分支，与 081 同族）；修复另票 083 |
 | B1 | 太阳系默认 | 对齐 | `077-B1-solar.png`、`079-B1-light.png` | 状态条按实现写「运行中 · 第 N 天」（稿写死第 2 天） | **已对齐**：动态天数，与稿语义一致 |
 | B2 | 选中行星 | 对齐 | `078-B2-body-card.png` | 稿卡片脚注「比例为可读性做了非线性压缩」，实现保留 | **已对齐**；主操作「聚焦」、信息卡、下滑关闭均已取证 |
 | C1 | 天宫默认 | 对齐 | `078-C1-zero-labels.png`、`079-C1-light.png` | 稿顶部有三段任务条（拆解/装配/对接 0/4） | **已回改稿**：任务条标为设计意图，本版不验收；零浮标、状态条「目标飞行器 · 1:20 展示」与稿一致 |
