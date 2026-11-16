@@ -116,7 +116,7 @@ CC BY-SA 传染性说明见 `docs/assets/NASA-ASSETS.md`：数据文件须同许
 
 - 设计稿：open-design 项目 `xingcha-app-icon`（brief 见 `docs/design/2026-11-17-app-icon/brief.md`）
 - **ASC 只收 1024×1024 PNG、无 alpha、不预裁圆角**（iOS 系统裁 squircle）；Xcode 26 单尺寸 AppIcon（universal 1024）即可，系统自动缩放全部小尺寸
-- 工程接入：`Sources/Assets.xcassets/AppIcon.appiconset`（agent 待稿确认后接入）
+- 工程接入：**已完成（2026-11-17 A 稿裁决后）**——`Sources/Resources/Assets.xcassets/AppIcon.appiconset/AppIcon-1024.png`（无 alpha RGB，universal 单尺寸），ASC 上传包会自动携带；同一 PNG 可直接用于 ASC「App 图标」栏
 - 小尺寸预览 40/60/80/120/180px 仅用于人审可辨性，不单独进 ASC
 
 ### 7.2 截图（人工门禁项，agent 备好采集脚本）
@@ -146,6 +146,6 @@ ASC 现行要求（iPhone）：**6.9" 或 6.5" 二选一必填**；6.9" = 1320×
 2. 隐私政策页托管 + URL 填写（§4）
 3. 定价裁决（PRD 无定价条目；建议 1.0 免费无内购，快速过审攒评价，Pro 化另议）
 4. 平台边界裁决：现工程 `TARGETED_DEVICE_FAMILY="1,2"`（含 iPad）与 PRD-UI「仅 iPhone」矛盾——若定 iPhone-only，agent 改 `"1"` 并回归（见 HUMAN-TASKS）
-5. icon 稿确认（open-design 展示板）→ agent 接入工程
+5. ~~icon 稿确认~~ 已裁决 A 稿并接入工程（2026-11-17）；上传时直接复用 `AppIcon-1024.png`
 6. 080 人工门禁五项 + 三项口径裁决（既有挂起，不变）
 7. 截图最终挑选与上传、审核联系人、提交审核

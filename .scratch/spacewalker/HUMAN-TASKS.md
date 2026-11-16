@@ -7,7 +7,7 @@
 
 | # | 任务 | 实现步骤 | 产出/落点 | 阻塞 |
 |---|---|---|---|---|
-| A1 | **icon 稿确认** | 打开 open-design 展示板（项目 `xingcha-app-icon` 的 `index.html`，或 `docs/design/2026-11-17-app-icon/` 归档副本）；看 1024 主稿 + 40pt 缩放预览 + 深浅底对照；A（星与槎）/B（三垣环抱）二选一或提改稿意见 | 确认记录写入 082 票 | D1 |
+| A1 | ~~icon 稿确认~~ **已裁决（2026-11-17）：采用 A 稿「星与槎合一」**；D1 已实施接入工程 | — | 082 票已记录 | — |
 | A2 | **iPad 支持裁决** | 现工程 `TARGETED_DEVICE_FAMILY="1,2"` 含 iPad，与 PRD-UI「仅 iPhone」矛盾（082 票登记）。选 iPhone-only → agent 改 `"1"` + 全量回归 + ASC 无需 iPad 截图；选保留 → PRD-UI 回写 + 需补 iPad 截图与版式验收 | project.yml 或 PRD-UI 回写 | C4 |
 | A3 | **定价裁决** | PRD 无定价条目。建议 1.0 免费无内购（快速过审攒评价）；若付费需定价格档与是否内购 | APPSTORE.md §8.3 回填 | C2 |
 | A4 | **「下限」口径** | 080 runbook §5 勾选：最慢单帧 / 30s 窗口统计 / 百分位 P__ / 其他。agent 参考数据：快照均值 59–60，最慢单帧口径会显著低于窗口口径 | runbook §5 勾选行 | B3 |
@@ -42,10 +42,10 @@
 
 | # | 任务 | 触发条件 |
 |---|---|---|
-| D1 | icon 1024 PNG 导出 + Assets.xcassets 接入 + 构建产物校验 | A1 确认稿 |
+| D1 | ~~icon 接入~~ **已完成**：`Sources/Resources/Assets.xcassets/AppIcon.appiconset/AppIcon-1024.png`（无 alpha），构建产物校验见 082 票 | — |
 | D2 | iPad 边界改 `"1"` + 全量回归（或 PRD-UI 回写） | A2 裁决 |
 | D3 | 081 舱内标注：先出稿（三处标注+1px 引线，SwiftUI overlay）→ 确认 → TDD 实现 + VoiceOver | 董事长点头开工（081 票 ready-for-agent） |
-| D4 | PRD-UI「286」笔误回写为 288（以 PRD v0.6.1 为准） | 随下一次文档切片顺带做 |
+| D4 | ~~286 笔误回写~~ **已完成**（2026-11-17，PRD-UI §1 已改 288 并注出处） | — |
 | D5 | 真机接上后：代删旧 id App、装新包、代跑 B3 采集（判定仍归人） | 真机接数据线 |
 | D6 | 083 今夜对齐 chrome 缺口：先出稿（方案一贴稿 / 方案二最小反馈）→ 确认 → 实现 + 重拍截图第 3 张 | 董事长选方案；实现须 080 过后或明示插队 |
 

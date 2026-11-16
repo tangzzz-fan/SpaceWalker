@@ -21,8 +21,10 @@ blocked_by: [080]
     A 稿 40px 预览船形+星仍可辨（人工复核为准）
   - 过程记录：首轮 run 因 HTTP 字段误用 `prompt`（应为 `message`）空转；次轮模型只出计划即退；
     第三轮续跑期间出现过一版违规稿（紫青星云、错字「星茶」），被合规重写覆盖，终稿已逐行核验无残留
-- [ ] **icon 稿董事长确认**（展示板 `index.html`，A 主稿 + B 对比稿 + 40pt 可辨性预览）
-- [ ] 确认后 agent 导出 1024 PNG（无 alpha）→ `Sources/Assets.xcassets/AppIcon.appiconset`（universal 单尺寸）→ xcodegen → 构建产物校验
+- [x] **icon 稿董事长确认：2026-11-17 裁决采用 A 稿「星与槎合一」**（B 稿归档留存不采用）
+- [x] agent 已导出无 alpha RGB 1024 PNG → `Sources/Resources/Assets.xcassets/AppIcon.appiconset/AppIcon-1024.png`
+  （universal 单尺寸 Contents.json）；project.yml 增 `ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon`，
+  xcodegen 重生成；PIL 校验 mode=RGB / 1024×1024 / 无 alpha 通道，四角深空底渐变与 SVG 一致
 - [x] ASC 填写信息：`docs/design/APPSTORE.md`（名称/副标题/描述/关键词/隐私问卷/审核备注/素材署名，数字已对源码核实 2996/288/301/88）
 - [x] 出口合规：`ITSAppUsesNonExemptEncryption=false` 入 project.yml（纯离线，无自有加密）
 - [x] 截图采集脚本：`tools/appstore-screenshots.sh`（Pro Max 模拟器 6 画面无头启动，simctl 直出，归档 `docs/design/appstore-screenshots/`）
