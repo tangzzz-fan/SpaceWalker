@@ -189,6 +189,16 @@ final class ChromeStateTests: XCTestCase {
         XCTAssertEqual(card?.placement, .abovePrimary)
     }
 
+    func testCutawayControlsExcludeUnimplementedInteriorLabels() {
+        let chrome = ChromeState.derive(route: .tiangong, mode: .cutaway)
+        XCTAssertEqual(chrome.contextControls.map(\.id), [.tiangongResetView])
+    }
+
+    func testDockingControlsExcludeRedundantHoldButton() {
+        let chrome = ChromeState.derive(route: .tiangong, mode: .docking)
+        XCTAssertEqual(chrome.contextControls.map(\.id), [.tiangongCoarse, .tiangongFine])
+    }
+
     func testUserFacingChromeHasNoDebugStrings() {
         for route in routes {
             for mode in ChromeMode.allCases {

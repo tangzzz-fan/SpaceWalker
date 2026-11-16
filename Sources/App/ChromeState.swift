@@ -89,14 +89,12 @@ enum ChromeControlID: Equatable, Sendable, Hashable {
     case tiangongCutaway
     case tiangongDrawing
     case tiangongReentry
-    case tiangongInteriorLabels
     case tiangongResetView
     case tiangongFrontView
     case tiangongSideView
     case tiangongTopView
     case tiangongCoarse
     case tiangongFine
-    case tiangongHold
     case tiangongHistory
     case tiangongCredits
     case credits
@@ -300,7 +298,6 @@ struct ChromeState: Equatable, Sendable {
             switch mode {
             case .cutaway:
                 return [
-                    ChromeControl(id: .tiangongInteriorLabels, title: "舱内标注", symbol: "text.bubble"),
                     ChromeControl(id: .tiangongResetView, title: "复位视角", symbol: "arrow.counterclockwise")
                 ]
             case .drawing:
@@ -312,8 +309,7 @@ struct ChromeState: Equatable, Sendable {
             case .docking:
                 return [
                     ChromeControl(id: .tiangongCoarse, title: "粗调", symbol: "arrow.up.left"),
-                    ChromeControl(id: .tiangongFine, title: "精调", symbol: "scope"),
-                    ChromeControl(id: .tiangongHold, title: "保持", symbol: "hand.raised")
+                    ChromeControl(id: .tiangongFine, title: "精调", symbol: "scope")
                 ]
             case .reentry, .history:
                 return [
