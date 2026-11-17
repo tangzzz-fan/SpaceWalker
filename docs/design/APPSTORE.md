@@ -76,12 +76,12 @@
 |---|---|---|
 | 是否收集数据 | **不收集**（Data Not Collected） | 位置仅设备本地换算星空（`kCLLocationAccuracyThreeKilometers` 粗精度，不出设备）；无 URLSession/网络代码（全仓核查 2026-11-17）；无账号、无分析 SDK |
 | 位置权限文案 | 星槎用你的大致位置与航向，把星图对齐到今夜此刻的真实天空。 | Info.plist 已落地 |
-| 隐私政策 URL | **必填**（即使不收集数据）。需人工托管一页静态声明，见 §7 人工任务 | ASC 硬性要求 |
+| 隐私政策 URL | **https://tangzzz-fan.github.io/SpaceWalker/**（已托管上线，2026-11-17，GitHub Pages gh-pages 分支；联系邮箱 csqingyang@foxmail.com 已填，可改） | ✅ agent 已完成 |
 | 跟踪（ATT） | 不跟踪，无需 ATT 弹窗 | 无 IDFA、无第三方 SDK |
 
 隐私政策建议文本（一页即可）：
 
-> 星槎不收集、不存储、不上传任何个人数据。应用请求的大致位置与设备航向仅在本机用于把星图对齐到当前天空，不会离开设备。应用无网络功能、无账号系统、无第三方分析或广告组件。联系：<人工填邮箱>。
+> 星槎不收集、不存储、不上传任何个人数据。应用请求的大致位置与设备航向仅在本机用于把星图对齐到当前天空，不会离开设备。应用无网络功能、无账号系统、无第三方分析或广告组件。联系：csqingyang@foxmail.com。
 
 ## 5. 审核信息
 
@@ -145,7 +145,7 @@ ASC 现行要求（iPhone）：**6.9" 或 6.5" 二选一必填**；6.9" = 1320×
 ## 8. 提审前人工任务汇总（详见 `.scratch/spacewalker/HUMAN-TASKS.md`）
 
 1. 开发者账号注册 Bundle ID `com.tango.xingcha` + ASC 建 App（§1）
-2. 隐私政策页托管 + URL 填写（§4）
+2. ~~隐私政策页托管 + URL 填写~~ **已完成（2026-11-17）**：https://tangzzz-fan.github.io/SpaceWalker/ （GitHub Pages，邮箱已填）
 3. ~~定价裁决~~ **已裁决（A3）：免费、无内购、无广告**；ASC 价格档选 Free
 4. ~~平台边界裁决~~ **已裁决（A2）：iPhone-only**，`TARGETED_DEVICE_FAMILY="1"` 已改并回归（真机包 UIDeviceFamily=[1]）
 5. ~~icon 稿确认~~ 已裁决 A 稿并接入工程（2026-11-17）；上传时直接复用 `AppIcon-1024.png`

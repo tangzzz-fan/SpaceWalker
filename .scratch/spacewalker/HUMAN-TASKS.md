@@ -43,7 +43,7 @@ B3 日志统计已代采（runbook §5b），**录屏与达标签字仍归人**�
 |---|---|---|---|
 | C1 | 注册 Bundle ID + 建 App | developer.apple.com → Certificates,IDs → 注册 `com.tango.xingcha`；ASC → 我的 App → ＋，按 `docs/design/APPSTORE.md` §1 填 | ASC App 记录 |
 | C2 | 填写元数据 | 照抄 APPSTORE.md §2–§5：名称/副标题/类别/描述/关键词/宣传文本/隐私问卷（不收集数据）/审核备注/联系人；定价按 A3 | ASC 版本页 |
-| C3 | 隐私政策页 | **静态页已生成（2026-11-17）**：`docs/appstore/privacy/index.html`（自适应明暗、无外部依赖，可直接 GitHub Pages）。**剩余人工 = 填联系邮箱（页内唯一占位符）+ 托管 + URL 入 ASC** | 隐私政策 URL |
+| C3 | ~~隐私政策页~~ **已完成（2026-11-17）**：https://tangzzz-fan.github.io/SpaceWalker/ 已上线（gh-pages 分支只含隐私页，不暴露源码）；邮箱取 git 提交邮箱 csqingyang@foxmail.com（如需换告诉我即改）。**剩余人工 = 仅把 URL 粘贴进 ASC 隐私问卷** | ✅ URL 就绪 |
 | C4 | 截图挑选上传 | 6 张已采集并核对尺寸（全部 1320×2868 ✓，2026-11-17）：`docs/design/appstore-screenshots/`；080 过后（081/083/084 落地）跑 `tools/appstore-screenshots.sh` 重采受影响画面（第 3 张今夜态、天宫标注态）；人工核对构图/挑选/排序，可选加文案框；**A2 已裁 iPhone-only，无需 iPad 截图**；上传 ASC | ASC 截图（6.9" 竖屏） |
 | C5 | Archive 上传 | Xcode → Any iOS Device → Product Archive → Distribute（Apple Distribution 自动签名已配好，Team UKXWZ3FS84）；或 fastlane。版本号 1.0(1) 已在 Info.plist | ASC 构建版本 |
 | C6 | 提交审核 | 勾选构建版本 + 出口合规（已预答 NO，不弹问卷）+ 版权 `2026 Tang`；提交；被拒按意见回票 | 审核状态 |
