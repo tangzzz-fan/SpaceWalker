@@ -12,7 +12,8 @@
 | **IPA（App Store 签名）** | `~/Developments/SpaceWalker-release/星槎-1.0-1.ipa`（8.6MB） | ✅ Distribution 签名、get-task-allow=false、1.0(1)、iPhone-only、icon 1024 无 alpha、出口合规已预答 |
 | Bundle ID 注册 | developer.apple.com 已自动注册（Archive 自动签名完成，AppIDName "XC com tango xingcha"） | ✅ 无需手动注册 |
 | 隐私政策 URL | **https://tangzzz-fan.github.io/SpaceWalker/** | ✅ 已上线，邮箱已填 |
-| 截图 6 张（1320×2868） | `docs/design/appstore-screenshots/01…06*.png` | ✅ 含 081/083/084 落地后重采版 |
+| 截图 6 张（**1206×2622 必需档**） | `docs/design/appstore-screenshots/01…06*.png` | ✅ 2026-11-17 尺寸修正重采：Dynamic Island medium 档、RGB 无 alpha、9:41 满电状态栏 |
+| 截图备用（1320×2868 可选大屏档） | `docs/design/appstore-screenshots-1320/01…06*.png` | ✅ 同一批画面，large 档备用（非必需） |
 | App 图标 1024 | `Sources/Resources/Assets.xcassets/AppIcon.appiconset/AppIcon-1024.png` | ✅ IPA 已携带，ASC 自动提取（无需单独传） |
 | 元数据全文 | `docs/design/APPSTORE.md` §1–§5 | ✅ 逐字段照抄 |
 
@@ -36,7 +37,7 @@ ASC → 我的 App → ＋ → 新建 App：
 - 内容版权：含第三方内容（CC BY-SA 数据 + NASA 公共域，应用内已署名）
 - 价格：**免费**（无内购无广告）
 - 版本 1.0 页：宣传文本 / 描述 / 关键词 / 新功能「首次发布。」/ 版权 `2026 Tang`（§3 全文照抄）
-- 截图：6 张按文件名顺序上传到 **6.9" 显示屏** 槽位（iPhone-only，无需 iPad）
+- 截图：6 张按文件名顺序上传到 **iPhone with Dynamic Island (medium)** 必需档槽位（1206×2622，即 6.3" Pro 档；iPhone-only，无需 iPad）。1320×2868 属 large 可选档，不必传；若页面仍显示旧 6.9" 槽位，传 `appstore-screenshots-1320/` 那套
 - 支持 URL / 营销 URL：留空
 
 ### ④ App 隐私（3 分钟）

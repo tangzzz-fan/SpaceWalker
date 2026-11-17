@@ -123,7 +123,7 @@ CC BY-SA 传染性说明见 `docs/assets/NASA-ASSETS.md`：数据文件须同许
 
 ### 7.2 截图（人工门禁项，agent 备好采集脚本）
 
-ASC 现行要求（iPhone）：**6.9" 或 6.5" 二选一必填**；6.9" = 1320×2868 或 1290×2796（iPhone 16/17 Pro Max 级）；仅竖屏 App 只需竖屏截图。**A2 已裁决 iPhone-only，无需 iPad 截图**（2026-11-17）。
+ASC 现行要求（iPhone，**2026-11-17 尺寸修正**，依据 SportsHelper `compose.py` 实测结论）：必需档是 **iPhone with Dynamic Island (medium)**——iPhone 18 Pro / 17 Pro / 16 Pro，收 **1179×2556 与 1206×2622**；1320×2868 / 1290×2796 属 large 档（Pro Max / Air），是**可选档**。旧版「6.9" 必填 1320×2868」口径作废。硬要求：精确像素、RGB 无 alpha、单张 ≤ 8MB。仅竖屏 App 只需竖屏截图。**A2 已裁决 iPhone-only，无需 iPad 截图**（2026-11-17）。
 
 建议 6 张（顺序即叙事）：
 
@@ -136,7 +136,7 @@ ASC 现行要求（iPhone）：**6.9" 或 6.5" 二选一必填**；6.9" = 1320×
 | 5 | 天宫一号拆解态 | `MODE=tiangong TG_SEPARATED=<四段> TG_FREEZE=1` |
 | 6 | 剖面或再入（二选一） | `MODE=tiangong TG_CUTAWAY=1` / `TG_REENTRY=12` |
 
-采集：`tools/appstore-screenshots.sh`（agent 已备，跑 Pro Max 模拟器 → /tmp → 归档）。**截图上的营销文案框（可选）与最终挑选由人工定**；080 门禁通过前不提交。
+采集：`tools/appstore-screenshots.sh`（默认 **iPhone 18 Pro** 模拟器 → 1206×2622 必需档，归档 `docs/design/appstore-screenshots/`；`SPACEWALKER_SHOT_DEVICE="iPhone 18 Pro Max"` + `SPACEWALKER_SHOT_OUT=…` 采 1320×2868 备用档，归档 `docs/design/appstore-screenshots-1320/`）。状态栏统一 9:41 满电，出图转 RGB 无 alpha。**两套均已于 2026-11-17 重采并校验**（第 3 张今夜对齐金色选中、第 6 张剖面三标注齐全）。**截图上的营销文案框（可选）与最终挑选由人工定**。
 
 ### 7.3 App 预览视频（可选，非必填）
 

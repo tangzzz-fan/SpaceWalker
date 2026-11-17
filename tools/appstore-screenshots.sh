@@ -6,14 +6,20 @@
 #   tools/appstore-screenshots.sh 1 5        # 只拍第 1、5 张
 #
 # 前置：xcodegen generate 后先 build 一次模拟器包（脚本会自动 build）。
-# 注意：模拟器截图分辨率以 simctl 实报为准；ASC 6.9" 收 1320×2868 或 1290×2796，
-# 若机型分辨率不符，脚本会打印实际尺寸供人工核对（不缩放伪造）。
+#
+# 尺寸分档（2026-11-17 修正，依据 SportsHelper .scratch/appstore/tools/compose.py
+# 的实测结论）：ASC 必需档是「iPhone with Dynamic Island (medium)」——
+# iPhone 18 Pro / 17 Pro / 16 Pro，收 1179×2556 与 1206×2622；
+# 1320×2868 属 large 档（Pro Max / Air），是可选档。
+# 默认在 iPhone 18 Pro 上采 1206×2622（必需）；
+# SPACEWALKER_SHOT_DEVICE="iPhone 18 Pro Max" 再采 1320×2868（可选备用）。
+# 模拟器截图分辨率以 simctl 实报为准，不缩放伪造。
 set -uo pipefail
 
 PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 BUNDLE_ID="com.tango.xingcha"
-DEVICE_NAME="${SPACEWALKER_SHOT_DEVICE:-iPhone 18 Pro Max}"
-OUT_DIR="$PROJECT_DIR/docs/design/appstore-screenshots"
+DEVICE_NAME="${SPACEWALKER_SHOT_DEVICE:-iPhone 18 Pro}"
+OUT_DIR="${SPACEWALKER_SHOT_OUT:-$PROJECT_DIR/docs/design/appstore-screenshots}"
 DD="$PROJECT_DIR/build-sim-appstore"
 WAIT_BUILD="${SPACEWALKER_SHOT_SKIP_BUILD:-0}"
 
@@ -37,6 +43,10 @@ APP="$(find "$DD/Build/Products" -maxdepth 2 -name 'SpaceWalker.app' | head -1)"
 
 xcrun simctl boot "$UDID" 2>/dev/null
 xcrun simctl bootstatus "$UDID" -b >/dev/null 2>&1
+# 状态栏统一 9:41 / 满电（App Store 惯例，同 SportsHelper shoot_store.py）
+xcrun simctl status_bar "$UDID" override \
+  --time "9:41" --batteryState charged --batteryLevel 100 \
+  --cellularBars 4 --wifiBars 3 >/dev/null 2>&1
 xcrun simctl install "$UDID" "$APP"
 # 今夜对齐需要定位授权；模拟器预授，避免授权弹窗挡住截图（真机不适用）
 xcrun simctl privacy "$UDID" grant location "$BUNDLE_ID" 2>/dev/null
