@@ -1063,3 +1063,51 @@ final class TiangongReentryTests: XCTestCase {
         }
     }
 }
+/// 084 F2：装配完成自动进入对接（任务链不断头）；F3：粗调/精调显式设档。
+@MainActor
+final class TiangongMissionChainTests: XCTestCase {
+    func testClosureAutoBeginsDocking() {
+        let session = TiangongSession()
+        for id in TiangongModuleID.dismantlable {
+            session.toggleDisassembly(id)
+        }
+        XCTAssertFalse(session.dockingActive, "还没装完不该进对接")
+        for id in TiangongModuleID.dismantlable {
+            session.toggleDisassembly(id)
+        }
+        XCTAssertEqual(session.mission.phase, .docking)
+        XCTAssertTrue(session.dockingActive, "装配完成应自动开始对接（084 F2）")
+        XCTAssertEqual(session.dockingOutcome, .approaching)
+    }
+
+    func testReentryUnlocksAfterChainAndHistory() {
+        let session = TiangongSession()
+        XCTAssertFalse(session.canStartReentry)
+        for id in TiangongModuleID.dismantlable {
+            session.toggleDisassembly(id)
+        }
+        for id in TiangongModuleID.dismantlable {
+            session.toggleDisassembly(id)
+        }
+        session.mission = TiangongMission.docking(session.mission, outcome: .docked)
+        XCTAssertFalse(session.canStartReentry, "没看过史实仍锁定")
+        session.markMilestonesRead()
+        XCTAssertTrue(session.canStartReentry)
+    }
+
+    func testSetControlModeIsExplicitNotToggle() {
+        let session = TiangongSession()
+        session.beginDocking()
+        session.setControlMode(.fine)
+        XCTAssertEqual(session.controlMode, .fine)
+        session.setControlMode(.fine)
+        XCTAssertEqual(session.controlMode, .fine, "重复设同档不应翻转")
+        session.setControlMode(.coarse)
+        XCTAssertEqual(session.controlMode, .coarse)
+    }
+
+    func testInteriorAnchorsEmptyBeforeBuild() {
+        let session = TiangongSession()
+        XCTAssertTrue(session.scene.interiorAnchors().isEmpty, "未 attach 渲染内容时投影应为空")
+    }
+}

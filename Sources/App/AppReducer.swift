@@ -34,6 +34,9 @@ private func recomputeChrome(
     separation: Set<String>? = nil,
     diagnosticsEnabled: Bool? = nil,
     theme: ChromeTheme? = nil,
+    tonightAligned: Bool? = nil,
+    reentryUnlocked: Bool? = nil,
+    dockingFine: Bool? = nil,
     reset: Bool = false
 ) {
     let nextSelection: ChromeSelection?
@@ -48,7 +51,10 @@ private func recomputeChrome(
         selection: nextSelection,
         separation: reset ? [] : (separation ?? state.chrome.separation),
         diagnosticsEnabled: diagnosticsEnabled ?? state.chrome.diagnosticsVisible,
-        theme: theme ?? state.chrome.theme
+        theme: theme ?? state.chrome.theme,
+        tonightAligned: tonightAligned ?? state.chrome.tonightAligned,
+        reentryUnlocked: reentryUnlocked ?? state.chrome.reentryUnlocked,
+        dockingFine: dockingFine ?? state.chrome.dockingFine
     )
 }
 
@@ -67,6 +73,12 @@ private func reduceChrome(_ state: inout AppState, _ action: ChromeAction) {
         recomputeChrome(&state, separation: separation)
     case .setTheme(let theme):
         recomputeChrome(&state, theme: theme)
+    case .setTonight(let aligned):
+        recomputeChrome(&state, tonightAligned: aligned)
+    case .setReentryUnlocked(let unlocked):
+        recomputeChrome(&state, reentryUnlocked: unlocked)
+    case .setDockingFine(let fine):
+        recomputeChrome(&state, dockingFine: fine)
     case .dismissCard:
         recomputeChrome(&state, reset: true)
     }

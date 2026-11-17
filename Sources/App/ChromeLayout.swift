@@ -191,16 +191,23 @@ struct ChromeContextDock: View {
                     actions.control?(control.id)
                 } label: {
                     Label(control.title, systemImage: control.symbol)
-                        .font(.system(size: ChromeTokens.labelSize))
+                        .font(.system(size: ChromeTokens.labelSize, weight: control.isSelected ? .semibold : .regular))
                         .lineLimit(1)
                         .frame(maxWidth: .infinity, minHeight: ChromeTokens.buttonHeight)
-                        .foregroundStyle(ChromeTokens.secondaryText)
-                        .background(ChromeTokens.surface1.opacity(0.72))
+                        .foregroundStyle(
+                            control.isSelected
+                                ? ChromeTokens.accent
+                                : (control.isEnabled ? ChromeTokens.secondaryText : ChromeTokens.disabledText)
+                        )
+                        .background(
+                            control.isSelected ? ChromeTokens.surface2 : ChromeTokens.surface1.opacity(0.72)
+                        )
                         .clipShape(RoundedRectangle(cornerRadius: ChromeTokens.contextRadius))
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel(control.title)
+                .accessibilityAddTraits(control.isSelected ? [.isSelected] : [])
             }
         }
         .padding(.horizontal, ChromeTokens.edgePadding)

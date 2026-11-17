@@ -113,7 +113,7 @@ final class LandscapeUITests: XCTestCase {
     func testSolarSystemLandscape() throws {
         XCUIDevice.shared.orientation = .landscapeRight
         let app = XCUIApplication()
-        app.launchEnvironment = ["SPACEWALKER_MODE": "space"]
+        app.launchEnvironment = ["SPACEWALKER_MODE": "solarSystem"]
         app.launch()
         XCTAssertTrue(app.wait(for: .runningForeground, timeout: 20))
         sleep(5)

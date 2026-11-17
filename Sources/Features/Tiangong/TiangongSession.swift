@@ -346,7 +346,12 @@ final class TiangongSession {
     }
 
     func toggleControlMode() {
-        controlMode = controlMode == .coarse ? .fine : .coarse
+        setControlMode(controlMode == .coarse ? .fine : .coarse)
+    }
+
+    func setControlMode(_ mode: TiangongDocking.ControlMode) {
+        guard controlMode != mode else { return }
+        controlMode = mode
         SessionLog.append("tiangong.docking mode=\(controlMode.rawValue)")
     }
 
@@ -482,6 +487,7 @@ final class TiangongSession {
         scene.playClosureAnimation()
         UINotificationFeedbackGenerator().notificationOccurred(.success)
         SessionLog.append("tiangong.closure modules=\(TiangongModuleID.dismantlable.count)")
+        beginDocking()
     }
 
     func resetView() {

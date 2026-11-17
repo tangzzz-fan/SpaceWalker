@@ -13,6 +13,7 @@ struct TiangongView: View {
     @State private var lastDrag: CGSize = .zero
     @State private var lastRotation: Double = 0
     @State private var lastFPSLog: TimeInterval = 0
+    @State private var reentryHintToken = 0
     @State private var dockTicker = Timer.publish(every: 0.1, on: .main, in: .common).autoconnect()
 
     private enum DragMode { case none, orbit, module, docking }
@@ -68,6 +69,12 @@ struct TiangongView: View {
         .onChange(of: session.drawingMode) { _, _ in syncMode() }
         .onChange(of: session.cutawayMode) { _, _ in syncMode() }
         .onChange(of: session.dockingActive) { _, _ in syncMode() }
+        .onChange(of: session.controlMode) { _, mode in
+            store.dispatch(.chrome(.setDockingFine(mode == .fine)))
+        }
+        .onChange(of: session.canStartReentry) { _, unlocked in
+            store.dispatch(.chrome(.setReentryUnlocked(unlocked)))
+        }
         .onChange(of: session.separated) { _, separated in
             store.dispatch(.chrome(.setSeparation(Set(separated.map(\.rawValue)))))
         }
@@ -125,28 +132,71 @@ struct TiangongView: View {
         let labels = store.state.chrome.visibleLabels
         return TimelineView(.periodic(from: .now, by: 0.1)) { _ in
             let anchors = session.labelAnchors()
+            let interiorAnchors = session.scene.interiorAnchors()
+            let placed = placedLabels(labels, modules: anchors, interior: interiorAnchors)
             ZStack {
-                ForEach(labels, id: \.id) { label in
-                    if let id = TiangongModuleID(rawValue: label.id),
-                       let point = anchors[id] {
-                        Path { path in
-                            path.move(to: point)
-                            path.addLine(to: CGPoint(x: point.x, y: point.y - 18))
-                        }
-                        .stroke(ChromeTokens.strongHairline, lineWidth: 1)
-                        Text(label.title)
-                            .font(.system(size: ChromeTokens.captionSize, weight: .medium))
-                            .foregroundStyle(ChromeTokens.primaryText)
-                            .padding(.horizontal, ChromeTokens.horizontalPadding)
-                            .padding(.vertical, ChromeTokens.tightPadding)
-                            .background(ChromeTokens.surface1.opacity(0.86), in: Capsule())
-                            .overlay(Capsule().stroke(ChromeTokens.hairline, lineWidth: 1))
-                            .position(x: point.x, y: point.y - 30)
+                ForEach(placed, id: \.label.id) { item in
+                    Path { path in
+                        path.move(to: item.anchor)
+                        path.addLine(to: CGPoint(x: item.position.x, y: item.position.y + 12))
                     }
+                    .stroke(ChromeTokens.strongHairline, lineWidth: 1)
+                    Text(item.label.title)
+                        .font(.system(size: ChromeTokens.captionSize, weight: .medium))
+                        .foregroundStyle(ChromeTokens.primaryText)
+                        .padding(.horizontal, ChromeTokens.horizontalPadding)
+                        .padding(.vertical, ChromeTokens.tightPadding)
+                        .background(ChromeTokens.surface1.opacity(0.86), in: Capsule())
+                        .overlay(Capsule().stroke(ChromeTokens.hairline, lineWidth: 1))
+                        .position(item.position)
+                        .accessibilityLabel(item.label.title)
                 }
             }
             .allowsHitTesting(false)
+            .accessibilityElement(children: .contain)
         }
+    }
+
+    private struct PlacedLabel {
+        let label: ChromeLabel
+        let anchor: CGPoint
+        let position: CGPoint
+    }
+
+    /// 三处内景锚点相距只有几十 pt，等高上移会叠字。
+    /// 按锚点 y 排序后强制胶囊中心至少间隔 26pt（11pt 字 + 上下 padding ≈ 22pt）。
+    private func placedLabels(
+        _ labels: [ChromeLabel],
+        modules: [TiangongModuleID: CGPoint],
+        interior: [String: CGPoint]
+    ) -> [PlacedLabel] {
+        let resolved: [PlacedLabel] = labels.compactMap { label in
+            guard let point = labelPoint(label.id, modules: modules, interior: interior) else { return nil }
+            return PlacedLabel(label: label, anchor: point, position: CGPoint(x: point.x, y: point.y - 30))
+        }
+        var sorted = resolved.sorted { $0.position.y < $1.position.y }
+        for index in 1..<max(sorted.count, 1) where index < sorted.count {
+            let minY = sorted[index - 1].position.y + 26
+            if sorted[index].position.y < minY {
+                sorted[index] = PlacedLabel(
+                    label: sorted[index].label,
+                    anchor: sorted[index].anchor,
+                    position: CGPoint(x: sorted[index].position.x, y: minY)
+                )
+            }
+        }
+        return sorted
+    }
+
+    private func labelPoint(
+        _ id: String,
+        modules: [TiangongModuleID: CGPoint],
+        interior: [String: CGPoint]
+    ) -> CGPoint? {
+        if id.hasPrefix("interior-") {
+            return interior[id]
+        }
+        return TiangongModuleID(rawValue: id).flatMap { modules[$0] }
     }
 
     private var dimensionLayer: some View {
@@ -316,9 +366,24 @@ struct TiangongView: View {
 
     private func syncLaunchSelection() {
         store.dispatch(.chrome(.setSeparation(Set(session.separated.map(\.rawValue)))))
+        store.dispatch(.chrome(.setReentryUnlocked(session.canStartReentry)))
+        store.dispatch(.chrome(.setDockingFine(session.controlMode == .fine)))
         if let selected = session.selected {
             store.dispatch(.chrome(.select(.module(selected))))
             store.dispatch(.chrome(.setMode(.card)))
+        }
+    }
+
+    /// PRD-UI:232：锁定态点「再入」给 11pt 提示（与状态条 detail 同源），3 秒回落。
+    private func showReentryLockHint() {
+        SessionLog.append("tiangong.reentry locked=1")
+        store.dispatch(.chrome(.setStatus(ChromeState.reentryLockHint)))
+        reentryHintToken += 1
+        let token = reentryHintToken
+        Task { @MainActor in
+            try? await Task.sleep(for: .seconds(3))
+            guard token == reentryHintToken else { return }
+            syncMode()
         }
     }
 
@@ -363,7 +428,11 @@ struct TiangongView: View {
             case .tiangongDrawing:
                 session.toggleDrawingMode()
             case .tiangongReentry:
-                if session.canStartReentry { session.startReentry() }
+                if session.canStartReentry {
+                    session.startReentry()
+                } else {
+                    showReentryLockHint()
+                }
             case .tiangongResetView:
                 session.resetView()
             case .tiangongFrontView:
@@ -372,8 +441,10 @@ struct TiangongView: View {
                 session.applyView(.side)
             case .tiangongTopView:
                 session.applyView(.top)
-            case .tiangongCoarse, .tiangongFine:
-                session.toggleControlMode()
+            case .tiangongCoarse:
+                session.setControlMode(.coarse)
+            case .tiangongFine:
+                session.setControlMode(.fine)
             case .tiangongHistory, .tiangongCredits, .history, .credits:
                 showsHistory = true
             default:

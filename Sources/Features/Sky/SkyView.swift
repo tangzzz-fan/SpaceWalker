@@ -75,7 +75,9 @@ struct SkyView: View {
         .onChange(of: session.observer.stage) { _, _ in
             refreshField()
             refreshTonight()
+            syncTonightChrome()
         }
+        .onChange(of: session.observer.statusText) { _, _ in syncTonightChrome() }
         .onAppear(perform: registerActions)
         .onChange(of: showsFinder) { _, _ in syncMode() }
         .onChange(of: showsAsterismBrowser) { _, _ in syncMode() }
@@ -259,6 +261,17 @@ struct SkyView: View {
             mode = .normal
         }
         store.dispatch(.chrome(.setMode(mode)))
+    }
+
+    /// 083 最小反馈：对齐开关上 chrome（今夜控件选中态），
+    /// 无卡片/面板时状态条消费 observer.statusText；有卡片时不抢「已选中」。
+    func syncTonightChrome() {
+        let aligned = session.observer.isOn
+        store.dispatch(.chrome(.setTonight(aligned)))
+        let chromeMode = store.state.chrome.mode
+        if aligned, chromeMode == .normal || chromeMode == .tonight {
+            store.dispatch(.chrome(.setStatus(session.observer.statusText)))
+        }
     }
 }
 

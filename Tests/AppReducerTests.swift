@@ -70,4 +70,54 @@ final class AppReducerTests: XCTestCase {
         XCTAssertEqual(state.chrome.route, .tiangong)
         XCTAssertFalse(state.chrome.diagnosticsVisible)
     }
+
+    // MARK: - 083/084 chrome 派生入参
+
+    func testSetTonightUpdatesSelectionAndStatus() {
+        let state = reduce([.chrome(.setTonight(true))])
+        XCTAssertEqual(state.chrome.contextControls.first { $0.id == .skyTonight }?.isSelected, true)
+        XCTAssertEqual(state.chrome.statusLine.detail, "今夜此刻 · 时间已对齐")
+
+        let off = reduce([.chrome(.setTonight(false))], from: state)
+        XCTAssertEqual(off.chrome.contextControls.first { $0.id == .skyTonight }?.isSelected, false)
+        XCTAssertEqual(off.chrome.statusLine.detail, "姿态跟随 · 转动手机环顾")
+    }
+
+    func testSetReentryUnlockedUpdatesControl() {
+        let state = reduce([.route(.tiangong), .chrome(.setReentryUnlocked(true))])
+        XCTAssertEqual(state.chrome.contextControls.first { $0.id == .tiangongReentry }?.isEnabled, true)
+    }
+
+    func testSetDockingFineUpdatesHighlight() {
+        let state = reduce([
+            .route(.tiangong),
+            .chrome(.setMode(.docking)),
+            .chrome(.setDockingFine(true))
+        ])
+        XCTAssertEqual(state.chrome.contextControls.first { $0.id == .tiangongFine }?.isSelected, true)
+        XCTAssertEqual(state.chrome.contextControls.first { $0.id == .tiangongCoarse }?.isSelected, false)
+    }
+
+    func testModeChangePreservesTonightAndReentryFlags() {
+        let state = reduce([
+            .chrome(.setTonight(true)),
+            .chrome(.setReentryUnlocked(true)),
+            .chrome(.select(.star("织女星"))),
+            .chrome(.setMode(.card))
+        ])
+        XCTAssertEqual(state.chrome.contextControls.first { $0.id == .skyTonight }?.isSelected, true)
+
+        let tiangong = reduce([.route(.tiangong)], from: state)
+        XCTAssertEqual(
+            tiangong.chrome.contextControls.first { $0.id == .tiangongReentry }?.isEnabled, true
+        )
+    }
+
+    func testSetStatusStillOverridesDetailAfterDerive() {
+        let state = reduce([
+            .chrome(.setTonight(true)),
+            .chrome(.setStatus("自定义状态"))
+        ])
+        XCTAssertEqual(state.chrome.statusLine.detail, "自定义状态")
+    }
 }

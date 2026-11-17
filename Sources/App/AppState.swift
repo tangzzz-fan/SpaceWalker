@@ -15,6 +15,9 @@ enum ChromeAction: Equatable, Sendable {
     case setStatus(String)
     case setSeparation(Set<String>)
     case setTheme(ChromeTheme)
+    case setTonight(Bool)
+    case setReentryUnlocked(Bool)
+    case setDockingFine(Bool)
     case dismissCard
 }
 

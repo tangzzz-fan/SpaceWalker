@@ -377,6 +377,19 @@ final class TiangongScene {
         return content.project(point: node.position(relativeTo: nil), to: Self.space)
     }
 
+    /// 081 舱内标注锚点：按名字查真实内景实体投影，几何不动。
+    /// 设备机柜取 interior-rack-0（+58° 位）；未 attach 渲染内容时为空。
+    func interiorAnchors() -> [String: CGPoint] {
+        guard let content, let interiorGroup else { return [:] }
+        var anchors: [String: CGPoint] = [:]
+        for name in ["interior-sleep", "interior-gym", "interior-rack-0"] {
+            guard let node = interiorGroup.findEntity(named: name) else { continue }
+            let key = name == "interior-rack-0" ? "interior-rack" : name
+            anchors[key] = content.project(point: node.position(relativeTo: nil), to: Self.space)
+        }
+        return anchors
+    }
+
     /// 用真实碰撞体拾取，不用「投影点距离」——舱段挨得很近时，
     /// 各个中心点的屏幕距离差不到几像素，会把所有触摸都判给同一个舱。
     func pick(at point: CGPoint) -> TiangongModuleID? {

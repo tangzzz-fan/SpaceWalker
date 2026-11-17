@@ -106,6 +106,8 @@ struct ChromeControl: Equatable, Sendable {
     var id: ChromeControlID
     var title: String
     var symbol: String
+    var isEnabled: Bool = true
+    var isSelected: Bool = false
 }
 
 enum ChromeCardPlacement: Equatable, Sendable {
@@ -138,6 +140,12 @@ struct ChromeState: Equatable, Sendable {
     var infoCard: ChromeInfoCard?
     var separation: Set<String>
     var theme: ChromeTheme
+    var tonightAligned: Bool = false
+    var reentryUnlocked: Bool = false
+    var dockingFine: Bool = false
+
+    /// PRD-UI:232：再入未解锁时的 11pt 说明与点击提示共用同一句。
+    static let reentryLockHint = "完成三步任务并看过史实后解锁"
 
     static func derive(
         route: AppRoute,
@@ -145,9 +153,19 @@ struct ChromeState: Equatable, Sendable {
         selection: ChromeSelection? = nil,
         separation: Set<String> = [],
         diagnosticsEnabled: Bool = false,
-        theme: ChromeTheme = .dark
+        theme: ChromeTheme = .dark,
+        tonightAligned: Bool = false,
+        reentryUnlocked: Bool = false,
+        dockingFine: Bool = false,
+        statusDetail: String? = nil
     ) -> ChromeState {
-        ChromeState(
+        var status = statusLine(
+            route: route, mode: mode, selection: selection, tonightAligned: tonightAligned
+        )
+        if let statusDetail {
+            status.detail = statusDetail
+        }
+        return ChromeState(
             route: route,
             tabs: [
                 ChromeTab(route: .sky, title: "星图", isSelected: route == .sky),
@@ -158,20 +176,29 @@ struct ChromeState: Equatable, Sendable {
             diagnosticsVisible: diagnosticsEnabled,
             mode: mode,
             selection: selection,
-            statusLine: statusLine(route: route, mode: mode, selection: selection),
+            statusLine: status,
             primaryAction: primaryAction(route: route, mode: mode, selection: selection, separation: separation),
-            contextControls: contextControls(route: route, mode: mode),
-            visibleLabels: labels(for: selection),
+            contextControls: contextControls(
+                route: route, mode: mode,
+                tonightAligned: tonightAligned,
+                reentryUnlocked: reentryUnlocked,
+                dockingFine: dockingFine
+            ),
+            visibleLabels: labels(for: selection, route: route, mode: mode),
             infoCard: card(for: selection),
             separation: separation,
-            theme: theme
+            theme: theme,
+            tonightAligned: tonightAligned,
+            reentryUnlocked: reentryUnlocked,
+            dockingFine: dockingFine
         )
     }
 
     private static func statusLine(
         route: AppRoute,
         mode: ChromeMode,
-        selection: ChromeSelection?
+        selection: ChromeSelection?,
+        tonightAligned: Bool = false
     ) -> ChromeStatusLine {
         switch route {
         case .sky:
@@ -183,6 +210,9 @@ struct ChromeState: Equatable, Sendable {
             case .card:
                 return ChromeStatusLine(title: "星图", detail: "已选中 · \(selection?.title ?? "天体")")
             default:
+                if tonightAligned {
+                    return ChromeStatusLine(title: "星图", detail: "今夜此刻 · 时间已对齐")
+                }
                 return ChromeStatusLine(title: "星图", detail: "姿态跟随 · 转动手机环顾")
             }
         case .solarSystem:
@@ -265,7 +295,13 @@ struct ChromeState: Equatable, Sendable {
         }
     }
 
-    private static func contextControls(route: AppRoute, mode: ChromeMode) -> [ChromeControl] {
+    private static func contextControls(
+        route: AppRoute,
+        mode: ChromeMode,
+        tonightAligned: Bool = false,
+        reentryUnlocked: Bool = false,
+        dockingFine: Bool = false
+    ) -> [ChromeControl] {
         switch route {
         case .sky:
             switch mode {
@@ -284,7 +320,7 @@ struct ChromeState: Equatable, Sendable {
             default:
                 return [
                     ChromeControl(id: .skyLayers, title: "图层", symbol: "square.3.layers.3d"),
-                    ChromeControl(id: .skyTonight, title: "今夜", symbol: "location"),
+                    ChromeControl(id: .skyTonight, title: "今夜", symbol: "location", isSelected: tonightAligned),
                     ChromeControl(id: .skyAttitude, title: "姿态", symbol: "gyroscope")
                 ]
             }
@@ -308,8 +344,8 @@ struct ChromeState: Equatable, Sendable {
                 ]
             case .docking:
                 return [
-                    ChromeControl(id: .tiangongCoarse, title: "粗调", symbol: "arrow.up.left"),
-                    ChromeControl(id: .tiangongFine, title: "精调", symbol: "scope")
+                    ChromeControl(id: .tiangongCoarse, title: "粗调", symbol: "arrow.up.left", isSelected: !dockingFine),
+                    ChromeControl(id: .tiangongFine, title: "精调", symbol: "scope", isSelected: dockingFine)
                 ]
             case .reentry, .history:
                 return [
@@ -320,15 +356,29 @@ struct ChromeState: Equatable, Sendable {
                 return [
                     ChromeControl(id: .tiangongCutaway, title: "剖面", symbol: "circle.lefthalf.filled"),
                     ChromeControl(id: .tiangongDrawing, title: "工程图", symbol: "ruler"),
-                    ChromeControl(id: .tiangongReentry, title: "再入", symbol: "flame")
+                    ChromeControl(id: .tiangongReentry, title: "再入", symbol: "flame", isEnabled: reentryUnlocked)
                 ]
             }
         }
     }
 
-    private static func labels(for selection: ChromeSelection?) -> [ChromeLabel] {
-        guard case .module(let id)? = selection else { return [] }
-        return [ChromeLabel(id: id.rawValue, title: id.title)]
+    private static func labels(
+        for selection: ChromeSelection?,
+        route: AppRoute,
+        mode: ChromeMode
+    ) -> [ChromeLabel] {
+        var result: [ChromeLabel] = []
+        if case .module(let id)? = selection {
+            result.append(ChromeLabel(id: id.rawValue, title: id.title))
+        }
+        if route == .tiangong, mode == .cutaway {
+            result.append(contentsOf: [
+                ChromeLabel(id: "interior-sleep", title: "睡眠区"),
+                ChromeLabel(id: "interior-gym", title: "健身区"),
+                ChromeLabel(id: "interior-rack", title: "设备机柜")
+            ])
+        }
+        return result
     }
 
     private static func card(for selection: ChromeSelection?) -> ChromeInfoCard? {

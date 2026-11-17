@@ -213,4 +213,102 @@ final class ChromeStateTests: XCTestCase {
             }
         }
     }
+
+    // MARK: - 083 今夜最小反馈
+
+    func testTonightControlReflectsAlignmentState() {
+        let off = ChromeState.derive(route: .sky)
+        XCTAssertEqual(off.contextControls.first { $0.id == .skyTonight }?.isSelected, false)
+        XCTAssertEqual(off.statusLine.detail, "姿态跟随 · 转动手机环顾")
+
+        let on = ChromeState.derive(route: .sky, tonightAligned: true)
+        XCTAssertEqual(on.contextControls.first { $0.id == .skyTonight }?.isSelected, true)
+        XCTAssertEqual(on.statusLine.detail, "今夜此刻 · 时间已对齐")
+    }
+
+    func testTonightStatusTextOverrideSurvivesDerive() {
+        let chrome = ChromeState.derive(
+            route: .sky, tonightAligned: true, statusDetail: "正在获取位置…"
+        )
+        XCTAssertEqual(chrome.statusLine.detail, "正在获取位置…")
+        XCTAssertEqual(chrome.contextControls.first { $0.id == .skyTonight }?.isSelected, true)
+    }
+
+    func testTonightSelectionDoesNotLeakIntoCardMode() {
+        let chrome = ChromeState.derive(
+            route: .sky, mode: .card, selection: .star("织女星"), tonightAligned: true
+        )
+        XCTAssertEqual(chrome.statusLine.detail, "已选中 · 织女星")
+    }
+
+    // MARK: - 084 F1 再入锁定反馈 / F3 粗调精调选中态
+
+    func testReentryControlDisabledUntilUnlocked() {
+        let locked = ChromeState.derive(route: .tiangong)
+        XCTAssertEqual(locked.contextControls.first { $0.id == .tiangongReentry }?.isEnabled, false)
+
+        let unlocked = ChromeState.derive(route: .tiangong, reentryUnlocked: true)
+        XCTAssertEqual(unlocked.contextControls.first { $0.id == .tiangongReentry }?.isEnabled, true)
+    }
+
+    func testReentryLockHintUsesDesignCopy() {
+        XCTAssertEqual(ChromeState.reentryLockHint, "完成三步任务并看过史实后解锁")
+    }
+
+    func testDockingControlsHighlightCurrentModeOnly() {
+        let coarse = ChromeState.derive(route: .tiangong, mode: .docking)
+        XCTAssertEqual(coarse.contextControls.first { $0.id == .tiangongCoarse }?.isSelected, true)
+        XCTAssertEqual(coarse.contextControls.first { $0.id == .tiangongFine }?.isSelected, false)
+
+        let fine = ChromeState.derive(route: .tiangong, mode: .docking, dockingFine: true)
+        XCTAssertEqual(fine.contextControls.first { $0.id == .tiangongCoarse }?.isSelected, false)
+        XCTAssertEqual(fine.contextControls.first { $0.id == .tiangongFine }?.isSelected, true)
+    }
+
+    func testOtherControlsRemainEnabledAndUnselectedByDefault() {
+        for route in routes {
+            for mode in ChromeMode.allCases {
+                let chrome = ChromeState.derive(route: route, mode: mode)
+                for control in chrome.contextControls where control.id != .tiangongReentry {
+                    XCTAssertTrue(control.isEnabled, "\(route)/\(mode)/\(control.id)")
+                }
+            }
+        }
+    }
+
+    // MARK: - 081 舱内标注常显（仅剖面态）
+
+    func testCutawayShowsThreeInteriorLabels() {
+        let chrome = ChromeState.derive(route: .tiangong, mode: .cutaway)
+        let interior = chrome.visibleLabels.filter { $0.id.hasPrefix("interior-") }
+        XCTAssertEqual(interior.map(\.title), ["睡眠区", "健身区", "设备机柜"])
+    }
+
+    func testInteriorLabelsOnlyInCutaway() {
+        for mode in ChromeMode.allCases where mode != .cutaway {
+            let chrome = ChromeState.derive(route: .tiangong, mode: mode)
+            XCTAssertTrue(
+                chrome.visibleLabels.allSatisfy { !$0.id.hasPrefix("interior-") },
+                "\(mode)"
+            )
+        }
+        let sky = ChromeState.derive(route: .sky, mode: .cutaway)
+        XCTAssertTrue(sky.visibleLabels.isEmpty)
+    }
+
+    func testInteriorLabelsOrderedTopToBottom() {
+        let chrome = ChromeState.derive(route: .tiangong, mode: .cutaway)
+        XCTAssertEqual(
+            chrome.visibleLabels.map(\.id),
+            ["interior-sleep", "interior-gym", "interior-rack"]
+        )
+    }
+
+    func testInteriorLabelsCoexistWithSelectedModuleLabel() {
+        let chrome = ChromeState.derive(
+            route: .tiangong, mode: .cutaway, selection: .module(.lab)
+        )
+        XCTAssertTrue(chrome.visibleLabels.contains { $0.id == TiangongModuleID.lab.rawValue })
+        XCTAssertEqual(chrome.visibleLabels.filter { $0.id.hasPrefix("interior-") }.count, 3)
+    }
 }

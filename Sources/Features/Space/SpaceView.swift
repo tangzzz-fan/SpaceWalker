@@ -74,6 +74,7 @@ struct SpaceView: View {
         }
         .onChange(of: Int(state.days)) { _, _ in updateStatus() }
         .onChange(of: state.isPaused) { _, _ in updateStatus() }
+        .onChange(of: state.daysPerSecond) { _, _ in updateStatus() }
         .onAppear(perform: updateStatus)
         .onReceive(ticker) { _ in tick() }
         .sheet(isPresented: $showsCredits) {
@@ -82,8 +83,11 @@ struct SpaceView: View {
     }
 
     private func updateStatus() {
-        let phase = state.isPaused ? "已暂停" : "运行中"
-        store.dispatch(.chrome(.setStatus("\(phase) · 第 \(Int(state.days)) 天")))
+        store.dispatch(.chrome(.setStatus(
+            SolarSystemState.statusDetail(
+                days: state.days, isPaused: state.isPaused, rate: state.rateInRange
+            )
+        )))
     }
 
     private func registerActions() {

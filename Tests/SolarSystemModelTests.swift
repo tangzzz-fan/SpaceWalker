@@ -77,4 +77,23 @@ final class SolarSystemModelTests: XCTestCase {
     func testSaturnIsTheOnlyRingedBody() {
         XCTAssertEqual(SolarSystem.bodies.filter(\.hasRing).map(\.id), [.saturn])
     }
+
+    // MARK: - 084 F4 状态条流速档位（PRD-UI:183「x 天/秒」）
+
+    func testRateStatusTextShowsDaysPerSecond() {
+        XCTAssertEqual(SolarSystemState.rateStatusText(1), "1 天/秒")
+        XCTAssertEqual(SolarSystemState.rateStatusText(5), "5 天/秒")
+        XCTAssertEqual(SolarSystemState.rateStatusText(0.1), "0.1 天/秒")
+    }
+
+    func testSpaceStatusLineCombinesPhaseDayAndRate() {
+        XCTAssertEqual(
+            SolarSystemState.statusDetail(days: 12.9, isPaused: false, rate: 3),
+            "运行中 · 第 12 天 · 3 天/秒"
+        )
+        XCTAssertEqual(
+            SolarSystemState.statusDetail(days: 0, isPaused: true, rate: 1),
+            "已暂停 · 第 0 天 · 1 天/秒"
+        )
+    }
 }
