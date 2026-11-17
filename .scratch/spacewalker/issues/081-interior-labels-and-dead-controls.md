@@ -1,7 +1,7 @@
 ---
 id: 081
 title: 舱内标注落地与死按钮清理
-status: ready-for-agent
+status: done
 stage: M3
 blocked_by: []
 ---
@@ -50,3 +50,16 @@ blocked_by: []
 - 「回退」（稿 C4）同为设计意图未实现，但不在本票范围；要做另开票。
 - 本票不影响 080 门禁：删按钮是缺陷修复，080 取证时需以含 764ee14 的包为准重取两张截图（旧 `080-device-*.png` 里天宫默认态不含这两个控件，不受影响；剖面/对接态未在 080 取证范围内）。
 - `status: ready-for-agent` 仅指「舱内标注」实现部分；删按钮部分已实施并附证据，状态流转仍由人确认。
+## 舱内标注实施记录（2026-11-17，A8 解除阻塞，06d2234）
+
+- 按 proposal.md 常显方案落地：`derive(.tiangong, mode: .cutaway)` visibleLabels 追加
+  interior-sleep/gym/rack 三条（排序：睡眠区→健身区→设备机柜）；
+  `TiangongScene.interiorAnchors()` 按名字查真实内景实体投影（rack 取 interior-rack-0），
+  几何不动、零新增 RealityKit 实体。
+- labelLayer 复用同一套 ForEach；**垂直避让 26pt**（三锚点相距几十 pt，等高上移会叠字，
+  首版截图查实后修复）；引线从锚点连到胶囊底缘；VoiceOver accessibilityLabel 逐条可读。
+- 字号 11pt（captionSize token），稿 12pt 差异登记 079-diff C5 为设计意图。
+- TDD：ChromeStateTests 4 条先红后绿；UI 验收
+  testCutawayInteriorLabelsVisibleAndAccessible（三 staticTexts 存在 + 退出剖面消失）通过。
+- 证据：docs/gates/M3/081-cutaway-interior-labels.png；上架截图第 6 张已重采。
+- 079-diff C5「部分」→「对齐」。基线 412 项 0 失败。081 全部范围销账。

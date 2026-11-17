@@ -3,9 +3,8 @@
 日期：2026-11-17 ｜ 触发：董事长真机实测「点击天宫一号的再入，我没看到效果，同类型都需要检查一下」
 关联：080 门禁（B4/B5）、081（死按钮）、083（不可达分支）、079 diff（C1/C4/C7）、PRD-UI:232
 
-> 状态：**方案已批（董事长 2026-11-17 07:58：F1–F4 全部批准，F2 采「自动进入」形态；
-> F5 登记不动）。实施触发 = 080 人工门禁签字后，与 081/083 同批 TDD**（不插队）。
-> 诊断阶段未动代码；实施时按 §4 顺序 F1+F3 → F2 → F4 → 全量回归 → 真机全链取证。
+> 状态：**F1–F4 已实施（2026-11-17，A8 解除阻塞，06d2234）**。F5 登记不动。
+> 单测 412 项 0 失败 + UI 验收 4 条通过；真机全链取证待设备重新可达（见实施记录）。
 
 ## 1. 现象
 
@@ -152,3 +151,21 @@ F1+F3 同批（ChromeControl 字段一次加齐）→ F2（任务链）→ F4（
 - 设计依据：PRD-UI-v1.md:232（置灰+说明+点击提示）、:183（x 天/秒）、:197（C4 粗调/精调）、
   :200（C7 最后一圈）；079 diff C1（任务条已裁「设计意图不验收」——注意：任务条不验收
   ≠ 任务链可以断，F2 是功能可达性缺陷不是 UI 对照差异）。
+## 6. 实施记录（2026-11-17，06d2234）
+
+- **F1**：`ChromeControl.isEnabled` + `derive(reentryUnlocked:)`；锁定态置灰但可点
+  （PRD「点击时提示」），点击 → 状态条 11pt「完成三步任务并看过史实后解锁」3 秒回落
+  （token 防竞态）+ SessionLog `tiangong.reentry locked=1`。
+  UI 验收 testReentryLockedTapShowsHintThenFallsBack 通过；
+  证据 084-reentry-locked-gray.png / 084-reentry-lock-hint.png。
+- **F2**：`advanceMission` assembly→docking 分支追加 `beginDocking()`；
+  单测 testClosureAutoBeginsDocking / testReentryUnlocksAfterChainAndHistory 覆盖全链。
+- **F3**：`setControlMode(_:)` 显式设档（同档不翻转），chrome 双控件 isSelected 高亮当前档；
+  dockingCard 内小按钮保留 toggleControlMode（内部改走 setControlMode）。
+- **F4**：`SolarSystemState.rateStatusText/statusDetail` 纯函数，状态条
+  「运行中 · 第 N 天 · x 天/秒」，daysPerSecond onChange 即时上屏；
+  UI 验收 testSolarRateVisibleInStatusLine 通过（顺带修正 LandscapeUITests
+  既有笔误 MODE=space→solarSystem，该值从未匹配过 initialRoute）。
+- 真机全链取证（拆解→装配→自动对接→成功→史实→再入解锁→三拍）：
+  设备 2026-11-17 08:13 无线掉线（unavailable），待重新可达后补；
+  链路逻辑已由单测全覆盖，真机取证为补充证据非逻辑验证。

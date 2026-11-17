@@ -1,7 +1,7 @@
 ---
 id: 083
 title: 今夜对齐态在 chrome 上不可见（tonight mode 不可达）
-status: ready-for-agent
+status: done
 stage: M3.1
 blocked_by: []
 ---
@@ -55,3 +55,13 @@ isSelected + statusText 断言 → 实现 → 重拍截图第 3 张 → 079-diff
 ## 边界
 
 不在 080 门禁取证范围内新增功能；当前仅登记，082 截图第 3 张以默认态顶位并注明。
+## 实施记录（2026-11-17，A8 解除阻塞后当日完成）
+
+- 方案二落地：`ChromeControl.isSelected/isEnabled` 字段 + `derive(tonightAligned:)`；
+  `SkyView.syncTonightChrome()` 消费 `observer.statusText`（stage/statusText onChange），
+  卡片态不抢「已选中」；`.tonight` 模式页维持不采用。
+- TDD：ChromeStateTests 3 条 + AppReducerTests 2 条先红后绿；
+  UI 验收 `testTonightAlignmentShowsSelectionAndStatus`（isSelected + statusText 前缀断言）通过。
+- 证据：`docs/gates/M3/083-tonight-aligned.png`；上架截图第 3 张已重采
+  （`docs/design/appstore-screenshots/03-sky-aligned.png`，今夜金色选中+对齐文案）。
+- 079-diff A5 已更新。基线 412 项单测 0 失败（06d2234）。

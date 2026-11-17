@@ -39,6 +39,6 @@ derive(.cutaway) 恢复控件 + session 增 `interiorLabelsVisible` 状态 + act
 
 ## 待董事长确认
 
-- [ ] 常显 vs 开关（推荐常显）
-- [ ] 字号 11pt token vs 稿 12pt（推荐沿用 token）
-- [ ] 实现时机：080 过后 vs 明示插队
+- [x] 常显（董事长批「按拟定执行」，2026-11-17 实施）
+- [x] 11pt token（差异登记 079-diff C5）
+- [x] A8 裁决解除阻塞（2026-11-17 07:57），当日实施完成（06d2234）
