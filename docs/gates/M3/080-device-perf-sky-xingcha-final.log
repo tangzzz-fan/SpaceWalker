@@ -1,0 +1,22 @@
+[4ms] # iPhone17,1 | Version 27.0 (Build 24A437) | app 1.0(1) | bundle com.tango.xingcha
+[42ms] sky.session boot
+[43ms] tiangong.session boot separated=0
+[96ms] sky.catalog stars=2996 elapsedMs=21
+[97ms] sky.motion started intervalMs=17
+[270ms] sky.orient angle=0
+[270ms] sky.layout 402x574 portrait
+[369ms] sky.budget entities=17 meshes=13 constellation=724 asterism=814 pattern=98
+[370ms] sky.perf avg=0.0 min=0.0 hitch=0.0% thermal=nominal layers=line+outline+asterism
+[370ms] sky.motion convention=device->reference
+[371ms] sky.region name=Oct distance=2.3
+[373ms] app.flags culture=1 deep=0
+[5609ms] sky.perf avg=60.1 min=44.1 hitch=0.0% thermal=nominal layers=line+outline+asterism
+[10760ms] sky.perf avg=60.1 min=44.3 hitch=0.0% thermal=nominal layers=line+outline+asterism
+[16014ms] sky.perf avg=60.1 min=44.1 hitch=0.0% thermal=nominal layers=line+outline+asterism
+[21145ms] sky.perf avg=60.0 min=44.0 hitch=0.0% thermal=nominal layers=line+outline+asterism
+[26264ms] sky.perf avg=59.9 min=44.4 hitch=0.0% thermal=nominal layers=line+outline+asterism
+[31433ms] sky.perf avg=60.1 min=44.0 hitch=0.0% thermal=nominal layers=line+outline+asterism
+[36631ms] sky.perf avg=60.0 min=45.0 hitch=0.0% thermal=nominal layers=line+outline+asterism
+[41715ms] sky.perf avg=60.1 min=45.2 hitch=0.0% thermal=nominal layers=line+outline+asterism
+[46885ms] sky.perf avg=60.1 min=45.0 hitch=0.0% thermal=nominal layers=line+outline+asterism
+[52050ms] sky.perf avg=59.9 min=44.6 hitch=0.0% thermal=nominal layers=line+outline+asterism
