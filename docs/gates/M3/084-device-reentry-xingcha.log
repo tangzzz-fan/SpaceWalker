@@ -1,0 +1,16 @@
+[7ms] # iPhone17,1 | Version 27.0 (Build 24A437) | app 1.0(1) | bundle com.tango.xingcha
+[50ms] sky.session boot
+[50ms] tiangong.session boot separated=0
+[401ms] tiangong.reentry start
+[610ms] tiangong.build ms=74 triangles=6244 entities=53 models=39
+[611ms] tiangong.attach modules=5
+[612ms] tiangong.budget triangles=6244
+[632ms] app.flags culture=1 deep=0
+[649ms] probe.fps avg=57.9 min=57.9 hitches=0
+[650ms] tiangong.fps avg=57.9 min=57.9 hitch=0
+[1628ms] tiangong.pick tiangong.pick ok=4/5 occluded=leftWing->resource failed=none
+[2698ms] tiangong.fps avg=59.9 min=41.8 hitch=0
+[4698ms] tiangong.fps avg=60.0 min=44.5 hitch=0
+[5499ms] tiangong.reentry phase=card
+[6698ms] probe.fps avg=58.5 min=15.3 hitches=1
+[6700ms] tiangong.fps avg=58.5 min=15.3 hitch=1

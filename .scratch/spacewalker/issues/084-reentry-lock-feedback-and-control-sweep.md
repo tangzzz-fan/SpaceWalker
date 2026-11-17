@@ -3,8 +3,8 @@
 日期：2026-11-17 ｜ 触发：董事长真机实测「点击天宫一号的再入，我没看到效果，同类型都需要检查一下」
 关联：080 门禁（B4/B5）、081（死按钮）、083（不可达分支）、079 diff（C1/C4/C7）、PRD-UI:232
 
-> 状态：**F1–F4 已实施（2026-11-17，A8 解除阻塞，06d2234）**。F5 登记不动。
-> 单测 412 项 0 失败 + UI 验收 4 条通过；真机全链取证待设备重新可达（见实施记录）。
+> 状态：**F1–F4 已实施 + 真机取证闭环（2026-11-17，06d2234）**。F5 登记不动。
+> 单测 412 项 0 失败 + 模拟器 UI 验收 4 条 + **真机 UI 验收 4 条全部通过**（20:17，有线）。
 
 ## 1. 现象
 
@@ -169,3 +169,38 @@ F1+F3 同批（ChromeControl 字段一次加齐）→ F2（任务链）→ F4（
 - 真机全链取证（拆解→装配→自动对接→成功→史实→再入解锁→三拍）：
   设备 2026-11-17 08:13 无线掉线（unavailable），待重新可达后补；
   链路逻辑已由单测全覆盖，真机取证为补充证据非逻辑验证。
+
+## 7. 真机全链取证记录（2026-11-17 20:10–20:18，Tango iPhone17,1 / iOS 27.0，有线）
+
+**开关链日志**（084-device-chain-xingcha.log）：
+`boot separated=4 → disassembly restored=4 → docking begin → attach modules=5`
+——四段分离态启动，attach 时 beginDocking 收拢（F2 同函数），神舟接近。
+
+**截图证据**（docs/gates/M3/）：
+- 084-device-chain-history.png：对接态「交会对接 · 稳定接近」+ 轴向距离卡 +
+  **粗调金色高亮（F3 真机实证）** + 模型合拢 + 神舟在侧
+- 084-device-history-sheet.png：史实面板（2011-09-29 发射 / 2016-03-16 终止 /
+  2018-04-02 再入南太平洋中部 / 任务里程碑 / 出处第 15 条）——markMilestonesRead 触发点
+- 再入三幕 + 终幕（TG_REENTRY + TG_FREEZE 冻结时钟定点拍摄）：
+  - 084-device-reentry-coast.png：t=3 滑行幕，完整组合体，「轨道高度衰减」
+  - 084-device-reentry-heating-breakup-early.png：加热幕，橙红烧蚀，「再入大气层 · 气动加热」
+  - 084-device-reentry-breakup-late.png：t=19 深解体，翼已消失舱段烧蚀，「结构解体」
+  - 084-device-reentry-card.png：终幕史实卡「再入大气层 2018-04-02 南太平洋中部」+ 再看一次/关闭
+
+**真机 UI 验收 4 条全过**（/tmp/spacewalker-084-device-ui5.log，xcresult 在 build/Logs/Test/）：
+testCutawayInteriorLabelsVisibleAndAccessible 12.8s（081）/
+testReentryLockedTapShowsHintThenFallsBack 14.7s（F1 置灰点击提示+3s 回落）/
+testSolarRateVisibleInStatusLine 11.4s（F4）/
+testTonightAlignmentShowsSelectionAndStatus 9.4s（083）。
+
+**口径登记（不代裁）**：
+- 生产路径「装配完成→自动对接」的触发分支由单测 testClosureAutoBeginsDocking 覆盖；
+  真机取证用 TG_DOCK 开关直达 beginDocking（同一函数），交互装配段无头不可驱动。
+- docked→complete→史实按钮出现→再入解锁的生产交互链由单测
+  testReentryUnlocksAfterChainAndHistory 覆盖；真机以开关+UI 测试分段实证。
+- TG_HISTORY 与 TG_DOCK 同开时史实面板被对接态覆盖（syncMode 优先级 docking>history），
+  系开关组合局限非生产缺陷（生产史实入口在 complete 后）。
+- **exit 74 排障**：残留 runner 进程占用 IDE 测试通道，清场即过——
+  findings 已写（.scratch/findings/2026-11-17-真机UITest-runner-exit74-*.md）。
+
+084 全部范围销账。
