@@ -47,6 +47,7 @@ B3 日志统计已代采（runbook §5b），**录屏与达标签字仍归人**�
 | C4 | 截图挑选上传 | 6 张已采集并核对尺寸（全部 1320×2868 ✓，2026-11-17）：`docs/design/appstore-screenshots/`；080 过后（081/083/084 落地）跑 `tools/appstore-screenshots.sh` 重采受影响画面（第 3 张今夜态、天宫标注态）；人工核对构图/挑选/排序，可选加文案框；**A2 已裁 iPhone-only，无需 iPad 截图**；上传 ASC | ASC 截图（6.9" 竖屏） |
 | C5 | ~~Archive~~ **已完成（2026-11-17）**：`~/Developments/SpaceWalker-release/星槎-1.0-1.ipa`（8.6MB，Distribution 签名/get-task-allow=false/1.0(1)/iPhone-only/icon 无 alpha 全校验 ✓）。**剩余人工 = Transporter 拖入上传**（ASC-STEPS ②，无需 API key） | ASC 构建版本 |
 | C6 | 提交审核 | `ASC-STEPS.md` ⑦：选构建 1.0(1) → 添加至审核 → 提交；出口合规已预答不弹问卷；被拒按意见回票（agent 待命） | 审核状态 |
+| C7 | **2.1 补充材料（2026-11-18 收到）** | ① 按 `docs/appstore/REVIEW-NOTES-1.0.md` §3 分镜，在真机 Tango（iPhone 16 Pro，iOS 27.0）录屏，从桌面冷启动起录，一镜到底 5 分半内；② 视频上传（ASC 附件 + 未列出链接双保险）；③ 把链接替换 §2 第 3 段 `<RECORDING-URL>`，全文粘贴进 ASC Notes（≤4000 字节）；④ Resolution Center 回「materials added」后重新提交 | 录屏文件 + ASC Notes 截图 |
 
 ## D. agent 待命项（人确认即触发，不需人工动手）
 
