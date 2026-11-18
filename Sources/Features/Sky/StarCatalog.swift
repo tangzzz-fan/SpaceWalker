@@ -10,6 +10,7 @@ struct Star: Equatable, Sendable {
     var constellation: String
     var hipparcos: Int?
     var isCompanion: Bool = false
+    var distanceLightYears: Double?
 
     var isNamed: Bool {
         !name.isEmpty
@@ -46,7 +47,8 @@ struct StarCatalog: Equatable, Sendable {
                 colorIndex: $0.ci,
                 name: $0.name,
                 constellation: $0.con,
-                hipparcos: $0.hip
+                hipparcos: $0.hip,
+                distanceLightYears: $0.dist
             )
         }
         markCompanions(in: &stars)
@@ -104,6 +106,7 @@ struct StarCatalog: Equatable, Sendable {
         var name: String
         var con: String
         var hip: Int?
+        var dist: Double?
     }
 }
 

@@ -15,7 +15,7 @@
 
 `ConstellationLines.swift` 由 `tools/build-constellation-lines.py` 生成：读 d3-celestial 的 GeoJSON 折线（顶点为 RA/Dec 度数），按 0.02° 反查本地星表，转成星名或 `#HIP`。410 个顶点里 409 个在 0.02° 内命中；英仙座有一个顶点离最近星 1.38°，该座整座退回手工连线。**图形与恒星用同一份 J2000 坐标，因此不会随岁差相对恒星错位。**
 
-`stars.json` 由原始 `hygdata_v41.csv`（约 32MB）过滤生成：剔除太阳、只保留视星等 ≤ 5.5 的恒星，字段 `ra/dec/mag/ci/name/con/hip`。`hip` 由 `tools/build-catalogs.py` 借 d3-celestial 的 6 等星表按坐标反查补齐。
+`stars.json` 由原始 `hygdata_v41.csv`（约 32MB）过滤生成：剔除太阳、只保留视星等 ≤ 5.5 的恒星，字段 `ra/dec/mag/ci/name/con/hip`。`hip` 由 `tools/build-catalogs.py` 借 d3-celestial 的 6 等星表按坐标反查补齐。`dist`（光年）由 `tools/add-star-distances.py` 从同一份 HYG v4.1 的视差距离换算，只补 464 颗专名星（460 颗有效；Polis、Babcock's star、Campbell's Hydrogen Star、3C 273 在 HYG 中为 100000 pc 占位值，视为缺失不写入）。
 
 `asterisms.json` 同样由该脚本从 Stellarium 的 `chinese/index.json` 生成：只保留成员星能在本星表中解析到的星官，并把 `lines` 里的 HIP 序列原样带过来。字段含义见 `GLOSSARY.md`。
 

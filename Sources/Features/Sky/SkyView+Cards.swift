@@ -515,7 +515,7 @@ extension SkyView {
             VStack(alignment: .leading, spacing: 14) {
                 Text("数据来源")
                     .font(.title3.weight(.semibold))
-                Text("恒星数据：HYG Database v4.1（CC BY-SA 4.0），由 Hipparcos、Yale BSC、Glise 等编目汇编。本次仅取视星等 ≤ 4.5 或有专名的 1102 颗。")
+                Text("恒星数据：HYG Database v4.1（CC BY-SA 4.0），由 Hipparcos、Yale BSC、Gliese 等编目汇编。本次收录 2996 颗（视星等 ≤ 5.5），其中 464 颗有专名，460 颗专名星附距离。")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 Text("星官与连线：Stellarium 中国星空文化（CC BY-SA），301 个星官、814 段连线。")
