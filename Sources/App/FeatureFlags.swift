@@ -9,7 +9,7 @@ enum AppFeature: String, TypedFeatureFlag, CaseIterable {
 
     var typedDefaultValue: Bool {
         switch self {
-        case .contentCulture: true
+        case .contentCulture: false
         case .contentDeep: false
         }
     }
@@ -28,8 +28,8 @@ enum AppFeature: String, TypedFeatureFlag, CaseIterable {
 }
 
 struct FeatureFlags: Equatable, Sendable {
-    /// 文化层：星官连线、星座释义、封神星榜。
-    var cultureEnabled = true
+    /// 演义文化层：封神星榜、封神名号行、水浒对照。星官与星座释义属天文主线，不受此开关。
+    var cultureEnabled = false
     /// 深度层：星群、今夜导览、水浒对照。
     var deepEnabled = false
 }

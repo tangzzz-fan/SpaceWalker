@@ -111,7 +111,7 @@ struct StarFinderView: View {
                 focusAsterism: initialFengshenFocus,
                 initialDepartment: initialFengshenDepartment,
                 initialQuery: initialFengshenQuery,
-                showsShuihu: store.state.flags.deepEnabled
+                showsShuihu: store.state.flags.deepEnabled && store.state.flags.cultureEnabled
             ) { asterism in
                 showsFengshen = false
                 locate(asterism: asterism)
@@ -207,7 +207,9 @@ struct StarFinderView: View {
         } header: {
             Text("星官与星宿")
         } footer: {
-            Text("星官是中国传统的星组划分，与西方星座边界不重合。搜索星宿名或封神名号（如「参水猿」）也能直接定位。")
+            Text(store.state.flags.cultureEnabled
+                ? "星官是中国传统的星组划分，与西方星座边界不重合。搜索星宿名或封神名号（如「参水猿」）也能直接定位。"
+                : "星官是中国传统的星组划分，与西方星座边界不重合。搜索星宿名（如「参宿」）可直接定位。")
         }
     }
 
@@ -229,7 +231,7 @@ struct StarFinderView: View {
                     }
                     HStack(spacing: 6) {
                         Text(group.subtitle)
-                        if let line = group.fengshenLine {
+                        if let line = group.fengshenLine, store.state.flags.cultureEnabled {
                             Text(line)
                         }
                     }

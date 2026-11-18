@@ -48,7 +48,7 @@ extension SkyView {
         )
         if LaunchMode.allLayersEnabled(environment: ProcessInfo.processInfo.environment) {
             session.showsOutlines = true
-            session.showsAsterisms = store.state.flags.cultureEnabled
+            session.showsAsterisms = true
             session.showsPatterns = store.state.flags.deepEnabled
             scene.setConstellationsVisible(session.showsConstellations)
             scene.setSilhouettesVisible(true)
@@ -251,7 +251,7 @@ extension SkyView {
         let step = session.attention.step(
             now: now,
             candidates: candidates.forAttention(
-                cultureEnabled: store.state.flags.cultureEnabled,
+                cultureEnabled: true,
                 showsConstellations: session.showsConstellations,
                 showsPatterns: session.showsPatterns
             )

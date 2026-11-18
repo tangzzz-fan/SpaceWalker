@@ -76,6 +76,7 @@ struct ChromePrimaryAction: Equatable, Sendable {
 
 enum ChromeControlID: Equatable, Sendable, Hashable {
     case skyLayers
+    case skyCulture
     case skyTonight
     case skyAttitude
     case skyCategoryStars
@@ -159,6 +160,7 @@ struct ChromeState: Equatable, Sendable {
         tonightAligned: Bool = false,
         reentryUnlocked: Bool = false,
         dockingFine: Bool = false,
+        cultureEnabled: Bool = false,
         statusDetail: String? = nil
     ) -> ChromeState {
         var status = statusLine(
@@ -182,7 +184,8 @@ struct ChromeState: Equatable, Sendable {
                 route: route, mode: mode,
                 tonightAligned: tonightAligned,
                 reentryUnlocked: reentryUnlocked,
-                dockingFine: dockingFine
+                dockingFine: dockingFine,
+                cultureEnabled: cultureEnabled
             ),
             visibleLabels: labels(for: selection, route: route, mode: mode),
             infoCard: card(for: selection),
@@ -309,7 +312,8 @@ struct ChromeState: Equatable, Sendable {
         mode: ChromeMode,
         tonightAligned: Bool = false,
         reentryUnlocked: Bool = false,
-        dockingFine: Bool = false
+        dockingFine: Bool = false,
+        cultureEnabled: Bool = false
     ) -> [ChromeControl] {
         switch route {
         case .sky:
@@ -330,7 +334,8 @@ struct ChromeState: Equatable, Sendable {
                 return [
                     ChromeControl(id: .skyLayers, title: "图层", symbol: "square.3.layers.3d"),
                     ChromeControl(id: .skyTonight, title: "今夜", symbol: "location", isSelected: tonightAligned),
-                    ChromeControl(id: .skyAttitude, title: "姿态", symbol: "gyroscope")
+                    ChromeControl(id: .skyAttitude, title: "姿态", symbol: "gyroscope"),
+                    ChromeControl(id: .skyCulture, title: "文化", symbol: "scroll", isSelected: cultureEnabled)
                 ]
             }
         case .solar:

@@ -173,13 +173,13 @@ extension SkyView {
 
     /// 星座轮廓内落着哪几组中国星官。太长的列表对卡片没意义，取前三。
     func asterismsLine(_ constellation: Constellation) -> String? {
-        guard store.state.flags.cultureEnabled else { return nil }
         let names = scene.asterisms(in: constellation.abbreviation).prefix(3).map(\.name)
         return names.isEmpty ? nil : names.joined(separator: " · ")
     }
 
     func asterismCard(_ asterism: Asterism) -> some View {
-        let lords = FengshenInfo.lords(forAsterism: asterism.name)
+        let lords = store.state.flags.cultureEnabled
+            ? FengshenInfo.lords(forAsterism: asterism.name) : []
         return VStack(alignment: .leading, spacing: 5) {
             HStack(alignment: .firstTextBaseline, spacing: 6) {
                 Image(systemName: "circle.grid.3x3")
@@ -280,7 +280,7 @@ extension SkyView {
                     .padding(.vertical, 3)
                     .background(.white.opacity(0.12), in: Capsule())
             }
-            if let line = group.fengshenLine {
+            if let line = group.fengshenLine, store.state.flags.cultureEnabled {
                 Button {
                     fengshenFocus = AsterismFocus(id: group.title)
                 } label: {
@@ -400,7 +400,8 @@ extension SkyView {
                     .font(.caption2)
                     .foregroundStyle(.secondary)
             }
-            if let line = display.fengshenLine, let asterism = display.asterism?.name {
+            if let line = display.fengshenLine, let asterism = display.asterism?.name,
+               store.state.flags.cultureEnabled {
                 Button {
                     fengshenFocus = AsterismFocus(id: asterism)
                 } label: {

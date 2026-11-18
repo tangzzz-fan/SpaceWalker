@@ -39,11 +39,12 @@ final class ChromeStateTests: XCTestCase {
         }
     }
 
-    func testContextControlsAreAtMostThreeAndAllLabeled() {
+    func testContextControlsAreBoundedAndAllLabeled() {
         for route in routes {
             for mode in ChromeMode.allCases {
                 let chrome = ChromeState.derive(route: route, mode: mode)
-                XCTAssertLessThanOrEqual(chrome.contextControls.count, 3, "\(route)/\(mode)")
+                let limit = (route == .sky && mode != .finder && mode != .tonight) ? 4 : 3
+                XCTAssertLessThanOrEqual(chrome.contextControls.count, limit, "\(route)/\(mode)")
                 XCTAssertTrue(chrome.contextControls.allSatisfy { !$0.title.isEmpty }, "\(route)/\(mode)")
             }
         }

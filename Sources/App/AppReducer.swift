@@ -27,6 +27,7 @@ func makeAppReducer() -> Reducer<AppState, AppAction> {
             reduceChrome(&state, chromeAction)
         case .flagsLoaded(let flags):
             state.flags = flags
+            recomputeChrome(&state)
         }
     }
 }
@@ -46,7 +47,8 @@ private func navigate(_ state: inout AppState, to target: ScaleLevel) {
         selection: restored,
         diagnosticsEnabled: false,
         theme: state.chrome.theme,
-        reentryUnlocked: state.chrome.reentryUnlocked
+        reentryUnlocked: state.chrome.reentryUnlocked,
+        cultureEnabled: state.flags.cultureEnabled
     )
 }
 
@@ -78,7 +80,8 @@ private func recomputeChrome(
         theme: theme ?? state.chrome.theme,
         tonightAligned: tonightAligned ?? state.chrome.tonightAligned,
         reentryUnlocked: reentryUnlocked ?? state.chrome.reentryUnlocked,
-        dockingFine: dockingFine ?? state.chrome.dockingFine
+        dockingFine: dockingFine ?? state.chrome.dockingFine,
+        cultureEnabled: state.flags.cultureEnabled
     )
 }
 

@@ -109,7 +109,7 @@ struct SkyView: View {
         .sheet(item: $fengshenFocus) { target in
             FengshenBoardView(
                 focusAsterism: target.id,
-                showsShuihu: store.state.flags.deepEnabled
+                showsShuihu: store.state.flags.deepEnabled && store.state.flags.cultureEnabled
             ) { asterism in
                 fengshenFocus = nil
                 if let group = SkyGroupIndex.group(forAsterism: asterism, in: session.groups) {
@@ -230,6 +230,11 @@ struct SkyView: View {
                 toggleAlignment()
             case .skyAttitude:
                 session.setFollowsAttitude(!session.followsAttitude)
+            case .skyCulture:
+                store.dispatch(.flagsLoaded(FeatureFlags(
+                    cultureEnabled: !store.state.flags.cultureEnabled,
+                    deepEnabled: store.state.flags.deepEnabled
+                )))
             case .skyCity:
                 showsFinder = true
             case .skyResetTime:
@@ -280,14 +285,23 @@ struct SkyLayersSheet: View {
     @Environment(Store<AppState, AppAction>.self) private var store
     @Bindable var session: SkySession
 
+    private var cultureBinding: Binding<Bool> {
+        Binding(
+            get: { store.state.flags.cultureEnabled },
+            set: { store.dispatch(.flagsLoaded(FeatureFlags(
+                cultureEnabled: $0,
+                deepEnabled: store.state.flags.deepEnabled
+            ))) }
+        )
+    }
+
     var body: some View {
         NavigationStack {
             List {
                 Toggle("星座连线", isOn: $session.showsConstellations)
                 Toggle("星座轮廓", isOn: $session.showsOutlines)
-                if store.state.flags.cultureEnabled {
-                    Toggle("星官连线", isOn: $session.showsAsterisms)
-                }
+                Toggle("星官连线", isOn: $session.showsAsterisms)
+                Toggle("文化（封神 · 水浒）", isOn: cultureBinding)
                 if store.state.flags.deepEnabled {
                     Toggle("星群（大三角）", isOn: $session.showsPatterns)
                 }
