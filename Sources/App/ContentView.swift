@@ -14,7 +14,9 @@ struct ContentView: View {
                 SpaceView(actions: actions)
             case .sky:
                 SkyView(actions: actions, session: skySession)
-            case .earthOrbit, .tiangong:
+            case .earthOrbit:
+                EarthOrbitView(actions: actions)
+            case .tiangong:
                 TiangongView(actions: actions, session: tiangongSession)
             }
         }
