@@ -53,6 +53,9 @@ struct SpaceView: View {
 
             VStack(alignment: .leading, spacing: 0) {
                 Spacer(minLength: 0)
+                timeScrubber
+                    .padding(.horizontal, ChromeTokens.edgePadding)
+                    .padding(.bottom, 6)
                 if store.state.chrome.infoCard != nil, let selectedBody {
                     infoCard(selectedBody)
                         .padding(.horizontal, ChromeTokens.edgePadding)
@@ -80,6 +83,38 @@ struct SpaceView: View {
         .sheet(isPresented: $showsCredits) {
             creditsSheet
         }
+    }
+
+    private var timeScrubber: some View {
+        VStack(spacing: 2) {
+            Slider(
+                value: Binding(
+                    get: { store.state.space.days },
+                    set: { store.dispatch(.space(.scrub(days: $0))) }
+                ),
+                in: SolarSystemState.scrubRange
+            )
+            .accessibilityLabel("时间轴")
+            HStack {
+                Text("−1 年")
+                Spacer()
+                Text(timeScrubLabel)
+                Spacer()
+                Text("+1 年")
+            }
+            .font(.system(size: ChromeTokens.captionSize))
+            .foregroundStyle(ChromeTokens.secondaryText)
+        }
+    }
+
+    private var timeScrubLabel: String {
+        let days = store.state.space.days
+        if abs(days) < 0.5 { return "今天" }
+        let date = Date(timeIntervalSince1970: (store.state.space.julianDay - 2_440_587.5) * 86400)
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "Asia/Shanghai")!
+        let parts = calendar.dateComponents([.year, .month, .day], from: date)
+        return String(format: "%04d-%02d-%02d", parts.year ?? 0, parts.month ?? 0, parts.day ?? 0)
     }
 
     private func updateStatus() {
@@ -134,14 +169,14 @@ struct SpaceView: View {
             probe.attach(content)
             #endif
             scene.apply(
-                days: store.state.space.days,
+                julianDay: store.state.space.julianDay,
                 showsOrbits: store.state.space.showsOrbits,
                 rig: rig,
                 selected: store.state.space.selected
             )
         } update: { _ in
             scene.apply(
-                days: store.state.space.days,
+                julianDay: store.state.space.julianDay,
                 showsOrbits: store.state.space.showsOrbits,
                 rig: rig,
                 selected: store.state.space.selected
@@ -214,6 +249,11 @@ struct SpaceView: View {
                 Text(String(format: "距日 %.3f AU · 公转 %.1f 地球日", body.semiMajorAxisAU, body.orbitalPeriodDays))
                     .font(.system(size: ChromeTokens.labelSize))
                     .foregroundStyle(ChromeTokens.secondaryText)
+                if let light = SolarLayout.lightTravelText(for: body, julianDay: state.julianDay) {
+                    Text(light)
+                        .font(.system(size: ChromeTokens.labelSize))
+                        .foregroundStyle(ChromeTokens.secondaryText)
+                }
             }
             Text(body.blurb)
                 .font(.system(size: ChromeTokens.labelSize))
@@ -248,11 +288,11 @@ struct SpaceView: View {
                 )
                 creditRow(
                     title: "恒星数据",
-                    detail: "Gaia DR2 · ESA/Gaia/DPAC"
+                    detail: "HYG Database v4.1（CC BY-SA 4.0）· Hipparcos / Yale BSC / Gliese 汇编"
                 )
                 creditRow(
-                    title: "行星参数",
-                    detail: "NASA Planetary Fact Sheet · JPL Solar System Dynamics"
+                    title: "行星参数与位置",
+                    detail: "NASA Planetary Fact Sheet · JPL Approximate Positions of the Planets（Standish）· 月球 Meeus 低精度算法"
                 )
 
                 Text("NASA 未参与本项目，也未对其背书。本应用不使用 NASA 标识。")

@@ -43,19 +43,20 @@ final class SolarSystemModelTests: XCTestCase {
 
     func testSunSitsAtOrigin() {
         let sun = SolarSystem.body(.sun)!
-        XCTAssertEqual(SolarLayout.position(for: sun, days: 12), .zero)
+        XCTAssertEqual(SolarLayout.position(for: sun, julianDay: 2_461_362.5), .zero)
     }
 
-    func testPlanetReturnsToStartAfterOnePeriod() {
+    func testPlanetReturnsNearStartAfterOnePeriod() {
         let mercury = SolarSystem.body(.mercury)!
-        let start = SolarLayout.position(for: mercury, days: 0)
-        let after = SolarLayout.position(for: mercury, days: mercury.orbitalPeriodDays)
-        XCTAssertEqual(simd_distance(start, after), 0, accuracy: 0.001)
+        let jd = 2_461_362.5
+        let start = SolarLayout.position(for: mercury, julianDay: jd)
+        let after = SolarLayout.position(for: mercury, julianDay: jd + mercury.orbitalPeriodDays)
+        XCTAssertEqual(simd_distance(start, after), 0, accuracy: 0.02)
     }
 
     func testPositionStaysOnOrbitalPlane() {
         for planet in SolarSystem.planets {
-            let position = SolarLayout.position(for: planet, days: 137)
+            let position = SolarLayout.position(for: planet, julianDay: 2_461_362.5 + 137)
             XCTAssertEqual(position.y, 0, accuracy: 0.0001)
             XCTAssertEqual(
                 simd_length(position),
@@ -66,12 +67,24 @@ final class SolarSystemModelTests: XCTestCase {
     }
 
     func testOuterPlanetMovesSlowerThanInner() {
-        let mercury = SolarSystem.body(.mercury)!
-        let neptune = SolarSystem.body(.neptune)!
-        let mercuryTurns = SolarLayout.turns(for: mercury, days: 365) - mercury.startPhase
-        let neptuneTurns = SolarLayout.turns(for: neptune, days: 365) - neptune.startPhase
-        XCTAssertEqual(mercuryTurns, 365 / mercury.orbitalPeriodDays, accuracy: 0.001)
-        XCTAssertGreaterThan(mercuryTurns, neptuneTurns * 100)
+        let jd = 2_461_362.5
+        func swept(_ id: BodyID) -> Double {
+            var total = 0.0
+            var previous = SolarLayout.heliocentricLongitude(body: id, julianDay: jd)!
+            for step in 1...365 {
+                let current = SolarLayout.heliocentricLongitude(body: id, julianDay: jd + Double(step))!
+                var delta = current - previous
+                while delta < -.pi { delta += 2 * .pi }
+                while delta > .pi { delta -= 2 * .pi }
+                total += delta
+                previous = current
+            }
+            return total
+        }
+        let mercurySwept = swept(.mercury)
+        let neptuneSwept = swept(.neptune)
+        XCTAssertEqual(mercurySwept, 2 * .pi * 365 / 87.969, accuracy: 0.35)
+        XCTAssertGreaterThan(mercurySwept, neptuneSwept * 100)
     }
 
     func testSaturnIsTheOnlyRingedBody() {

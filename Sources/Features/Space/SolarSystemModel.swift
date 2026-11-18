@@ -31,7 +31,6 @@ struct SolarBody: Equatable, Sendable {
     let semiMajorAxisAU: Double
     let orbitalPeriodDays: Double
     let colorHex: UInt32
-    let startPhase: Double
     let blurb: String
 
     var hasRing: Bool {
@@ -50,7 +49,6 @@ enum SolarSystem {
             semiMajorAxisAU: 0,
             orbitalPeriodDays: 0,
             colorHex: 0xFFB347,
-            startPhase: 0,
             blurb: "太阳系唯一的恒星，质量占整个太阳系的 99.86%。"
         ),
         SolarBody(
@@ -62,7 +60,6 @@ enum SolarSystem {
             semiMajorAxisAU: 0.387,
             orbitalPeriodDays: 87.97,
             colorHex: 0x9C8C82,
-            startPhase: 0.10,
             blurb: "离太阳最近，公转只需 88 天，表面昼夜温差超过 600°C。"
         ),
         SolarBody(
@@ -74,7 +71,6 @@ enum SolarSystem {
             semiMajorAxisAU: 0.723,
             orbitalPeriodDays: 224.70,
             colorHex: 0xE6C79B,
-            startPhase: 0.55,
             blurb: "被浓密二氧化碳包裹，表面约 465°C，比水星更热。"
         ),
         SolarBody(
@@ -86,7 +82,6 @@ enum SolarSystem {
             semiMajorAxisAU: 1.0,
             orbitalPeriodDays: 365.26,
             colorHex: 0x3E7BD6,
-            startPhase: 0.0,
             blurb: "已知唯一存在生命的行星，71% 表面被液态水覆盖。"
         ),
         SolarBody(
@@ -98,7 +93,6 @@ enum SolarSystem {
             semiMajorAxisAU: 1.524,
             orbitalPeriodDays: 686.98,
             colorHex: 0xC1552F,
-            startPhase: 0.32,
             blurb: "拥有太阳系最高的火山奥林帕斯山，高约 22 公里。"
         ),
         SolarBody(
@@ -110,7 +104,6 @@ enum SolarSystem {
             semiMajorAxisAU: 5.203,
             orbitalPeriodDays: 4_332.59,
             colorHex: 0xD3A16A,
-            startPhase: 0.78,
             blurb: "质量是其余行星总和的 2.5 倍，大红斑是持续数百年的风暴。"
         ),
         SolarBody(
@@ -122,7 +115,6 @@ enum SolarSystem {
             semiMajorAxisAU: 9.537,
             orbitalPeriodDays: 10_759.22,
             colorHex: 0xF0D9A0,
-            startPhase: 0.18,
             blurb: "环主要由冰与岩石碎块组成，厚度平均不足 100 米。"
         ),
         SolarBody(
@@ -134,7 +126,6 @@ enum SolarSystem {
             semiMajorAxisAU: 19.19,
             orbitalPeriodDays: 30_688.5,
             colorHex: 0x8FD3D8,
-            startPhase: 0.63,
             blurb: "自转轴几乎躺倒在轨道面上，倾角约 98°。"
         ),
         SolarBody(
@@ -146,7 +137,6 @@ enum SolarSystem {
             semiMajorAxisAU: 30.07,
             orbitalPeriodDays: 60_182,
             colorHex: 0x4C6FD6,
-            startPhase: 0.41,
             blurb: "风速可达 2100 km/h，是太阳系风暴最猛烈的行星。"
         ),
     ]
@@ -184,21 +174,53 @@ enum SolarLayout {
         return min(scaled, sunDisplayRadiusCap)
     }
 
-    static func turns(for body: SolarBody, days: Double) -> Double {
-        guard body.orbitalPeriodDays > 0 else { return 0 }
-        return days / body.orbitalPeriodDays + body.startPhase
+    static func heliocentricLongitude(body: BodyID, julianDay: Double) -> Double? {
+        guard let body = SolarSystem.body(body), body.semiMajorAxisAU > 0,
+              let vector = Ephemeris.heliocentricEcliptic(
+                  of: ephemerisBody(body.id), julianDay: julianDay
+              )
+        else { return nil }
+        var longitude = atan2(vector.y, vector.x)
+        if longitude < 0 { longitude += 2 * .pi }
+        return longitude
     }
 
-    static func angle(for body: SolarBody, days: Double) -> Float {
-        guard body.orbitalPeriodDays > 0 else { return 0 }
-        let fraction = turns(for: body, days: days).truncatingRemainder(dividingBy: 1)
-        return Float(fraction * 2 * Double.pi)
-    }
-
-    static func position(for body: SolarBody, days: Double) -> SIMD3<Float> {
+    static func position(for body: SolarBody, julianDay: Double) -> SIMD3<Float> {
         let radius = orbitRadius(for: body)
-        guard radius > 0 else { return .zero }
-        let theta = angle(for: body, days: days)
-        return SIMD3(cos(theta) * radius, 0, sin(theta) * radius)
+        guard radius > 0,
+              let theta = heliocentricLongitude(body: body.id, julianDay: julianDay)
+        else { return .zero }
+        return SIMD3(cos(Float(theta)) * radius, 0, sin(Float(theta)) * radius)
+    }
+
+    static func ephemerisBody(_ id: BodyID) -> EphemerisBody {
+        switch id {
+        case .sun: .sun
+        case .mercury: .mercury
+        case .venus: .venus
+        case .earth: .earth
+        case .mars: .mars
+        case .jupiter: .jupiter
+        case .saturn: .saturn
+        case .uranus: .uranus
+        case .neptune: .neptune
+        }
+    }
+
+    static func lightTravelText(for body: SolarBody, julianDay: Double) -> String? {
+        guard body.semiMajorAxisAU > 0,
+              let vector = Ephemeris.heliocentricEcliptic(
+                  of: ephemerisBody(body.id), julianDay: julianDay
+              )
+        else { return nil }
+        let distanceAU = (vector.x * vector.x + vector.y * vector.y + vector.z * vector.z).squareRoot()
+        let seconds = Ephemeris.lightTravelSeconds(distanceAU: distanceAU)
+        if seconds < 90 {
+            return String(format: "光从太阳到这里需要 %.0f 秒", seconds)
+        }
+        if seconds < 5400 {
+            return String(format: "光从太阳到这里需要 %.1f 分钟", seconds / 60)
+        }
+        return String(format: "光从太阳到这里需要 %.1f 小时", seconds / 3600)
     }
 }

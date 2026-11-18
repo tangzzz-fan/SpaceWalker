@@ -56,10 +56,10 @@ final class SolarSystemScene {
         }
     }
 
-    func apply(days: Double, showsOrbits: Bool, rig: OrbitRig, selected: BodyID?) {
+    func apply(julianDay: Double, showsOrbits: Bool, rig: OrbitRig, selected: BodyID?) {
         for planet in SolarSystem.bodies {
             guard let node = bodyNodes[planet.id] else { continue }
-            node.position = SolarLayout.position(for: planet, days: days)
+            node.position = SolarLayout.position(for: planet, julianDay: julianDay)
             let scale: Float = planet.id == selected ? Self.selectedScale : 1
             node.scale = SIMD3(scale, scale, scale)
         }

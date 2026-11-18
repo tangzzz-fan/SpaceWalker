@@ -46,13 +46,28 @@ final class SolarSystemReducerTests: XCTestCase {
         XCTAssertNil(state.selected)
     }
 
-    func testDaysWrapAtCeiling() {
+    func testDaysClampAtOneYear() {
         var state = SolarSystemState()
-        state.days = SolarSystemState.dayCeiling - 1
+        state.days = SolarSystemState.scrubRange.upperBound - 1
         SolarSystemReducer.reduce(&state, .setRate(30))
         SolarSystemReducer.reduce(&state, .advance(seconds: 10))
-        XCTAssertLessThan(state.days, SolarSystemState.dayCeiling)
-        XCTAssertGreaterThanOrEqual(state.days, 0)
+        XCTAssertEqual(state.days, SolarSystemState.scrubRange.upperBound, accuracy: 0.0001)
+    }
+
+    func testScrubClampsBothEnds() {
+        XCTAssertEqual(reduce([.scrub(days: 9999)]).days, SolarSystemState.scrubRange.upperBound)
+        XCTAssertEqual(reduce([.scrub(days: -9999)]).days, SolarSystemState.scrubRange.lowerBound)
+        XCTAssertEqual(reduce([.scrub(days: -100)]).days, -100, accuracy: 0.0001)
+    }
+
+    func testEpochIsTodayMidnightUTCPlus8() {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "Asia/Shanghai")!
+        let now = Date()
+        let state = SolarSystemState()
+        let expected = Ephemeris.julianDay(utc: calendar.startOfDay(for: now))
+        XCTAssertEqual(state.epochJulianDay, expected, accuracy: 1e-9)
+        XCTAssertEqual(state.julianDay, state.epochJulianDay + state.days, accuracy: 1e-9)
     }
 
     func testSelectionDoesNotResetTime() {
