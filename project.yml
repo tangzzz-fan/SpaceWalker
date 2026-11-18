@@ -93,6 +93,8 @@ targets:
     platform: iOS
     sources:
       - path: Tests
+      - path: Tests/Fixtures
+        buildPhase: resources
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.tango.xingchatests

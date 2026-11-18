@@ -1,0 +1,386 @@
+{
+ "source": "JPL Horizons API (ssd.jpl.nasa.gov/api/horizons.api)",
+ "queryParams": "EPHEM_TYPE=OBSERVER, CENTER='500@399' (geocentric), QUANTITIES='1' (astrometric RA/DEC ICRF/J2000), ANG_FORMAT=DEG, CAL_FORMAT=JD, CSV_FORMAT=YES, APPARENT= default (astrometric)",
+ "retrievedAt": "2026-11-19",
+ "note": "行星阈值 10 角分、月球 20 角分（NFR-11）。月球参考为 astrometric ICRF，与 J2000 星图同框架。",
+ "entries": [
+  {
+   "body": "sun",
+   "date": "2000-01-01",
+   "julianDay": 2451544.5,
+   "raDegrees": 280.73667,
+   "decDegrees": -23.07198
+  },
+  {
+   "body": "sun",
+   "date": "2010-06-15",
+   "julianDay": 2455362.5,
+   "raDegrees": 83.10572,
+   "decDegrees": 23.28652
+  },
+  {
+   "body": "sun",
+   "date": "2020-02-29",
+   "julianDay": 2458908.5,
+   "raDegrees": 341.15052,
+   "decDegrees": -7.97306
+  },
+  {
+   "body": "sun",
+   "date": "2026-11-18",
+   "julianDay": 2461362.5,
+   "raDegrees": 232.93956,
+   "decDegrees": -19.08114
+  },
+  {
+   "body": "sun",
+   "date": "2035-07-04",
+   "julianDay": 2464512.5,
+   "raDegrees": 102.40596,
+   "decDegrees": 22.94453
+  },
+  {
+   "body": "sun",
+   "date": "2049-12-31",
+   "julianDay": 2469806.5,
+   "raDegrees": 279.82899,
+   "decDegrees": -23.12518
+  },
+  {
+   "body": "mercury",
+   "date": "2000-01-01",
+   "julianDay": 2451544.5,
+   "raDegrees": 271.23107,
+   "decDegrees": -24.38019
+  },
+  {
+   "body": "mercury",
+   "date": "2010-06-15",
+   "julianDay": 2455362.5,
+   "raDegrees": 66.78477,
+   "decDegrees": 20.62702
+  },
+  {
+   "body": "mercury",
+   "date": "2020-02-29",
+   "julianDay": 2458908.5,
+   "raDegrees": 334.14835,
+   "decDegrees": -6.91093
+  },
+  {
+   "body": "mercury",
+   "date": "2026-11-18",
+   "julianDay": 2461362.5,
+   "raDegrees": 214.73224,
+   "decDegrees": -11.34775
+  },
+  {
+   "body": "mercury",
+   "date": "2035-07-04",
+   "julianDay": 2464512.5,
+   "raDegrees": 84.13119,
+   "decDegrees": 22.40606
+  },
+  {
+   "body": "mercury",
+   "date": "2049-12-31",
+   "julianDay": 2469806.5,
+   "raDegrees": 270.42044,
+   "decDegrees": -20.38421
+  },
+  {
+   "body": "venus",
+   "date": "2000-01-01",
+   "julianDay": 2451544.5,
+   "raDegrees": 239.28073,
+   "decDegrees": -18.31657
+  },
+  {
+   "body": "venus",
+   "date": "2010-06-15",
+   "julianDay": 2455362.5,
+   "raDegrees": 123.26345,
+   "decDegrees": 21.97834
+  },
+  {
+   "body": "venus",
+   "date": "2020-02-29",
+   "julianDay": 2458908.5,
+   "raDegrees": 21.87641,
+   "decDegrees": 10.28538
+  },
+  {
+   "body": "venus",
+   "date": "2026-11-18",
+   "julianDay": 2461362.5,
+   "raDegrees": 200.80031,
+   "decDegrees": -9.58969
+  },
+  {
+   "body": "venus",
+   "date": "2035-07-04",
+   "julianDay": 2464512.5,
+   "raDegrees": 91.42047,
+   "decDegrees": 23.43977
+  },
+  {
+   "body": "venus",
+   "date": "2049-12-31",
+   "julianDay": 2469806.5,
+   "raDegrees": 280.15481,
+   "decDegrees": -23.67549
+  },
+  {
+   "body": "moon",
+   "date": "2000-01-01",
+   "julianDay": 2451544.5,
+   "raDegrees": 216.67576,
+   "decDegrees": -8.99703
+  },
+  {
+   "body": "moon",
+   "date": "2010-06-15",
+   "julianDay": 2455362.5,
+   "raDegrees": 119.27435,
+   "decDegrees": 19.26099
+  },
+  {
+   "body": "moon",
+   "date": "2020-02-29",
+   "julianDay": 2458908.5,
+   "raDegrees": 36.95907,
+   "decDegrees": 10.0923
+  },
+  {
+   "body": "moon",
+   "date": "2026-11-18",
+   "julianDay": 2461362.5,
+   "raDegrees": 332.84012,
+   "decDegrees": -10.60655
+  },
+  {
+   "body": "moon",
+   "date": "2035-07-04",
+   "julianDay": 2464512.5,
+   "raDegrees": 80.73507,
+   "decDegrees": 18.22441
+  },
+  {
+   "body": "moon",
+   "date": "2049-12-31",
+   "julianDay": 2469806.5,
+   "raDegrees": 2.27024,
+   "decDegrees": 5.58209
+  },
+  {
+   "body": "mars",
+   "date": "2000-01-01",
+   "julianDay": 2451544.5,
+   "raDegrees": 330.15302,
+   "decDegrees": -13.3204
+  },
+  {
+   "body": "mars",
+   "date": "2010-06-15",
+   "julianDay": 2455362.5,
+   "raDegrees": 156.27368,
+   "decDegrees": 11.14062
+  },
+  {
+   "body": "mars",
+   "date": "2020-02-29",
+   "julianDay": 2458908.5,
+   "raDegrees": 279.11928,
+   "decDegrees": -23.56734
+  },
+  {
+   "body": "mars",
+   "date": "2026-11-18",
+   "julianDay": 2461362.5,
+   "raDegrees": 149.20991,
+   "decDegrees": 14.61983
+  },
+  {
+   "body": "mars",
+   "date": "2035-07-04",
+   "julianDay": 2464512.5,
+   "raDegrees": 349.93428,
+   "decDegrees": -8.66293
+  },
+  {
+   "body": "mars",
+   "date": "2049-12-31",
+   "julianDay": 2469806.5,
+   "raDegrees": 224.14758,
+   "decDegrees": -15.98362
+  },
+  {
+   "body": "jupiter",
+   "date": "2000-01-01",
+   "julianDay": 2451544.5,
+   "raDegrees": 23.85196,
+   "decDegrees": 8.58622
+  },
+  {
+   "body": "jupiter",
+   "date": "2010-06-15",
+   "julianDay": 2455362.5,
+   "raDegrees": 1.34906,
+   "decDegrees": -0.73309
+  },
+  {
+   "body": "jupiter",
+   "date": "2020-02-29",
+   "julianDay": 2458908.5,
+   "raDegrees": 290.66392,
+   "decDegrees": -22.08299
+  },
+  {
+   "body": "jupiter",
+   "date": "2026-11-18",
+   "julianDay": 2461362.5,
+   "raDegrees": 148.17065,
+   "decDegrees": 13.67607
+  },
+  {
+   "body": "jupiter",
+   "date": "2035-07-04",
+   "julianDay": 2464512.5,
+   "raDegrees": 41.45376,
+   "decDegrees": 14.86481
+  },
+  {
+   "body": "jupiter",
+   "date": "2049-12-31",
+   "julianDay": 2469806.5,
+   "raDegrees": 123.43044,
+   "decDegrees": 20.35261
+  },
+  {
+   "body": "saturn",
+   "date": "2000-01-01",
+   "julianDay": 2451544.5,
+   "raDegrees": 38.77666,
+   "decDegrees": 12.61718
+  },
+  {
+   "body": "saturn",
+   "date": "2010-06-15",
+   "julianDay": 2455362.5,
+   "raDegrees": 178.99861,
+   "decDegrees": 3.02292
+  },
+  {
+   "body": "saturn",
+   "date": "2020-02-29",
+   "julianDay": 2458908.5,
+   "raDegrees": 299.88174,
+   "decDegrees": -20.61944
+  },
+  {
+   "body": "saturn",
+   "date": "2026-11-18",
+   "julianDay": 2461362.5,
+   "raDegrees": 8.40446,
+   "decDegrees": 0.7585
+  },
+  {
+   "body": "saturn",
+   "date": "2035-07-04",
+   "julianDay": 2464512.5,
+   "raDegrees": 127.34885,
+   "decDegrees": 19.57336
+  },
+  {
+   "body": "saturn",
+   "date": "2049-12-31",
+   "julianDay": 2469806.5,
+   "raDegrees": 298.83588,
+   "decDegrees": -20.99716
+  },
+  {
+   "body": "uranus",
+   "date": "2000-01-01",
+   "julianDay": 2451544.5,
+   "raDegrees": 317.45873,
+   "decDegrees": -17.02632
+  },
+  {
+   "body": "uranus",
+   "date": "2010-06-15",
+   "julianDay": 2455362.5,
+   "raDegrees": 0.54441,
+   "decDegrees": -0.57895
+  },
+  {
+   "body": "uranus",
+   "date": "2020-02-29",
+   "julianDay": 2458908.5,
+   "raDegrees": 31.31209,
+   "decDegrees": 12.20305
+  },
+  {
+   "body": "uranus",
+   "date": "2026-11-18",
+   "julianDay": 2461362.5,
+   "raDegrees": 61.64055,
+   "decDegrees": 20.72754
+  },
+  {
+   "body": "uranus",
+   "date": "2035-07-04",
+   "julianDay": 2464512.5,
+   "raDegrees": 101.28527,
+   "decDegrees": 23.35858
+  },
+  {
+   "body": "uranus",
+   "date": "2049-12-31",
+   "julianDay": 2469806.5,
+   "raDegrees": 171.15076,
+   "decDegrees": 4.67005
+  },
+  {
+   "body": "neptune",
+   "date": "2000-01-01",
+   "julianDay": 2451544.5,
+   "raDegrees": 305.42433,
+   "decDegrees": -19.21642
+  },
+  {
+   "body": "neptune",
+   "date": "2010-06-15",
+   "julianDay": 2455362.5,
+   "raDegrees": 330.81392,
+   "decDegrees": -12.43243
+  },
+  {
+   "body": "neptune",
+   "date": "2020-02-29",
+   "julianDay": 2458908.5,
+   "raDegrees": 349.17904,
+   "decDegrees": -5.75587
+  },
+  {
+   "body": "neptune",
+   "date": "2026-11-18",
+   "julianDay": 2461362.5,
+   "raDegrees": 1.84934,
+   "decDegrees": -0.73148
+  },
+  {
+   "body": "neptune",
+   "date": "2035-07-04",
+   "julianDay": 2464512.5,
+   "raDegrees": 22.80281,
+   "decDegrees": 7.75917
+  },
+  {
+   "body": "neptune",
+   "date": "2049-12-31",
+   "julianDay": 2469806.5,
+   "raDegrees": 50.98232,
+   "decDegrees": 16.78883
+  }
+ ]
+}
