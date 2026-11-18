@@ -94,6 +94,13 @@ extension SkyScene {
                 best = (star, distance)
             }
         }
+        if let body = pickBody(at: point),
+           let projected = project(body, in: content) {
+            let distance = hypot(projected.x - point.x, projected.y - point.y)
+            if best == nil || distance < best!.distance {
+                best = (body, distance)
+            }
+        }
         return best?.star
     }
 
@@ -146,15 +153,22 @@ extension SkyScene {
 
     private func selectableStar(along direction: SIMD3<Float>) -> Star? {
         guard viewSize.height > 1 else { return nil }
-        guard let star = SkyPicker.nearest(to: direction, in: nodes, limit: 1).first else { return nil }
         // 准星半径是屏幕点，换算成角度才能与视场无关。换算要用投影焦距而不是线性近似：
         // 线性近似在 60° 视场下把 1.708° 算成 1.549°，圈边上的星会被准星拒绝、点选却接受。
         let focal = Double(viewSize.height) / 2 / tan(Double(fieldOfView) * .pi / 360)
         let tolerance = atan(Double(SkyPicker.crosshairRadius) / focal) * 180 / .pi
-        guard SkyPicker.offsetDegrees(SkyPicker.direction(for: star), direction) <= tolerance else {
-            return nil
+        var best: (star: Star, offset: Double)?
+        if let star = SkyPicker.nearest(to: direction, in: nodes, limit: 1).first {
+            let offset = SkyPicker.offsetDegrees(SkyPicker.direction(for: star), direction)
+            if offset <= tolerance { best = (star, offset) }
         }
-        return star
+        if let body = nearestBody(to: direction) {
+            let offset = SkyPicker.offsetDegrees(SkyPicker.direction(for: body), direction)
+            if offset <= tolerance, best == nil || offset < best!.offset {
+                best = (body, offset)
+            }
+        }
+        return best?.star
     }
 
     func renderedDirection(of star: Star) -> SIMD3<Float>? {

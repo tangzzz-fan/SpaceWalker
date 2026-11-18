@@ -19,6 +19,11 @@ func makeAppReducer() -> Reducer<AppState, AppAction> {
             navigate(&state, to: route)
         case .descend(let target):
             guard state.route.canDescend(to: target) else { break }
+            if target == .solar, case .body(let focused)? = state.chrome.selection {
+                state.space.selected = focused
+                state.space.days = 0
+                state.space.isPaused = true
+            }
             navigate(&state, to: target)
         case .ascend:
             guard let target = state.route.above else { break }

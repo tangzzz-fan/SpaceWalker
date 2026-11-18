@@ -26,6 +26,14 @@ extension SkyView {
             showsAsterismBrowser = true
         }
         startMotion()
+        let now = Date()
+        scene.buildBodies(julianDay: Ephemeris.julianDay(utc: now))
+        session.track(Task {
+            while !Task.isCancelled {
+                scene.updateBodies(julianDay: Ephemeris.julianDay(utc: session.observer.clock.instant()))
+                try? await Task.sleep(for: .seconds(2))
+            }
+        })
         if let location = LaunchMode.simulatedLocation(environment: ProcessInfo.processInfo.environment) {
             session.observer.applySimulatedLocation(latitude: location.latitude, longitude: location.longitude)
         } else if LaunchMode.autoAlignEnabled(environment: ProcessInfo.processInfo.environment), !session.observer.isOn {

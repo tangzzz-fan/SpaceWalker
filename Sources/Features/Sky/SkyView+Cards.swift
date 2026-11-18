@@ -421,6 +421,14 @@ extension SkyView {
             Text(String(format: "视星等 %.2f · 赤经 %.2fh · 赤纬 %.1f°", star.magnitude, star.rightAscensionHours, star.declinationDegrees))
                 .font(.caption)
                 .foregroundStyle(.secondary)
+            if let line = SkyBodies.distanceLine(for: star) {
+                Text(line)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
+            if let body = SkyBodies.body(for: star) {
+                bodyCardLines(body)
+            }
             if let horizontal = horizontal(for: star) {
                 Text(String(format: "高度 %.1f° · 方位 %.1f°（此刻）", horizontal.altitude, horizontal.azimuth))
                     .font(.caption2)
@@ -465,6 +473,39 @@ extension SkyView {
                     .foregroundStyle(.secondary)
             }
             .padding(10)
+        }
+    }
+
+    @ViewBuilder
+    func bodyCardLines(_ body: EphemerisBody) -> some View {
+        let jd = Ephemeris.julianDay(utc: session.observer.clock.instant())
+        if body == .moon {
+            let phase = Ephemeris.moonPhase(julianDay: jd)
+            Text(String(
+                format: "月相 · 照亮 %.0f%% · %@",
+                phase.illuminatedFraction * 100,
+                phase.waxing ? "渐盈" : "渐亏"
+            ))
+            .font(.caption2)
+            .foregroundStyle(.secondary)
+        } else if let id = SkyBodies.solarBodyID(for: body),
+                  let solarBody = SolarSystem.bodies.first(where: { $0.id == id }) {
+            if let light = SolarLayout.lightTravelText(for: solarBody, julianDay: jd) {
+                Text(light.replacingOccurrences(of: "光从太阳到这里", with: "此刻阳光到它"))
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
+            Button {
+                store.dispatch(.chrome(.select(.body(id))))
+                store.dispatch(.descend(.solar))
+                SessionLog.append("sky.bridge body=\(body.rawValue)")
+            } label: {
+                Label("进入太阳系", systemImage: "arrow.down.forward")
+                    .font(.caption)
+            }
+            .buttonStyle(.bordered)
+            .padding(.top, 4)
+            .accessibilityLabel("进入太阳系并聚焦\(solarBody.name)")
         }
     }
 

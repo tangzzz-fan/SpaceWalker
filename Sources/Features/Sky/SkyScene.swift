@@ -60,6 +60,11 @@ final class SkyScene {
     /// 星官命中用的天区：中心方向 + 覆盖半径，建场景时算一次。
     /// 只用「离最近成员星 2°」会漏掉井宿、角宿这种铺得很开的星官。
     var asterismFields: [AsterismField] = []
+    /// 日月行星：位置随日期走，不参与星表统计，单独一组节点。
+    var bodyNodeStorage: [BodyNode] = []
+    var bodyGroup: Entity?
+    var bodyJulianDay: Double = 0
+    static let bodySphereRadius: Float = 49.8
 
     struct AsterismField {
         var asterism: Asterism
