@@ -12,7 +12,7 @@ final class ChromeStateTests: XCTestCase {
         return state
     }
 
-    private let routes: [AppRoute] = [.sky, .solarSystem, .tiangong]
+    private let routes: [AppRoute] = ScaleLevel.allCases
 
     func testEveryModuleHasExactlyOnePrimaryAction() {
         var ids: Set<ChromePrimaryID> = []
@@ -21,7 +21,7 @@ final class ChromeStateTests: XCTestCase {
             XCTAssertFalse(chrome.primaryAction.title.isEmpty)
             ids.insert(chrome.primaryAction.id)
         }
-        XCTAssertEqual(ids.count, 3)
+        XCTAssertEqual(ids.count, 4)
     }
 
     func testPrimaryActionTitlesMatchDesignBaseline() {
@@ -81,7 +81,7 @@ final class ChromeStateTests: XCTestCase {
         XCTAssertEqual(selected.chrome.mode, .card)
         XCTAssertEqual(selected.chrome.selection, .module(.lab))
         XCTAssertEqual(selected.chrome.primaryAction.title, "装回")
-        XCTAssertEqual(selected.chrome.tabs.map(\.isSelected), [false, false, true])
+        XCTAssertEqual(selected.chrome.tabs.map(\.isSelected), [false, false, false, true])
     }
 
     func testRouteChangeResetsModeAndSelection() {
@@ -162,7 +162,7 @@ final class ChromeStateTests: XCTestCase {
         XCTAssertEqual(state.chrome.route, .tiangong)
         XCTAssertEqual(state.chrome.selection, .module(.lab))
         XCTAssertEqual(state.chrome.primaryAction.title, "分离")
-        XCTAssertEqual(state.chrome.tabs.map(\.isSelected), [false, false, true])
+        XCTAssertEqual(state.chrome.tabs.map(\.isSelected), [false, false, false, true])
     }
 
     func testRouteChangePreservesTheme() {

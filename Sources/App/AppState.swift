@@ -1,11 +1,10 @@
 import TGReduxKit
 
-enum AppRoute: Equatable, Hashable, Sendable {
-    case solarSystem
-    case sky
-    case tiangong
+typealias AppRoute = ScaleLevel
 
-    static let defaultRoute: AppRoute = .sky
+extension ScaleLevel {
+    static var solarSystem: ScaleLevel { .solar }
+    static var defaultRoute: ScaleLevel { .defaultLevel }
 }
 
 enum ChromeAction: Equatable, Sendable {
@@ -26,6 +25,7 @@ struct AppState: State {
     var chrome: ChromeState
     var space: SolarSystemState
     var flags: FeatureFlags
+    var savedSelections: [ScaleLevel: ChromeSelection] = [:]
 
     init(
         route: AppRoute = AppRoute.defaultRoute,
@@ -49,6 +49,8 @@ enum AppAction: Action {
     case appStarted
     case space(SolarSystemAction)
     case route(AppRoute)
+    case descend(ScaleLevel)
+    case ascend
     case chrome(ChromeAction)
     case flagsLoaded(FeatureFlags)
 }

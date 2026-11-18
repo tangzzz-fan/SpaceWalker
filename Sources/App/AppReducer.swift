@@ -16,14 +16,38 @@ func makeAppReducer() -> Reducer<AppState, AppAction> {
                 )
             }
         case .route(let route):
-            state.route = route
-            recomputeChrome(&state, diagnosticsEnabled: false, reset: true)
+            navigate(&state, to: route)
+        case .descend(let target):
+            guard state.route.canDescend(to: target) else { break }
+            navigate(&state, to: target)
+        case .ascend:
+            guard let target = state.route.above else { break }
+            navigate(&state, to: target)
         case .chrome(let chromeAction):
             reduceChrome(&state, chromeAction)
         case .flagsLoaded(let flags):
             state.flags = flags
         }
     }
+}
+
+private func navigate(_ state: inout AppState, to target: ScaleLevel) {
+    guard target != state.route else { return }
+    if let selection = state.chrome.selection {
+        state.savedSelections[state.route] = selection
+    } else {
+        state.savedSelections[state.route] = nil
+    }
+    let restored = state.savedSelections[target]
+    state.route = target
+    state.chrome = ChromeState.derive(
+        route: target,
+        mode: restored == nil ? .normal : .card,
+        selection: restored,
+        diagnosticsEnabled: false,
+        theme: state.chrome.theme,
+        reentryUnlocked: state.chrome.reentryUnlocked
+    )
 }
 
 private func recomputeChrome(

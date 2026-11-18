@@ -58,6 +58,7 @@ enum ChromePrimaryID: Equatable, Sendable, Hashable {
     case skyDismiss
     case spaceOverview
     case spaceFocus
+    case earthOrbitOverview
     case tiangongDisassemble
     case tiangongToggleSeparation
     case tiangongApproach
@@ -86,6 +87,7 @@ enum ChromeControlID: Equatable, Sendable, Hashable {
     case spacePause
     case spaceRate
     case spaceOrbits
+    case earthOrbitView
     case tiangongCutaway
     case tiangongDrawing
     case tiangongReentry
@@ -167,11 +169,9 @@ struct ChromeState: Equatable, Sendable {
         }
         return ChromeState(
             route: route,
-            tabs: [
-                ChromeTab(route: .sky, title: "星图", isSelected: route == .sky),
-                ChromeTab(route: .solarSystem, title: "太阳系", isSelected: route == .solarSystem),
-                ChromeTab(route: .tiangong, title: "天宫一号", isSelected: route == .tiangong)
-            ],
+            tabs: ScaleLevel.allCases.map {
+                ChromeTab(route: $0, title: $0.title, isSelected: route == $0)
+            },
             debugOverlay: .off,
             diagnosticsVisible: diagnosticsEnabled,
             mode: mode,
@@ -215,12 +215,19 @@ struct ChromeState: Equatable, Sendable {
                 }
                 return ChromeStatusLine(title: "星图", detail: "姿态跟随 · 转动手机环顾")
             }
-        case .solarSystem:
+        case .solar:
             switch mode {
             case .card:
                 return ChromeStatusLine(title: "太阳系", detail: "已选中 · \(selection?.title ?? "天体")")
             default:
                 return ChromeStatusLine(title: "太阳系", detail: "行星沿轨道运行")
+            }
+        case .earthOrbit:
+            switch mode {
+            case .card:
+                return ChromeStatusLine(title: "地月系", detail: "已选中 · \(selection?.title ?? "天体")")
+            default:
+                return ChromeStatusLine(title: "地月系", detail: "近地轨道 · 天宫在这里")
             }
         case .tiangong:
             switch mode {
@@ -260,13 +267,15 @@ struct ChromeState: Equatable, Sendable {
             default:
                 return ChromePrimaryAction(id: .skyFind, title: "找星", isEnabled: true)
             }
-        case .solarSystem:
+        case .solar:
             switch mode {
             case .card:
                 return ChromePrimaryAction(id: .spaceFocus, title: "聚焦", isEnabled: true)
             default:
                 return ChromePrimaryAction(id: .spaceOverview, title: "全览", isEnabled: true)
             }
+        case .earthOrbit:
+            return ChromePrimaryAction(id: .earthOrbitOverview, title: "全览", isEnabled: true)
         case .tiangong:
             switch mode {
             case .card:
@@ -324,11 +333,15 @@ struct ChromeState: Equatable, Sendable {
                     ChromeControl(id: .skyAttitude, title: "姿态", symbol: "gyroscope")
                 ]
             }
-        case .solarSystem:
+        case .solar:
             return [
                 ChromeControl(id: .spacePause, title: "暂停", symbol: "pause"),
                 ChromeControl(id: .spaceRate, title: "流速", symbol: "speedometer"),
                 ChromeControl(id: .spaceOrbits, title: "轨道", symbol: "circle.dashed")
+            ]
+        case .earthOrbit:
+            return [
+                ChromeControl(id: .earthOrbitView, title: "轨道近景", symbol: "globe.asia.australia")
             ]
         case .tiangong:
             switch mode {

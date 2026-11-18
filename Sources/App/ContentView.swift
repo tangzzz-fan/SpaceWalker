@@ -10,11 +10,11 @@ struct ContentView: View {
     var body: some View {
         Group {
             switch store.state.route {
-            case .solarSystem:
+            case .solar:
                 SpaceView(actions: actions)
             case .sky:
                 SkyView(actions: actions, session: skySession)
-            case .tiangong:
+            case .earthOrbit, .tiangong:
                 TiangongView(actions: actions, session: tiangongSession)
             }
         }

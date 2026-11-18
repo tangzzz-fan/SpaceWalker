@@ -39,7 +39,8 @@ enum LaunchMode {
 
     static func initialRoute(environment: [String: String]) -> AppRoute {
         switch environment[environmentKey] {
-        case "solarSystem": .solarSystem
+        case "solarSystem", "solar": .solar
+        case "earthOrbit": .earthOrbit
         case "tiangong": .tiangong
         default: AppRoute.defaultRoute
         }

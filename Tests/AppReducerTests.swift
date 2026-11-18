@@ -28,26 +28,26 @@ final class AppReducerTests: XCTestCase {
         XCTAssertEqual(state.route, .sky)
     }
 
-    func testDefaultChromeIsSkyWithThreeLabeledTabs() {
+    func testDefaultChromeIsSkyWithFourLabeledTabs() {
         let state = AppState()
         XCTAssertEqual(state.route, .sky)
         XCTAssertEqual(state.chrome.route, .sky)
-        XCTAssertEqual(state.chrome.tabs.map(\.title), ["星图", "太阳系", "天宫一号"])
-        XCTAssertEqual(state.chrome.tabs.map(\.route), [.sky, .solarSystem, .tiangong])
-        XCTAssertEqual(state.chrome.tabs.map(\.isSelected), [true, false, false])
+        XCTAssertEqual(state.chrome.tabs.map(\.title), ["星图", "太阳系", "地月系", "天宫一号"])
+        XCTAssertEqual(state.chrome.tabs.map(\.route), [.sky, .solar, .earthOrbit, .tiangong])
+        XCTAssertEqual(state.chrome.tabs.map(\.isSelected), [true, false, false, false])
     }
 
     func testRouteActionRecomputesChrome() {
         let state = reduce([.route(.tiangong)])
         XCTAssertEqual(state.route, .tiangong)
         XCTAssertEqual(state.chrome.route, .tiangong)
-        XCTAssertEqual(state.chrome.tabs.map(\.isSelected), [false, false, true])
-        XCTAssertEqual(state.chrome.tabs.count, 3)
+        XCTAssertEqual(state.chrome.tabs.map(\.isSelected), [false, false, false, true])
+        XCTAssertEqual(state.chrome.tabs.count, 4)
     }
 
     func testAppStartedDoesNotDesyncChrome() {
         let state = reduce([.appStarted], from: AppState(route: .tiangong))
-        XCTAssertEqual(state.chrome.tabs.map(\.isSelected), [false, false, true])
+        XCTAssertEqual(state.chrome.tabs.map(\.isSelected), [false, false, false, true])
         XCTAssertEqual(state.chrome.route, state.route)
     }
 
