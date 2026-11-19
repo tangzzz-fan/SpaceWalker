@@ -1,7 +1,8 @@
 import UIKit
 import XCTest
 
-/// 票 092 取证：真比例叙事的「播放中 / 复位后」两帧 + 全览按钮重入不重播。
+/// 票 092/095 取证：真比例叙事「播放中 / 复位后」+ 全览不重播；
+/// 天宫史实面板「回到轨道」ascend 到地月系。
 /// 走 SkyCheck scheme（UITest target 不进单测 scheme）：
 /// `xcodebuild test -scheme SkyCheck -destination 'platform=iOS Simulator,name=iPhone 18 Pro' -only-testing:SpaceWalkerUITests/ScaleNarrativeUITests`
 final class ScaleNarrativeUITests: XCTestCase {
@@ -54,6 +55,28 @@ final class ScaleNarrativeUITests: XCTestCase {
         usleep(800_000)
         XCTAssertFalse(ruler.exists, "播过之后全览不重播叙事")
         save("narrative-overview-again", app)
+    }
+
+    /// 095：史实面板「回到轨道」→ ascend 到地月系。
+    func testHistorySheetReturnsToOrbit() throws {
+        let app = XCUIApplication()
+        app.launchEnvironment = [
+            "SPACEWALKER_MODE": "tiangong",
+            "SPACEWALKER_TG_HISTORY": "1",
+        ]
+        app.launch()
+        XCTAssertTrue(app.wait(for: .runningForeground, timeout: 20))
+
+        let back = app.buttons["回到轨道"]
+        XCTAssertTrue(back.waitForExistence(timeout: 15), "史实面板应有回到轨道入口")
+        save("095-history-back-button", app)
+        back.tap()
+
+        XCTAssertTrue(
+            app.staticTexts["地月系"].waitForExistence(timeout: 10),
+            "点回到轨道应 ascend 到地月系"
+        )
+        save("095-back-in-earth-orbit", app)
     }
 
     private func save(_ name: String, _ app: XCUIApplication) {

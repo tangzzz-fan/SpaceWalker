@@ -110,6 +110,7 @@ struct TiangongView: View {
             SessionLog.append("tiangong.pick " + session.scene.verifyPicking())
         }
         .onReceive(dockTicker) { _ in
+            session.sunJulianDay = store.state.space.julianDay
             session.stepClock(delta: 0.1)
             session.stepReentry(delta: 0.1)
             if session.dockingActive {
@@ -122,7 +123,10 @@ struct TiangongView: View {
             }
         }
         .sheet(isPresented: $showsHistory) {
-            TiangongHistorySheet()
+            TiangongHistorySheet {
+                showsHistory = false
+                store.dispatch(.ascend)
+            }
         }
     }
 
@@ -633,6 +637,8 @@ struct TiangongView: View {
 
 struct TiangongHistorySheet: View {
     @Environment(\.dismiss) private var dismiss
+    /// 095：回到上层（地月系）的入口。由持有 store 的视图注入，面板自身不碰路由。
+    var onReturnToOrbit: (() -> Void)? = nil
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -692,6 +698,19 @@ struct TiangongHistorySheet: View {
             Text("史实条目与出处见 docs/research/realitykit-ios26-primary-sources.md 第 15 条。")
                 .font(.system(size: ChromeTokens.captionSize))
                 .foregroundStyle(ChromeTokens.tertiaryText)
+
+            if let onReturnToOrbit {
+                Button {
+                    onReturnToOrbit()
+                } label: {
+                    Label("回到轨道", systemImage: "arrow.up.circle")
+                        .font(.system(size: ChromeTokens.bodySize, weight: .medium))
+                        .frame(maxWidth: .infinity, minHeight: ChromeTokens.minTouchHeight)
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(ChromeTokens.accent)
+                .accessibilityLabel("回到轨道")
+            }
 
             Spacer(minLength: 0)
         }

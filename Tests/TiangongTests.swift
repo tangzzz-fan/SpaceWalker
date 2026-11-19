@@ -1111,3 +1111,72 @@ final class TiangongMissionChainTests: XCTestCase {
         XCTAssertTrue(session.scene.interiorAnchors().isEmpty, "未 attach 渲染内容时投影应为空")
     }
 }
+
+/// 095：太阳方向来自上层星历，天宫不再自转光照。
+@MainActor
+final class TiangongSunSourceTests: XCTestCase {
+    private func wingNormal(_ scene: TiangongScene, id: TiangongModuleID) -> SIMD3<Float>? {
+        guard let wing = scene.root.children.first(where: { $0.name == id.rawValue }) else {
+            return nil
+        }
+        return wing.orientation.act(SIMD3<Float>(0, 1, 0))
+    }
+
+    func testSunDirectionComesFromUpperLayerEphemeris() {
+        let session = TiangongSession()
+        session.scene.build()
+        let jd = 2_461_362.5
+        session.sunJulianDay = jd
+        session.applyOrbit()
+
+        let expected = EarthOrbitGeometry.sunDirection(julianDay: jd)
+        for id in [TiangongModuleID.leftWing, .rightWing] {
+            guard let normal = wingNormal(session.scene, id: id) else {
+                return XCTFail("没找到 \(id.rawValue)")
+            }
+            // 翼绕 X 轴对日：法线应与太阳在 YZ 平面的投影同向。
+            let projected = simd_normalize(SIMD3<Float>(0, expected.y, expected.z))
+            XCTAssertGreaterThan(simd_dot(normal, projected), 0.996, id.rawValue)
+        }
+    }
+
+    func testSameInstantSameSunAcrossLayers() {
+        let jd = SolarSystemState.todayEpoch() + 123.25
+        let earthOrbitSun = EarthOrbitGeometry.sunDirection(julianDay: jd)
+        let session = TiangongSession()
+        session.sunJulianDay = jd
+        let tiangongSun = EarthOrbitGeometry.sunDirection(julianDay: session.sunJulianDay)
+        XCTAssertEqual(simd_dot(earthOrbitSun, tiangongSun), 1, accuracy: 0.0001)
+    }
+
+    func testClockDoesNotRotateSunAnymore() {
+        let session = TiangongSession()
+        session.scene.build()
+        session.sunJulianDay = 2_461_362.5
+        session.applyOrbit()
+        guard let before = wingNormal(session.scene, id: .leftWing) else {
+            return XCTFail("没找到左翼")
+        }
+        session.stepClock(delta: 30) // 半圈相位：旧实现会让太阳转 180°
+        guard let after = wingNormal(session.scene, id: .leftWing) else {
+            return XCTFail("没找到左翼")
+        }
+        XCTAssertEqual(simd_dot(before, after), 1, accuracy: 0.0001, "本地时钟不再驱动太阳")
+    }
+
+    func testChangingEpochMovesSun() {
+        let session = TiangongSession()
+        session.scene.build()
+        session.sunJulianDay = 2_461_362.5
+        session.applyOrbit()
+        guard let before = wingNormal(session.scene, id: .leftWing) else {
+            return XCTFail("没找到左翼")
+        }
+        session.sunJulianDay = 2_461_362.5 + 182 // 半年后太阳方向显著变化
+        session.applyOrbit()
+        guard let after = wingNormal(session.scene, id: .leftWing) else {
+            return XCTFail("没找到左翼")
+        }
+        XCTAssertLessThan(simd_dot(before, after), 0.9, "上层历元变化应带动太阳方向")
+    }
+}

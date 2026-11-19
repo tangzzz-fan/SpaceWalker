@@ -104,18 +104,23 @@ final class TiangongSession {
         scene.apply(rig: rig)
     }
 
+    /// 太阳方向来自上层星历（095）：默认取太阳系层的当前历元，
+    /// 与地月层同一时刻同一向量。视图每帧传入最新历元。
+    @ObservationIgnored var sunJulianDay: Double = SolarSystemState.todayEpoch()
+
     func applyOrbit() {
-        scene.applySun(orbit.sunAngle)
+        scene.applySun(direction: EarthOrbitGeometry.sunDirection(julianDay: sunJulianDay))
     }
 
-    /// 时钟只驱动光照与翼对日；对接与再入都暂停，否则移动光源会干扰判距与加热观感。
+    /// 时钟只推动圈数；光照与翼对日由上层太阳方向驱动，不再随本地相位自转。
+    /// 对接与再入都暂停，否则圈数会在交互中偷偷走。
     func stepClock(delta: TimeInterval) {
         orbit.step(
             realSeconds: delta,
             pace: orbitPace,
             paused: dockingActive || clockFrozen || reentryActive
         )
-        scene.applySun(orbit.sunAngle)
+        applyOrbit()
         if orbit.completedOrbits != completedOrbits {
             completedOrbits = orbit.completedOrbits
         }

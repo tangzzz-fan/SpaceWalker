@@ -139,13 +139,15 @@ final class TiangongScene {
         return content.project(point: point, to: Self.space)
     }
 
-    /// 太阳绕模型转：方向光跟着走，两片翼绕自身长轴对日。
-    func applySun(_ angle: Float) {
+    /// 太阳方向由上层星历传入（095）：方向光与两片翼都对准同一个向量，
+    /// 不再由本层时钟自转。翼绕长轴（X）的对日角取太阳在 YZ 平面的投影。
+    func applySun(direction: SIMD3<Float>) {
+        let sun = simd_normalize(direction)
         if let keyLight {
-            let sun = SIMD3<Float>(0, sin(angle), cos(angle))
             let from = TiangongLayout.center + sun * 4
             keyLight.look(at: TiangongLayout.center, from: from, relativeTo: nil)
         }
+        let angle = atan2(sun.y, sun.z)
         let quarter = simd_quatf(angle: .pi / 2 - angle, axis: SIMD3(1, 0, 0))
         moduleNodes[.leftWing]?.orientation = quarter
         moduleNodes[.rightWing]?.orientation = quarter
