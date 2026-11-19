@@ -1,0 +1,20 @@
+[2724ms] probe.descend.1 begin
+[3184ms] probe.readings.descend.1.summary n=75 first=9.460699999356248e+18 last=1495978707000.0017
+[3186ms] probe.descend.1 end samples=75
+[3587ms] probe.ascend.1 begin
+[4046ms] probe.readings.ascend.1.summary n=84 first=1495978707072.8713 last=9.4607e+18
+[4047ms] probe.ascend.1 end samples=84
+[4458ms] probe.descend.2 begin
+[4913ms] probe.readings.descend.2.summary n=84 first=9.460699999813485e+18 last=1495978707000.0017
+[4914ms] probe.descend.2 end samples=84
+[5331ms] probe.ascend.2 begin
+[5784ms] probe.readings.ascend.2.summary n=76 first=1495978707002.4126 last=9.4607e+18
+[5784ms] probe.ascend.2 end samples=76
+[6200ms] probe.descend.3 begin
+[6655ms] probe.readings.descend.3.summary n=87 first=9.460699999904885e+18 last=1495978707000.0017
+[6656ms] probe.descend.3 end samples=87
+[7077ms] probe.ascend.3 begin
+[7532ms] probe.readings.ascend.3.summary n=87 first=1495978707021.7053 last=9.4607e+18
+[7533ms] probe.ascend.3 end samples=87
+[7958ms] probe.fps avg=60.0 min=52.2 hitches=0
+[7959ms] probe.done readings=87

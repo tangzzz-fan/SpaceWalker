@@ -88,6 +88,48 @@ targets:
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         CODE_SIGN_IDENTITY: "Apple Development"
 
+  # 票 085 转场原型：探针 target，不链 TGReduxKit，生产 Sources 零改动。
+  # 结论落 docs/findings 后可整体删除。
+  TransitionProbe:
+    type: application
+    platform: iOS
+    sources:
+      - path: .scratch/prototype/transition
+      - path: Sources/App/ScaleLevel.swift
+      - path: Sources/App/AppClock.swift
+      - path: Sources/Features/Sky
+        excludes:
+          - "SkyView*.swift"
+          - "StarFinderView.swift"
+      - path: Sources/Features/Space
+        excludes:
+          - "SpaceView.swift"
+      - path: Sources/Features/Ephemeris
+      - path: Sources/Features/Session
+      - path: Sources/Features/Probes
+      - path: Sources/Resources
+        buildPhase: resources
+    dependencies:
+      - package: TGReduxKit
+        product: TGReduxKit
+      - package: TGFeatureFlag
+        product: TGFeatureFlag
+    info:
+      path: Supporting/ProbeInfo.plist
+      properties:
+        CFBundleDisplayName: 转场探针
+        UILaunchScreen:
+          UIColorName: ""
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.tango.xingcha.probe
+        SUPPORTED_PLATFORMS: iphoneos iphonesimulator
+        TARGETED_DEVICE_FAMILY: "1"
+        GENERATE_INFOPLIST_FILE: NO
+        CODE_SIGN_IDENTITY: "Apple Development"
+
   SpaceWalkerTests:
     type: bundle.unit-test
     platform: iOS

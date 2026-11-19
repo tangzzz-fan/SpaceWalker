@@ -1,7 +1,7 @@
 ---
 id: 085
 title: 层间转场原型（探针，不碰生产代码）
-status: ready-for-agent
+status: done
 stage: M4
 blocked_by: []
 ---
@@ -30,3 +30,12 @@ blocked_by: []
 
 - 失败不是坏消息：096 已允许退化为硬切 + 淡化，本条结论决定 096 只做导航还是连转场一起做。
 - 依赖：无。可与 086/087 并行。
+
+## 执行记录（2026-11-19）
+
+- 结论与证据：`docs/findings/2026-11-19-scale-transition-prototype.md`
+- 判据 1（无 >1 帧黑/白帧）过：0.45s 与 2s 两版录屏、六段窗口逐帧亮度核验，黑帧 0 白帧 0。
+- 判据 3（尺子单调）过：六段读数 0 违例（对数插值 + smoothstep）。
+- 判据 2（外部人 8 秒认知）待人审：录屏 `.scratch/prototype/transition/evidence/roundtrips3.mp4`。
+- 096 按完整转场做；若人审否决再退化硬切 + 淡化。
+- 生产 Sources/ 零改动；新增独立 target TransitionProbe（project.yml +42 行）与原型源码。
