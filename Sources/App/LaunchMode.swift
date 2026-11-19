@@ -240,4 +240,19 @@ enum LaunchMode {
     static func asterismBrowserOnLaunch(environment: [String: String]) -> Bool {
         environment["SPACEWALKER_ASTERISMS"] == "1"
     }
+
+    /// 取证用：启动即播真比例叙事（0.6s），配合无头截图抓「< 1 像素」一帧。
+    static func scaleNarrativeOnLaunch(environment: [String: String]) -> Bool {
+        environment["SPACEWALKER_NARRATIVE"] == "1"
+    }
+
+    /// 取证用：把叙事时长拉长到给定秒数（仅 DEBUG），让 UI 测试来得及断言与截图。
+    /// 生产时长仍是 ScaleNarrative.duration = 0.6s。
+    static func scaleNarrativeDuration(environment: [String: String]) -> Double? {
+        #if DEBUG
+        return environment["SPACEWALKER_NARRATIVE_SECONDS"].flatMap(Double.init)
+        #else
+        return nil
+        #endif
+    }
 }

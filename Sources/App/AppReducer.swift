@@ -15,6 +15,20 @@ func makeAppReducer() -> Reducer<AppState, AppAction> {
                     clearSelection: body == nil
                 )
             }
+            switch spaceAction {
+            case .enterOverview:
+                if state.space.narrative.isPlaying {
+                    state.chrome.statusLine.detail = ScaleNarrative.rulerText
+                }
+            case .finishScaleNarrative:
+                state.chrome.statusLine.detail = SolarSystemState.statusDetail(
+                    days: state.space.days,
+                    isPaused: state.space.isPaused,
+                    rate: state.space.rateInRange
+                )
+            default:
+                break
+            }
         case .route(let route):
             navigate(&state, to: route)
         case .descend(let target):

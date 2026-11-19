@@ -3,15 +3,25 @@ import Foundation
 struct FrameRateSampler: Equatable, Sendable {
     let window: Int
     let hitchThreshold: TimeInterval
+    /// 启动尖峰豁免：只在窗口尚未填满（启动阶段）时生效。首帧前的环境加载/建模
+    /// 会产生一次性长帧（实测 ~0.36s），它不是运行期卡顿；窗口填满后不再豁免，
+    /// 运行期真卡顿必须照记。
+    let startupSpikeThreshold: TimeInterval
     private var deltas: [TimeInterval] = []
 
-    init(window: Int = 120, hitchThreshold: TimeInterval = 1.0 / 30.0) {
+    init(
+        window: Int = 120,
+        hitchThreshold: TimeInterval = 1.0 / 30.0,
+        startupSpikeThreshold: TimeInterval = 0.25
+    ) {
         self.window = window
         self.hitchThreshold = hitchThreshold
+        self.startupSpikeThreshold = startupSpikeThreshold
     }
 
     mutating func append(_ delta: TimeInterval) {
         guard delta > 0 else { return }
+        if deltas.count < window && delta > startupSpikeThreshold { return }
         deltas.append(delta)
         if deltas.count > window {
             deltas.removeFirst(deltas.count - window)

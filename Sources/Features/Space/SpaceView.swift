@@ -19,6 +19,7 @@ struct SpaceView: View {
     @State private var lastTick = ProcessInfo.processInfo.systemUptime
     @State private var labelPoint: CGPoint?
     @State private var lastProbe: TimeInterval = 0
+    @State private var narrativeEndsAt: TimeInterval?
 
     private var state: SolarSystemState {
         store.state.space
@@ -70,6 +71,19 @@ struct SpaceView: View {
         .task {
             await loadEnvironment()
             applyDebugPreselection()
+            if LaunchMode.scaleNarrativeOnLaunch(environment: ProcessInfo.processInfo.environment) {
+                await waitFirstFrame()
+                store.dispatch(.space(.enterOverview))
+            }
+        }
+        .onChange(of: state.narrative.isPlaying) { _, playing in
+            if playing {
+                let duration = LaunchMode.scaleNarrativeDuration(
+                    environment: ProcessInfo.processInfo.environment
+                ) ?? ScaleNarrative.duration
+                narrativeEndsAt = ProcessInfo.processInfo.systemUptime + duration
+                SessionLog.append("space.narrative begin")
+            }
         }
         .onAppear(perform: registerActions)
         .onChange(of: selectedBody != nil) { _, hasSelection in
@@ -118,6 +132,7 @@ struct SpaceView: View {
     }
 
     private func updateStatus() {
+        guard !state.narrative.isPlaying else { return }
         store.dispatch(.chrome(.setStatus(
             SolarSystemState.statusDetail(
                 days: state.days, isPaused: state.isPaused, rate: state.rateInRange
@@ -132,6 +147,7 @@ struct SpaceView: View {
             case .spaceOverview:
                 rig = OrbitRig()
                 store.dispatch(.space(.select(nil)))
+                store.dispatch(.space(.enterOverview))
             case .spaceFocus:
                 rig = OrbitRig()
             default:
@@ -172,14 +188,16 @@ struct SpaceView: View {
                 julianDay: store.state.space.julianDay,
                 showsOrbits: store.state.space.showsOrbits,
                 rig: rig,
-                selected: store.state.space.selected
+                selected: store.state.space.selected,
+                trueScale: store.state.space.narrative.isPlaying
             )
         } update: { _ in
             scene.apply(
                 julianDay: store.state.space.julianDay,
                 showsOrbits: store.state.space.showsOrbits,
                 rig: rig,
-                selected: store.state.space.selected
+                selected: store.state.space.selected,
+                trueScale: store.state.space.narrative.isPlaying
             )
         }
         .coordinateSpace(name: SolarSystemScene.coordinateSpaceName)
@@ -341,6 +359,14 @@ struct SpaceView: View {
         #endif
     }
 
+    /// 叙事必须等首帧之后再播：否则 0.6s 窗口会被启动建模吃掉，
+    /// 用户看到的「真比例」实际只有几十毫秒。
+    private func waitFirstFrame() async {
+        while !scene.firstFrame.hasClaimed {
+            try? await Task.sleep(nanoseconds: 16_000_000)
+        }
+    }
+
     private func loadEnvironment() async {
         guard environment == nil else { return }
         let started = ProcessInfo.processInfo.systemUptime
@@ -358,6 +384,20 @@ struct SpaceView: View {
         let now = ProcessInfo.processInfo.systemUptime
         let delta = min(max(now - lastTick, 0), 0.2)
         lastTick = now
+
+        if let endsAt = narrativeEndsAt, now >= endsAt {
+            narrativeEndsAt = nil
+            store.dispatch(.space(.finishScaleNarrative))
+            #if DEBUG
+            let fps = probe.tick(now: now, anchorPosition: nil)
+            SessionLog.append(
+                String(
+                    format: "space.narrative end avg=%.1f min=%.1f hitches=%d",
+                    fps.fps, fps.minimumFPS, fps.hitches
+                )
+            )
+            #endif
+        }
 
         if !store.state.space.isPaused {
             store.dispatch(.space(.advance(seconds: delta)))

@@ -48,6 +48,23 @@ final class FrameRateSamplerTests: XCTestCase {
         XCTAssertEqual(sampler.minimumFPS, 0)
     }
 
+    func testStartupSpikeIsExcludedBeforeWindowFills() {
+        var sampler = FrameRateSampler(window: 10)
+        sampler.append(0.36) // 启动建模长帧
+        sampler.append(1.0 / 60.0)
+        XCTAssertEqual(sampler.sampleCount, 1, "启动尖峰不进窗口")
+        XCTAssertEqual(sampler.minimumFPS, 60, accuracy: 0.01)
+        XCTAssertEqual(sampler.hitchCount, 0)
+    }
+
+    func testRuntimeHitchStillCountsAfterWindowFills() {
+        var sampler = FrameRateSampler(window: 3)
+        for _ in 0..<3 { sampler.append(1.0 / 60.0) }
+        sampler.append(0.36) // 窗口已满，运行期真卡顿照记
+        XCTAssertEqual(sampler.hitchCount, 1)
+        XCTAssertEqual(sampler.minimumFPS, 1.0 / 0.36, accuracy: 0.01)
+    }
+
     func testResetClearsWindow() {
         var sampler = FrameRateSampler()
         sampler.append(0.016)

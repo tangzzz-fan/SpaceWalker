@@ -17,7 +17,7 @@ final class SolarSystemScene {
     private var cameraEntity: Entity?
     private var content: RealityViewCameraContent?
     private var isBuilt = false
-    private let firstFrame = FirstFrameFlag()
+    let firstFrame = FirstFrameFlag()
     private var firstFrameSubscription: EventSubscription?
 
     func build() {
@@ -56,11 +56,18 @@ final class SolarSystemScene {
         }
     }
 
-    func apply(julianDay: Double, showsOrbits: Bool, rig: OrbitRig, selected: BodyID?) {
+    func apply(
+        julianDay: Double,
+        showsOrbits: Bool,
+        rig: OrbitRig,
+        selected: BodyID?,
+        trueScale: Bool = false
+    ) {
         for planet in SolarSystem.bodies {
             guard let node = bodyNodes[planet.id] else { continue }
             node.position = SolarLayout.position(for: planet, julianDay: julianDay)
-            let scale: Float = planet.id == selected ? Self.selectedScale : 1
+            let base: Float = trueScale ? SolarLayout.trueScaleFactor(for: planet) : 1
+            let scale: Float = planet.id == selected ? base * Self.selectedScale : base
             node.scale = SIMD3(scale, scale, scale)
         }
         for node in orbitNodes.values {
@@ -205,7 +212,7 @@ private extension UIColor {    convenience init(hex: UInt32) {
 }
 
 
-private final class FirstFrameFlag: @unchecked Sendable {
+final class FirstFrameFlag: @unchecked Sendable {
     private let lock = OSAllocatedUnfairLock(initialState: false)
 
     func claim() -> Bool {
@@ -214,5 +221,9 @@ private final class FirstFrameFlag: @unchecked Sendable {
             claimed = true
             return true
         }
+    }
+
+    var hasClaimed: Bool {
+        lock.withLock { $0 }
     }
 }

@@ -10,6 +10,7 @@ struct SolarSystemState: Equatable, Sendable {
     var isPaused = false
     var selected: BodyID?
     var showsOrbits = true
+    var narrative = ScaleNarrative()
 
     var rateInRange: Double {
         min(max(daysPerSecond, Self.rateRange.lowerBound), Self.rateRange.upperBound)
@@ -50,6 +51,37 @@ enum SolarSystemAction: Equatable, Sendable {
     case select(BodyID?)
     case toggleOrbits
     case reset
+    case enterOverview
+    case finishScaleNarrative
+}
+
+/// ADR-0006 D4：真比例不做开关，做一帧叙事。每次进入全览最多播一次，
+/// 播完自动回教学比例；状态机只记「播没播」，计时由视图驱动。
+struct ScaleNarrative: Equatable, Sendable {
+    static let duration: Double = 0.6
+    static let rulerText = "此刻行星直径 < 1 像素"
+
+    enum Phase: Equatable, Sendable {
+        case idle
+        case playing
+        case played
+    }
+
+    private(set) var phase: Phase = .idle
+    private(set) var playCount = 0
+
+    var isPlaying: Bool { phase == .playing }
+
+    mutating func enterOverview() {
+        guard phase == .idle else { return }
+        phase = .playing
+        playCount += 1
+    }
+
+    mutating func finish() {
+        guard phase == .playing else { return }
+        phase = .played
+    }
 }
 
 enum SolarSystemReducer {
@@ -81,6 +113,11 @@ enum SolarSystemReducer {
             state.days = 0
             state.selected = nil
 
+        case .enterOverview:
+            state.narrative.enterOverview()
+
+        case .finishScaleNarrative:
+            state.narrative.finish()
         }
     }
 }

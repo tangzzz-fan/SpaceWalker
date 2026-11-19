@@ -168,10 +168,22 @@ enum SolarLayout {
         return Float(pow(body.semiMajorAxisAU, orbitExponent)) * orbitUnit
     }
 
+    static let kilometersPerAU: Double = 149_597_870.7
+
     static func bodyRadius(for body: SolarBody) -> Float {
         let scaled = Float(pow(body.diameterKilometers / earthDiameterKilometers, radiusExponent))
             * earthDisplayRadius
         return min(scaled, sunDisplayRadiusCap)
+    }
+
+    /// ADR-0006 D4 叙事用的真比例半径：轨道仍用教学布局（否则全览看不见轨道），
+    /// 只把球体直径压到真实比例。1 显示单位 = 1 AU。
+    static func trueScaleRadius(for body: SolarBody) -> Float {
+        Float(body.diameterKilometers / 2 / kilometersPerAU) * orbitUnit
+    }
+
+    static func trueScaleFactor(for body: SolarBody) -> Float {
+        trueScaleRadius(for: body) / bodyRadius(for: body)
     }
 
     static func heliocentricLongitude(body: BodyID, julianDay: Double) -> Double? {
