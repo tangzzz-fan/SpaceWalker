@@ -9,6 +9,7 @@ struct SkyView: View {
     @Environment(\.verticalSizeClass) var verticalSizeClass
 
     @Bindable var session: SkySession
+    var engine: ScaleTransitionEngine?
 
     var scene: SkyScene { session.scene }
     @State var showsCredits = false
@@ -79,6 +80,11 @@ struct SkyView: View {
         }
         .onChange(of: session.observer.statusText) { _, _ in syncTonightChrome() }
         .onAppear(perform: registerActions)
+        .onAppear {
+            if store.state.route == .sky, session.followsAttitude {
+                startMotion()
+            }
+        }
         .onChange(of: showsFinder) { _, _ in syncMode() }
         .onChange(of: showsAsterismBrowser) { _, _ in syncMode() }
         .onChange(of: showsLayers) { _, _ in syncMode() }
@@ -147,11 +153,13 @@ struct SkyView: View {
             scene.build(catalog: catalog)
             content.add(scene.root)
             scene.attach(content)
+            engine?.attachFrameProbe(content)
             if LaunchMode.perfLogEnabled(environment: ProcessInfo.processInfo.environment) {
                 session.perf.attach(content)
             }
             session.applyRig()
         } update: { _ in
+            guard engine?.isTransitioning != true else { return }
             session.applyRig()
         }
         .coordinateSpace(name: SkyScene.coordinateSpaceName)

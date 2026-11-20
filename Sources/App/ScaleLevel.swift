@@ -82,10 +82,38 @@ struct ScaleLevelDescriptor: Equatable, Sendable {
 }
 
 struct ScaleRuler {
+    static let trackDomain: ClosedRange<Double> = 0...20
+    static let lightYearMeters: Double = 9.4607e15
+    static let astronomicalUnitMeters: Double = 1.495978707e11
+
     static func readingMeters(from: ScaleLevel, to: ScaleLevel, progress: Double) -> Double {
+        readingMeters(fromMeters: from.representativeMeters, toMeters: to.representativeMeters, progress: progress)
+    }
+
+    static func readingMeters(fromMeters: Double, toMeters: Double, progress: Double) -> Double {
         let t = min(max(progress, 0), 1)
-        let a = log10(from.representativeMeters)
-        let b = log10(to.representativeMeters)
+        let a = log10(max(fromMeters, 1))
+        let b = log10(max(toMeters, 1))
         return pow(10, a + (b - a) * t)
+    }
+
+    static func easeInOutCubic(_ t: Double) -> Double {
+        let x = min(max(t, 0), 1)
+        return x < 0.5 ? 4 * x * x * x : 1 - pow(-2 * x + 2, 3) / 2
+    }
+
+    static func trackFraction(meters: Double) -> Double {
+        let exponent = log10(max(meters, 1))
+        let span = trackDomain.upperBound - trackDomain.lowerBound
+        return min(max((exponent - trackDomain.lowerBound) / span, 0), 1)
+    }
+
+    static func trackRange(for level: ScaleLevel) -> ClosedRange<Double> {
+        trackFraction(meters: level.rulerRangeMeters.lowerBound)
+            ... trackFraction(meters: level.rulerRangeMeters.upperBound)
+    }
+
+    static func readingText(meters: Double) -> String {
+        String(format: "10^%.1f m", log10(max(meters, 1)))
     }
 }

@@ -6,13 +6,13 @@ import TGReduxKit
 struct SpaceView: View {
     @Environment(Store<AppState, AppAction>.self) private var store
     let actions: ChromeActionRegistry
+    let scene: SolarSystemScene
+    let engine: ScaleTransitionEngine
 
-    @State private var scene = SolarSystemScene()
     #if DEBUG
     @State private var probe = ProbeRecorder()
     #endif
     @State private var environment: RealityViewEnvironment?
-    @State private var rig = OrbitRig()
     @State private var canvasSize: CGSize = .zero
     @State private var showsCredits = false
     @State private var ticker = Timer.publish(every: 1.0 / 30.0, on: .main, in: .common).autoconnect()
@@ -145,11 +145,11 @@ struct SpaceView: View {
         actions.primary = { id in
             switch id {
             case .spaceOverview:
-                rig = OrbitRig()
+                engine.solarRig = OrbitRig()
                 store.dispatch(.space(.select(nil)))
                 store.dispatch(.space(.enterOverview))
             case .spaceFocus:
-                rig = OrbitRig()
+                engine.solarRig = OrbitRig()
             default:
                 break
             }
@@ -181,21 +181,23 @@ struct SpaceView: View {
             scene.build()
             content.add(scene.root)
             scene.attach(content)
+            engine.attachFrameProbe(content)
             #if DEBUG
             probe.attach(content)
             #endif
             scene.apply(
                 julianDay: store.state.space.julianDay,
                 showsOrbits: store.state.space.showsOrbits,
-                rig: rig,
+                rig: engine.solarRig,
                 selected: store.state.space.selected,
                 trueScale: store.state.space.narrative.isPlaying
             )
         } update: { _ in
+            guard !engine.isTransitioning else { return }
             scene.apply(
                 julianDay: store.state.space.julianDay,
                 showsOrbits: store.state.space.showsOrbits,
-                rig: rig,
+                rig: engine.solarRig,
                 selected: store.state.space.selected,
                 trueScale: store.state.space.narrative.isPlaying
             )
@@ -209,7 +211,7 @@ struct SpaceView: View {
     private var orbitGesture: some Gesture {
         DragGesture(minimumDistance: 6)
             .onChanged { value in
-                rig.rotate(
+                engine.solarRig.rotate(
                     deltaX: Float(value.translation.width - lastDrag.width),
                     deltaY: Float(value.translation.height - lastDrag.height)
                 )
@@ -224,7 +226,7 @@ struct SpaceView: View {
         MagnifyGesture()
             .onChanged { value in
                 let current = value.magnification
-                rig.dolly(scale: Float(current / max(lastMagnification, 0.001)))
+                engine.solarRig.dolly(scale: Float(current / max(lastMagnification, 0.001)))
                 lastMagnification = current
             }
             .onEnded { _ in
@@ -381,6 +383,7 @@ struct SpaceView: View {
     }
 
     private func tick() {
+        guard store.state.route == .solar, !engine.isTransitioning else { return }
         let now = ProcessInfo.processInfo.systemUptime
         let delta = min(max(now - lastTick, 0), 0.2)
         lastTick = now

@@ -255,4 +255,33 @@ enum LaunchMode {
         return nil
         #endif
     }
+
+    /// 取证用：把层间转场拉长到给定秒数（仅 DEBUG），让录屏逐帧核验来得及覆盖。
+    /// 生产时长仍是 ChromeTokens.cameraDuration = 0.45s。
+    static func scaleTransitionDuration(environment: [String: String]) -> Double? {
+        #if DEBUG
+        return environment["SPACEWALKER_TRANSITION_SECONDS"].flatMap(Double.init)
+        #else
+        return nil
+        #endif
+    }
+
+    /// 取证用：把一次性提示的停留拉长（仅 DEBUG）。XCUI 查询会阻塞主线程，
+    /// 2 秒窗口可能被查询本身吃掉；生产停留仍是 2s。
+    static func attitudeToastHoldDuration(environment: [String: String]) -> Double? {
+        #if DEBUG
+        return environment["SPACEWALKER_TOAST_SECONDS"].flatMap(Double.init)
+        #else
+        return nil
+        #endif
+    }
+
+    /// 取证用：逐 tick 记录间隔与 apply 耗时，定位转场窗口主线程长任务（仅 DEBUG）。
+    static func transitionTickDiagnostics(environment: [String: String]) -> Bool {
+        #if DEBUG
+        return environment["SPACEWALKER_TICK_DIAG"] == "1"
+        #else
+        return false
+        #endif
+    }
 }

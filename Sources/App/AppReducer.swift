@@ -42,6 +42,8 @@ func makeAppReducer() -> Reducer<AppState, AppAction> {
         case .ascend:
             guard let target = state.route.above else { break }
             navigate(&state, to: target)
+        case .overview:
+            state.overviewToken += 1
         case .chrome(let chromeAction):
             reduceChrome(&state, chromeAction)
         case .flagsLoaded(let flags):
@@ -52,11 +54,14 @@ func makeAppReducer() -> Reducer<AppState, AppAction> {
 }
 
 private func navigate(_ state: inout AppState, to target: ScaleLevel) {
-    guard target != state.route else { return }
+    let source = state.route
+    guard target != source,
+          source.canAscend(to: target) || source.canDescend(to: target)
+    else { return }
     if let selection = state.chrome.selection {
-        state.savedSelections[state.route] = selection
+        state.savedSelections[source] = selection
     } else {
-        state.savedSelections[state.route] = nil
+        state.savedSelections[source] = nil
     }
     let restored = state.savedSelections[target]
     state.route = target
@@ -69,6 +74,12 @@ private func navigate(_ state: inout AppState, to target: ScaleLevel) {
         reentryUnlocked: state.chrome.reentryUnlocked,
         cultureEnabled: state.flags.cultureEnabled
     )
+    state.transitionToken += 1
+    state.transition = ScaleTransitionRequest(from: source, to: target, token: state.transitionToken)
+    if target == .sky, !state.hasShownAttitudeRestoreNotice {
+        state.hasShownAttitudeRestoreNotice = true
+        state.attitudeRestoreNoticeToken += 1
+    }
 }
 
 private func recomputeChrome(

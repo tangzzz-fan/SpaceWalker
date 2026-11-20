@@ -6,6 +6,7 @@ struct TiangongView: View {
     @Environment(Store<AppState, AppAction>.self) private var store
     let actions: ChromeActionRegistry
     @Bindable var session: TiangongSession
+    var engine: ScaleTransitionEngine?
 
     @State private var environment: RealityViewEnvironment?
     @State private var showsHistory = false
@@ -110,6 +111,7 @@ struct TiangongView: View {
             SessionLog.append("tiangong.pick " + session.scene.verifyPicking())
         }
         .onReceive(dockTicker) { _ in
+            guard store.state.route == .tiangong, engine?.isTransitioning != true else { return }
             session.sunJulianDay = store.state.space.julianDay
             session.stepClock(delta: 0.1)
             session.stepReentry(delta: 0.1)
@@ -273,6 +275,7 @@ struct TiangongView: View {
             session.applyRig()
             session.applyOrbit()
         } update: { _ in
+            guard engine?.isTransitioning != true else { return }
             session.applyRig()
         }
         .coordinateSpace(name: "tiangong")

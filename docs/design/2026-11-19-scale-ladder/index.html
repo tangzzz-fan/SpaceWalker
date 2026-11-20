@@ -1,0 +1,2523 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>星槎 · 尺度阶梯导航与常显尺子</title>
+  <style>
+    /* OD-LAYOUT-PRIMITIVES v1 — structure only: display, flex/grid, overflow, wrapping, ratio, geometry.
+       Put this @layer first; product CSS outside the layer wins ordinary layout rules.
+       Native hidden and closed-dialog states take precedence over component display rules. */
+    @layer od-layout {
+      [hidden]:not([hidden="until-found" i]) { display: none !important; }
+      dialog:not([open]) { display: none !important; }
+
+      :where(.od-stack,.od-row,.od-row-top,.od-cluster,.od-grid,.od-field,.od-stat,.od-cell,.od-tile) > :where(*) { min-width: 0; }
+
+      /* containers */
+      .od-stack   { display: flex; flex-direction: column; gap: var(--od-gap, 8px); }
+      .od-row     { display: flex; align-items: center; gap: var(--od-gap, 8px); }
+      .od-row-top { display: flex; align-items: flex-start; gap: var(--od-gap, 8px); }
+      .od-cluster { display: flex; flex-wrap: wrap; align-items: center; gap: var(--od-gap, 8px); }
+      .od-fill    { flex: 1 1 0; min-width: 0; }
+      .od-fixed   { flex: none; }
+      .od-grid    { display: grid; gap: var(--od-gap, 12px); grid-template-columns: repeat(var(--od-cols, 3), minmax(0, 1fr)); }
+
+      /* stacked information: each piece is its own line — never sibling inline spans */
+      .od-stat, .od-field, .od-cell { display: grid; gap: var(--od-gap, 2px); }
+      :where(.od-stat,.od-field,.od-cell) > :where(*) { display: block; }
+      .od-tile { display: grid; grid-template-rows: auto 1fr; }
+      :where(.od-tile) > :where(*) { display: block; }
+
+      /* media keeps its intrinsic ratio by default; never a distorted or cropped
+         cover by accident. height:auto lets the ratio win over an <img height="…">
+         attribute. Cropping to a uniform box is an explicit opt-in: set --od-ratio
+         AND add .od-media-cover together (per the core rule, only where a crop is
+         deliberate — tile thumbs, decorative fills — never on full-frame content). */
+      .od-media { display: block; width: 100%; height: auto; aspect-ratio: var(--od-ratio, auto); }
+      .od-media-cover { object-fit: cover; }
+
+      /* functional inline SVG icons opt into bounded geometry; content SVGs keep their own */
+      .od-icon { display: inline-block; inline-size: var(--od-icon-size, 1em); block-size: var(--od-icon-size, 1em); flex: none; }
+
+      /* data text only — authored copy is rewritten to its budget instead */
+      .od-truncate { display: block; max-width: 100%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+      .od-clamp-2, .od-clamp-3 { display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
+      .od-clamp-2 { -webkit-line-clamp: 2; }
+      .od-clamp-3 { -webkit-line-clamp: 3; }
+      .od-lines-2 { min-height: calc(2 * 1.4em); }   /* block-level reservation for a shared baseline */
+      .od-nowrap  { white-space: nowrap; }           /* 数字+单位 · 价格+起 · 日期+星期 */
+      .od-keep    { word-break: keep-all; overflow-wrap: anywhere; } /* CJK labels break at spaces / <wbr> first */
+
+      /* screen skeleton (optional): bars take their own space, the middle scrolls — no padding guessed for chrome */
+      .od-screen { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; height: 100%; }
+      .od-scroll { overflow-y: auto; overscroll-behavior: contain; min-height: 0; }
+
+      /* horizontal rail: the next item peeks at the edge; trailing room survives overflow */
+      .od-rail { display: flex; gap: var(--od-gap, 8px); overflow-x: auto; scroll-snap-type: x proximity; scrollbar-width: none;
+                 padding-inline: var(--od-rail-pad, 16px); scroll-padding-inline: var(--od-rail-pad, 16px); }
+      .od-rail::-webkit-scrollbar { display: none; }
+      :where(.od-rail) > :where(*) { flex: none; scroll-snap-align: start; }
+      :where(.od-rail) > :where(:last-child) { margin-inline-end: var(--od-rail-pad, 16px); }
+
+      .od-spacer { flex: none; visibility: hidden; pointer-events: none; }
+      .od-touch  { min-width: 44px; min-height: 44px; }
+    }
+    :root [hidden]:where(:not([hidden="until-found" i])) { display: none; }
+    /* /OD-LAYOUT-PRIMITIVES v1 */
+
+    /* -------------------------------------------------------------------------
+       Open Design · bundled iPhone shell
+       Presentation shell for a phone-app prototype; the product lives in
+       .phone-content. Shell tokens stay separate from product tokens.
+       ------------------------------------------------------------------------- */
+    [hidden]:not([hidden="until-found" i]) { display: none !important; }
+
+    :root {
+      --phone-screen-width: 393px;
+      --phone-screen-height: 852px;
+      --phone-bezel: 12px;
+      --phone-outer-radius: 60px;
+      --phone-screen-radius: 48px;
+      --phone-safe-top: 59px;
+      --phone-safe-bottom: 34px;
+      --phone-system-fg: #111214;
+      --phone-screen-bg: #f7f7f8;
+      --phone-stage-bg: #e9ebee;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; }
+    body {
+      min-height: 100dvh;
+      display: grid;
+      place-items: center;
+      padding: 32px;
+      background:
+        radial-gradient(circle at 50% 16%, rgba(255,255,255,.92), transparent 34%),
+        var(--phone-stage-bg, #e9ebee);
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+      color: #17181a;
+    }
+
+    .phone-frame {
+      position: relative;
+      width: calc(var(--phone-screen-width, 393px) + var(--phone-bezel, 12px) * 2);
+      height: calc(var(--phone-screen-height, 852px) + var(--phone-bezel, 12px) * 2);
+      padding: var(--phone-bezel, 12px);
+      border-radius: var(--phone-outer-radius, 60px);
+      background:
+        linear-gradient(145deg, rgba(255,255,255,.18), transparent 17%),
+        linear-gradient(160deg, #3a3a3d 0%, #1d1d20 47%, #09090b 100%);
+      box-shadow:
+        inset 0 0 0 1px rgba(255,255,255,.13),
+        inset 0 0 0 2px rgba(0,0,0,.9),
+        0 34px 70px -20px rgba(0,0,0,.55),
+        0 12px 28px -12px rgba(0,0,0,.36);
+      isolation: isolate;
+    }
+
+    .phone-frame::before,
+    .phone-frame::after {
+      content: "";
+      position: absolute;
+      z-index: -1;
+      top: 102px;
+      bottom: 102px;
+      width: 3px;
+      border-radius: 3px;
+      background: linear-gradient(
+        to bottom,
+        transparent,
+        rgba(255,255,255,.13) 12%,
+        transparent 22%,
+        transparent 78%,
+        rgba(255,255,255,.08) 90%,
+        transparent
+      );
+    }
+    .phone-frame::before { left: -1px; }
+    .phone-frame::after { right: -1px; }
+
+    .hardware-button {
+      position: absolute;
+      width: 4px;
+      border-radius: 3px;
+      background: linear-gradient(90deg, #050506, #242428 58%, #08080a);
+      box-shadow: inset 0 1px rgba(255,255,255,.08);
+    }
+    .hardware-button.silent { left: -3px; top: 175px; height: 34px; }
+    .hardware-button.volume-up { left: -3px; top: 225px; height: 62px; }
+    .hardware-button.volume-down { left: -3px; top: 299px; height: 62px; }
+    .hardware-button.power { right: -3px; top: 252px; height: 104px; }
+
+    .phone-screen {
+      position: relative;
+      width: var(--phone-screen-width, 393px);
+      height: var(--phone-screen-height, 852px);
+      overflow: hidden;
+      border-radius: var(--phone-screen-radius, 48px);
+      background: var(--phone-screen-bg, #f7f7f8);
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.06);
+    }
+
+    .phone-content {
+      position: absolute;
+      inset: 0;
+      overflow-x: hidden;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+      padding-top: var(--phone-safe-top, 59px);
+      padding-bottom: var(--phone-safe-bottom, 34px);
+      background: var(--phone-screen-bg, #f7f7f8);
+    }
+    .phone-content::-webkit-scrollbar { display: none; }
+
+    .dynamic-island {
+      position: absolute;
+      z-index: 20;
+      top: 11px;
+      left: 50%;
+      width: 126px;
+      height: 37px;
+      transform: translateX(-50%);
+      border-radius: 999px;
+      background: #000;
+      box-shadow: inset 0 -1px 1px rgba(255,255,255,.05);
+      pointer-events: none;
+    }
+
+    .status-bar {
+      position: absolute;
+      z-index: 15;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: var(--phone-safe-top, 59px);
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      padding: 18px 27px 0;
+      color: var(--phone-system-fg, #111214);
+      font-size: 15px;
+      font-weight: 650;
+      letter-spacing: -.01em;
+      pointer-events: none;
+    }
+    .status-icons { display: inline-flex; align-items: center; gap: 6px; }
+    .status-icons svg { display: block; width: 17px; height: 11px; fill: currentColor; }
+    .status-icons .battery { width: 25px; }
+
+    .home-indicator {
+      position: absolute;
+      z-index: 20;
+      left: 50%;
+      bottom: 8px;
+      width: 134px;
+      height: 5px;
+      transform: translateX(-50%);
+      border-radius: 999px;
+      background: var(--phone-system-fg, #111214);
+      opacity: .9;
+      pointer-events: none;
+    }
+
+    /* Retained sample styles from the bundled shell. */
+    .sample-app { min-height: 100%; padding: 18px 20px 32px; background: #f7f7f8; }
+    .sample-app h1 { margin: 0; font-size: 30px; letter-spacing: -.035em; }
+    .sample-app p { margin: 8px 0 24px; color: #686b71; line-height: 1.5; }
+    .sample-card {
+      padding: 18px;
+      border: 1px solid #e3e4e7;
+      border-radius: 20px;
+      background: #fff;
+      box-shadow: 0 8px 24px rgba(20,22,26,.06);
+    }
+    .sample-card + .sample-card { margin-top: 12px; }
+
+    @media (max-height: 939px) { .phone-frame { zoom: 0.9; } }
+    @media (max-height: 851px) { .phone-frame { zoom: 0.82; } }
+    @media (max-height: 781px) { .phone-frame { zoom: 0.74; } }
+    @media (max-height: 711px) { .phone-frame { zoom: 0.66; } }
+    @media (max-width: 480px) {
+      body { padding: 0; display: block; }
+      .phone-frame { width: 100%; height: 100dvh; padding: 0; border-radius: 0; background: none; box-shadow: none; zoom: 1; }
+      .phone-frame::before, .phone-frame::after, .hardware-button { display: none; }
+      .phone-screen { width: 100%; height: 100%; border-radius: 0; }
+    }
+
+    /* -------------------------------------------------------------------------
+       Design review board — outside the product UI.
+       ------------------------------------------------------------------------- */
+    :root {
+      --board-bg: #E9ECEF;
+      --board-ink: #11151A;
+      --board-muted: #555C64;
+      --board-line: rgba(17, 21, 26, .12);
+      --board-panel: #F7F8FA;
+      --board-dark: #0B0E15;
+      --font-ui: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      --font-display: "New York", ui-serif, "Songti SC", "Noto Serif CJK SC", serif;
+    }
+
+    html { background: var(--board-bg); }
+    body.od-stage {
+      display: block;
+      padding: 0;
+      overflow-x: hidden;
+      background: var(--board-bg);
+      color: var(--board-ink);
+      font-family: var(--font-ui);
+      -webkit-font-smoothing: antialiased;
+    }
+    body.od-stage * { box-sizing: border-box; }
+
+    .od-board {
+      width: min(100%, 1180px);
+      margin: 0 auto;
+      padding: 48px 32px 96px;
+    }
+
+    .board-head {
+      padding-bottom: 40px;
+      border-bottom: 1px solid var(--board-line);
+    }
+    .board-kicker {
+      margin: 0;
+      font-size: 11px;
+      line-height: 1.5;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: var(--board-muted);
+    }
+    .board-title {
+      margin: 8px 0 0;
+      font-family: var(--font-display);
+      font-size: 20px;
+      line-height: 1.35;
+      font-weight: 600;
+      letter-spacing: 0;
+    }
+    .board-lede {
+      max-width: 58ch;
+      margin: 12px 0 0;
+      font-size: 15px;
+      line-height: 1.75;
+      color: var(--board-muted);
+    }
+    .board-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 24px 40px;
+      margin: 24px 0 0;
+    }
+    .board-meta div { display: grid; gap: 4px; }
+    .board-meta dt {
+      margin: 0;
+      font-size: 11px;
+      line-height: 1.4;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      color: var(--board-muted);
+    }
+    .board-meta dd {
+      margin: 0;
+      font-size: 12px;
+      line-height: 1.5;
+      color: var(--board-ink);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .board-section { padding-top: 40px; }
+    .section-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 32px;
+      margin-bottom: 24px;
+    }
+    .section-index {
+      margin: 0;
+      font-size: 11px;
+      line-height: 1.5;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: var(--board-muted);
+    }
+    .section-title {
+      margin: 4px 0 0;
+      font-family: var(--font-display);
+      font-size: 20px;
+      line-height: 1.35;
+      font-weight: 600;
+    }
+    .section-note {
+      max-width: 42ch;
+      margin: 0;
+      font-size: 12px;
+      line-height: 1.7;
+      color: var(--board-muted);
+      text-align: right;
+    }
+
+    .specimen-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 40px 32px;
+      justify-items: center;
+      align-items: start;
+    }
+    .specimen-grid.is-single { grid-template-columns: minmax(0, 1fr); }
+    .specimen {
+      width: 100%;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+    }
+    .specimen .phone-frame {
+      --phone-screen-width: 402px;
+      --phone-screen-height: 874px;
+      margin: 0 auto;
+      zoom: 1;
+    }
+    .specimen figcaption {
+      width: 100%;
+      max-width: 426px;
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 16px;
+      padding-top: 8px;
+      border-top: 1px solid var(--board-line);
+      font-size: 11px;
+      line-height: 1.5;
+      color: var(--board-muted);
+      font-variant-numeric: tabular-nums;
+    }
+    .specimen figcaption strong {
+      font-size: 12px;
+      line-height: 1.5;
+      font-weight: 500;
+      color: var(--board-ink);
+    }
+    .specimen--wide figcaption { max-width: 874px; }
+
+    .landscape-board {
+      width: min(874px, 100%);
+      aspect-ratio: 874 / 402;
+      overflow: hidden;
+      border: 1px solid rgba(17, 21, 26, .18);
+      border-radius: 14px;
+      background: #05070D;
+      box-shadow: 0 28px 56px -32px rgba(17, 21, 26, .55);
+    }
+    .landscape-board .xc-app { height: 100%; }
+
+    /* -------------------------------------------------------------------------
+       Product tokens and structure
+       ------------------------------------------------------------------------- */
+    .phone-screen[data-theme="dark"] {
+      --phone-system-fg: #F2F4F8;
+      --phone-screen-bg: #05070D;
+    }
+    .phone-screen[data-theme="light"] {
+      --phone-system-fg: #11151A;
+      --phone-screen-bg: #F6F7F8;
+    }
+    .phone-content.xc-host { overflow: hidden; }
+
+    .xc-app {
+      --bg: #05070D;
+      --surface-1: #0C1018;
+      --surface-2: #141922;
+      --text: #F2F4F8;
+      --text-2: #9A9DA2;
+      --gold: #E8B15C;
+      --on-gold: #05070D;
+      --cyan: #6FA8C8;
+      --hairline: rgba(255,255,255,.10);
+      --hairline-strong: rgba(255,255,255,.18);
+      --focus: #F2F4F8;
+      --fs-11: 11px;
+      --fs-12: 12px;
+      --fs-15: 15px;
+      --fs-20: 20px;
+      --ease-camera: cubic-bezier(.65, 0, .35, 1);
+      --ease-panel: cubic-bezier(.16, 1, .3, 1);
+
+      position: relative;
+      display: grid;
+      grid-template-rows: 44px 56px minmax(0, 1fr);
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      isolation: isolate;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-ui);
+      font-size: var(--fs-12);
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+    .xc-app[data-theme="light"] {
+      --bg: #F6F7F8;
+      --surface-1: #FFFFFF;
+      --surface-2: #E6E9EC;
+      --text: #11151A;
+      --text-2: #696D71;
+      --gold: #8A5A16;
+      --on-gold: #F6F7F8;
+      --cyan: #2F6F8A;
+      --hairline: rgba(17,21,26,.10);
+      --hairline-strong: rgba(17,21,26,.18);
+      --focus: #11151A;
+    }
+    .xc-app[data-orientation="landscape"] { grid-template-rows: 44px 48px minmax(0, 1fr); }
+
+    .xc-app button,
+    .xc-app [role="button"] {
+      font: inherit;
+      appearance: none;
+      -webkit-appearance: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .xc-app :where(button):focus-visible {
+      outline: 2px solid var(--focus);
+      outline-offset: 2px;
+    }
+    .xc-icon { --od-icon-size: 18px; stroke-width: 1.5; }
+
+    .xc-header {
+      position: relative;
+      z-index: 6;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      min-width: 0;
+      padding: 0 20px;
+      background: var(--bg);
+    }
+    .xc-head-copy {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      min-width: 0;
+      height: 44px;
+    }
+    .xc-title {
+      margin: 0;
+      font-family: var(--font-display);
+      font-size: var(--fs-20);
+      line-height: 1.3;
+      font-weight: 600;
+      letter-spacing: 0;
+      white-space: nowrap;
+      color: var(--text);
+    }
+    .xc-question {
+      margin: 0;
+      overflow: hidden;
+      font-size: var(--fs-11);
+      line-height: 1.45;
+      letter-spacing: .01em;
+      color: var(--text-2);
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .xc-more {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex: none;
+      width: 44px;
+      height: 44px;
+      padding: 0;
+      border: 1px solid var(--hairline);
+      border-radius: 8px;
+      background: transparent;
+      color: var(--text-2);
+      cursor: pointer;
+      transition: transform 150ms linear, background-color 150ms linear, color 150ms linear;
+    }
+    .xc-more:active { transform: scale(.96); background: var(--surface-1); }
+
+    .xc-ruler {
+      position: relative;
+      z-index: 6;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 4px;
+      height: 56px;
+      padding: 4px 20px;
+      border: 0;
+      background: var(--bg);
+    }
+    .xc-ruler::after {
+      content: "";
+      position: absolute;
+      right: 20px;
+      bottom: 0;
+      left: 20px;
+      height: 1px;
+      background: var(--hairline);
+    }
+    .xc-ruler-head {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 16px;
+      min-width: 0;
+      line-height: 16px;
+    }
+    .xc-range {
+      min-width: 0;
+      overflow: hidden;
+      font-size: var(--fs-11);
+      line-height: 1.4;
+      letter-spacing: .01em;
+      color: var(--text-2);
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .xc-readout {
+      display: inline-flex;
+      align-items: baseline;
+      justify-content: flex-end;
+      gap: 6px;
+      flex: none;
+      min-width: 92px;
+      font-size: var(--fs-11);
+      line-height: 1.4;
+      color: var(--cyan);
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+    .xc-readout-label { color: var(--text-2); }
+    .xc-readout-value { letter-spacing: .02em; }
+    .xc-track {
+      position: relative;
+      height: 12px;
+      margin: 0;
+    }
+    .xc-track-line {
+      position: absolute;
+      top: 5px;
+      right: 0;
+      left: 0;
+      height: 1px;
+      background: var(--hairline-strong);
+    }
+    .xc-tick {
+      position: absolute;
+      top: 3px;
+      width: 1px;
+      height: 7px;
+      background: var(--hairline);
+      transform: translateX(-.5px);
+    }
+    .xc-tick.is-major {
+      top: 2px;
+      height: 9px;
+      background: var(--hairline-strong);
+    }
+    .xc-band {
+      position: absolute;
+      top: 4px;
+      height: 3px;
+      background: var(--cyan);
+      transition: left 450ms var(--ease-camera), width 450ms var(--ease-camera);
+    }
+    .xc-marker {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 2px;
+      height: 12px;
+      background: var(--cyan);
+      transform: translateX(-50%);
+    }
+    .xc-track-ends {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      font-size: var(--fs-11);
+      line-height: 12px;
+      color: var(--text-2);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .xc-stage {
+      position: relative;
+      z-index: 1;
+      min-height: 0;
+      overflow: hidden;
+      background: var(--bg);
+    }
+    .xc-scene {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      touch-action: none;
+      cursor: grab;
+      user-select: none;
+    }
+    .xc-scene.is-dragging { cursor: grabbing; }
+    .xc-camera {
+      position: absolute;
+      inset: -4%;
+      will-change: transform;
+      transform: translate3d(0, 0, 0);
+    }
+    .xc-camera.is-resetting { transition: transform 450ms var(--ease-camera); }
+    .xc-scene-layer {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      transform: scale(1.04);
+      pointer-events: none;
+      transition: opacity 450ms var(--ease-camera), transform 450ms var(--ease-camera);
+    }
+    .xc-scene-layer.is-active {
+      z-index: 1;
+      opacity: 1;
+      transform: scale(1);
+    }
+
+    .xc-sky,
+    .xc-art,
+    .xc-starfield {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+    }
+    .xc-sky { color: var(--text); }
+    .xc-starfield { display: block; }
+    .xc-scene-note {
+      position: absolute;
+      z-index: 3;
+      top: 16px;
+      left: 20px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin: 0;
+      font-size: var(--fs-11);
+      line-height: 1.4;
+      color: var(--text-2);
+      letter-spacing: .01em;
+      pointer-events: none;
+    }
+    .xc-note-mark {
+      width: 4px;
+      height: 4px;
+      flex: none;
+      border-radius: 50%;
+      background: var(--cyan);
+    }
+
+    .xc-label {
+      position: absolute;
+      z-index: 4;
+      display: grid;
+      grid-template-columns: 5px auto;
+      gap: 6px;
+      align-items: start;
+      max-width: 112px;
+      margin: 0;
+      font-size: var(--fs-11);
+      line-height: 1.4;
+      color: var(--text-2);
+      pointer-events: none;
+      transition: opacity 150ms linear;
+    }
+    .xc-label::before {
+      content: "";
+      width: 5px;
+      height: 5px;
+      margin-top: .4em;
+      border-radius: 50%;
+      background: var(--cyan);
+    }
+    .xc-label b {
+      display: block;
+      font-size: var(--fs-11);
+      line-height: 1.4;
+      font-weight: 500;
+      color: var(--text);
+      letter-spacing: .01em;
+    }
+    .xc-label em {
+      display: block;
+      margin-top: 0;
+      font-size: var(--fs-11);
+      line-height: 1.4;
+      font-style: normal;
+      color: var(--cyan);
+      font-variant-numeric: tabular-nums;
+    }
+    .xc-label-copy { display: grid; gap: 4px; }
+    .xc-label--planet { grid-template-columns: auto; }
+    .xc-label--planet::before { display: none; }
+    .xc-labels-off .xc-label { opacity: 0; }
+    .is-swapping { animation: xc-swap-in 150ms linear; }
+    @keyframes xc-swap-in {
+      from { opacity: .25; }
+      to { opacity: 1; }
+    }
+
+    .sv-hair {
+      fill: none;
+      stroke: var(--hairline);
+      stroke-width: 1;
+      vector-effect: non-scaling-stroke;
+    }
+    .sv-hair-strong {
+      fill: none;
+      stroke: var(--hairline-strong);
+      stroke-width: 1;
+      vector-effect: non-scaling-stroke;
+    }
+    .sv-guide { opacity: 0; transition: opacity 150ms linear; }
+    .xc-guides-on .sv-guide { opacity: 1; }
+
+    /* Solar system */
+    .xc-system {
+      position: absolute;
+      z-index: 2;
+      top: 52%;
+      left: 40%;
+      width: min(72%, 290px);
+      aspect-ratio: 1;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+    }
+    .xc-app[data-orientation="landscape"] .xc-system {
+      top: 48%;
+      left: 36%;
+      width: 250px;
+    }
+    .xc-orbit {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: var(--orbit);
+      aspect-ratio: 1;
+      transform: translate(-50%, -50%);
+      border: 1px solid var(--hairline);
+      border-radius: 50%;
+    }
+    .xc-planet-track {
+      position: absolute;
+      inset: 0;
+      transform: rotate(var(--angle, 0deg));
+    }
+    .xc-planet {
+      position: absolute;
+      top: calc(var(--dot, 5px) / -2);
+      left: 50%;
+      width: var(--dot, 5px);
+      height: var(--dot, 5px);
+      border-radius: 50%;
+      background: var(--text);
+      transform: translateX(-50%);
+    }
+    .xc-planet.is-earth {
+      background: var(--bg);
+      border: 1px solid var(--text);
+    }
+    .xc-sun {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--text);
+      transform: translate(-50%, -50%);
+    }
+    .xc-axis {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 100%;
+      height: 1px;
+      background: var(--hairline);
+      transform: translate(-50%, -50%);
+      opacity: 0;
+      transition: opacity 150ms linear;
+    }
+    .xc-axis.is-vertical {
+      width: 1px;
+      height: 100%;
+    }
+    .xc-guides-on .xc-axis { opacity: 1; }
+    .xc-label--earth { left: 53%; top: 42%; }
+    .xc-app[data-orientation="landscape"] .xc-label--earth { left: 49%; top: 30%; }
+
+    /* Earth–Moon */
+    .xc-earthmoon {
+      position: absolute;
+      z-index: 2;
+      top: 52%;
+      left: 40%;
+      width: min(72%, 290px);
+      aspect-ratio: 1;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+    }
+    .xc-app[data-orientation="landscape"] .xc-earthmoon {
+      top: 48%;
+      left: 34%;
+      width: 250px;
+    }
+    .xc-moon-orbit,
+    .xc-leo {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+    }
+    .xc-moon-orbit {
+      width: 100%;
+      height: 100%;
+      border: 1px solid var(--hairline);
+    }
+    .xc-leo {
+      width: 46%;
+      height: 46%;
+      border: 1px dashed var(--hairline-strong);
+    }
+    .xc-moon-track,
+    .xc-station-track {
+      position: absolute;
+      inset: 0;
+      transform: rotate(var(--angle, 0deg));
+    }
+    .xc-moon {
+      position: absolute;
+      top: -5px;
+      left: 50%;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--surface-2);
+      border: 1px solid var(--hairline-strong);
+      transform: translateX(-50%);
+    }
+    .xc-station-dot {
+      position: absolute;
+      top: -2px;
+      left: 50%;
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      background: var(--cyan);
+      transform: translateX(-50%);
+    }
+    .xc-earth {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 34%;
+      aspect-ratio: 1;
+      transform: translate(-50%, -50%);
+    }
+    .xc-earth .sv-body {
+      fill: var(--surface-2);
+      stroke: var(--hairline-strong);
+      stroke-width: 1;
+      vector-effect: non-scaling-stroke;
+    }
+    .xc-label--moon { left: 54%; top: 22%; }
+    .xc-label--station { left: 19%; top: 43%; }
+    .xc-app[data-orientation="landscape"] .xc-label--moon { left: 47%; top: 18%; }
+    .xc-app[data-orientation="landscape"] .xc-label--station { left: 18%; top: 42%; }
+
+    /* Tiangong-1 */
+    .xc-station-wrap {
+      position: absolute;
+      z-index: 2;
+      top: 41%;
+      right: 100px;
+      left: 20px;
+      transform: translateY(-50%);
+      pointer-events: none;
+    }
+    .xc-app[data-orientation="landscape"] .xc-station-wrap {
+      top: 45%;
+      right: auto;
+      left: 26%;
+      width: 46%;
+    }
+    .xc-station {
+      display: block;
+      width: 100%;
+      height: auto;
+      overflow: visible;
+    }
+    .xc-station .sv-body {
+      fill: var(--surface-1);
+      stroke: var(--hairline-strong);
+      stroke-width: 1;
+      vector-effect: non-scaling-stroke;
+    }
+    .xc-station .sv-panel {
+      fill: var(--surface-1);
+      stroke: var(--hairline-strong);
+      stroke-width: 1;
+      vector-effect: non-scaling-stroke;
+    }
+    .xc-station .sv-fine {
+      fill: none;
+      stroke: var(--hairline);
+      stroke-width: 1;
+      vector-effect: non-scaling-stroke;
+    }
+    .xc-station .sv-dim {
+      fill: none;
+      stroke: var(--cyan);
+      stroke-width: 1;
+      vector-effect: non-scaling-stroke;
+    }
+    .xc-measure {
+      position: absolute;
+      z-index: 4;
+      bottom: -14px;
+      left: 50%;
+      margin: 0;
+      transform: translateX(-50%);
+      font-size: var(--fs-11);
+      line-height: 1.4;
+      color: var(--cyan);
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+      pointer-events: none;
+    }
+
+    /* Right-edge ladder */
+    .xc-rail {
+      position: absolute;
+      z-index: 7;
+      top: 54%;
+      right: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      width: 84px;
+      transform: translateY(-50%);
+    }
+    .xc-rail::before {
+      content: "";
+      position: absolute;
+      z-index: -1;
+      top: 22px;
+      right: 15px;
+      bottom: 22px;
+      width: 1px;
+      background: var(--hairline);
+    }
+    .xc-node {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 8px;
+      width: 84px;
+      height: 44px;
+      padding: 0 11px 0 8px;
+      border: 0;
+      border-radius: 8px;
+      background: transparent;
+      color: var(--text-2);
+      font-size: var(--fs-12);
+      line-height: 1.4;
+      letter-spacing: .01em;
+      text-align: right;
+      cursor: pointer;
+      transition: transform 150ms linear, background-color 150ms linear, color 150ms linear, opacity 150ms linear;
+    }
+    .xc-node-name {
+      display: block;
+      min-width: 0;
+      white-space: nowrap;
+    }
+    .xc-node-dot {
+      width: 6px;
+      height: 6px;
+      flex: none;
+      border-radius: 50%;
+      background: currentColor;
+      transition: width 150ms linear, height 150ms linear, background-color 150ms linear, border-color 150ms linear;
+    }
+    .xc-node.is-current {
+      color: var(--gold);
+      font-weight: 500;
+    }
+    .xc-node.is-current .xc-node-dot {
+      width: 8px;
+      height: 8px;
+      background: var(--gold);
+    }
+    .xc-node:disabled {
+      color: var(--text-2);
+      opacity: .30;
+      cursor: default;
+    }
+    .xc-node:disabled .xc-node-dot {
+      background: transparent;
+      border: 1px solid currentColor;
+    }
+    .xc-node:not(:disabled):active {
+      transform: scale(.96);
+      background: var(--surface-2);
+    }
+    @media (hover: hover) {
+      .xc-node:not(:disabled):hover { color: var(--text); }
+      .xc-node.is-current:hover { color: var(--gold); }
+    }
+
+    .xc-bottom {
+      position: absolute;
+      z-index: 8;
+      right: 20px;
+      bottom: 8px;
+      left: 20px;
+      display: grid;
+      gap: 8px;
+    }
+    .xc-context {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+    }
+    .xc-ctx {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      min-width: 44px;
+      height: 44px;
+      padding: 0 12px;
+      border: 1px solid var(--hairline);
+      border-radius: 8px;
+      background: var(--surface-1);
+      color: var(--text-2);
+      font-size: var(--fs-12);
+      line-height: 1.2;
+      letter-spacing: .01em;
+      cursor: pointer;
+      transition: background-color 150ms linear, color 150ms linear, transform 150ms linear;
+    }
+    .xc-ctx:active { transform: scale(.96); }
+    .xc-ctx[aria-pressed="true"] { color: var(--text); background: var(--surface-2); }
+    .xc-ctx[aria-pressed="true"]::after {
+      content: "";
+      position: absolute;
+      right: 8px;
+      bottom: 4px;
+      left: 8px;
+      height: 2px;
+      background: var(--cyan);
+    }
+    .xc-primary {
+      width: 100%;
+      height: 60px;
+      padding: 0 16px;
+      border: 0;
+      border-radius: 14px;
+      background: var(--gold);
+      color: var(--on-gold);
+      font-size: var(--fs-15);
+      line-height: 1.4;
+      font-weight: 600;
+      letter-spacing: .01em;
+      cursor: pointer;
+      transition: transform 150ms linear, opacity 150ms linear;
+    }
+    @media (hover: hover) {
+      .xc-primary:hover { opacity: .94; }
+    }
+    .xc-primary:active { transform: scale(.985); }
+
+    .xc-toast {
+      position: absolute;
+      z-index: 9;
+      bottom: 128px;
+      left: 20px;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      max-width: calc(100% - 40px);
+      height: 32px;
+      margin: 0;
+      padding: 0 12px;
+      border: 1px solid var(--hairline);
+      border-radius: 8px;
+      background: var(--surface-1);
+      color: var(--text);
+      font-size: var(--fs-11);
+      line-height: 1.4;
+      letter-spacing: .01em;
+      white-space: nowrap;
+      pointer-events: none;
+      opacity: 0;
+      transform: translateY(4px);
+      transition: opacity 150ms linear, transform 150ms linear;
+    }
+    .xc-toast.is-visible {
+      opacity: 1;
+      transform: translateY(0);
+      transition: opacity 280ms var(--ease-panel), transform 280ms var(--ease-panel);
+    }
+    .xc-toast-dot {
+      width: 4px;
+      height: 4px;
+      flex: none;
+      border-radius: 50%;
+      background: var(--cyan);
+    }
+
+    .xc-panel {
+      position: absolute;
+      z-index: 30;
+      top: 112px;
+      right: 20px;
+      width: 320px;
+      max-width: calc(100% - 40px);
+      padding: 20px;
+      border: 1px solid var(--hairline);
+      border-radius: 14px;
+      background: var(--surface-1);
+      color: var(--text);
+      opacity: 0;
+      transform: translateY(-6px);
+      transition: opacity 280ms var(--ease-panel), transform 280ms var(--ease-panel);
+    }
+    .xc-panel.is-open { opacity: 1; transform: translateY(0); }
+    .xc-app[data-orientation="landscape"] .xc-panel { top: 104px; width: 360px; }
+    .xc-panel-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+    }
+    .xc-panel-kicker {
+      margin: 0;
+      font-size: var(--fs-11);
+      line-height: 1.4;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: var(--text-2);
+    }
+    .xc-panel-close {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex: none;
+      width: 44px;
+      height: 44px;
+      margin: -8px -8px 0 0;
+      padding: 0;
+      border: 1px solid var(--hairline);
+      border-radius: 8px;
+      background: transparent;
+      color: var(--text-2);
+      cursor: pointer;
+    }
+    .xc-panel-title {
+      margin: 8px 0 0;
+      font-family: var(--font-display);
+      font-size: var(--fs-15);
+      line-height: 1.4;
+      font-weight: 600;
+    }
+    .xc-panel-list {
+      display: grid;
+      gap: 12px;
+      margin: 16px 0 0;
+      padding: 0;
+    }
+    .xc-panel-row { display: grid; gap: 4px; }
+    .xc-panel-row dt {
+      margin: 0;
+      font-size: var(--fs-11);
+      line-height: 1.4;
+      letter-spacing: .01em;
+      color: var(--text-2);
+    }
+    .xc-panel-row dd {
+      margin: 0;
+      font-size: var(--fs-12);
+      line-height: 1.5;
+      color: var(--text);
+    }
+    .xc-panel-note {
+      margin: 16px 0 0;
+      padding-top: 12px;
+      border-top: 1px solid var(--hairline);
+      font-size: var(--fs-11);
+      line-height: 1.5;
+      color: var(--text-2);
+    }
+
+    .xc-app[data-orientation="landscape"] .xc-header { padding: 0 20px; }
+    .xc-app[data-orientation="landscape"] .xc-head-copy {
+      flex-direction: row;
+      align-items: baseline;
+      gap: 12px;
+    }
+    .xc-app[data-orientation="landscape"] .xc-ruler {
+      height: 48px;
+      padding: 4px 20px;
+    }
+    .xc-app[data-orientation="landscape"] .xc-ruler-head { line-height: 14px; }
+    .xc-app[data-orientation="landscape"] .xc-track { height: 8px; }
+    .xc-app[data-orientation="landscape"] .xc-track-line { top: 3px; }
+    .xc-app[data-orientation="landscape"] .xc-tick { top: 2px; height: 5px; }
+    .xc-app[data-orientation="landscape"] .xc-tick.is-major { top: 1px; height: 7px; }
+    .xc-app[data-orientation="landscape"] .xc-band { top: 2px; }
+    .xc-app[data-orientation="landscape"] .xc-marker { height: 8px; }
+    .xc-app[data-orientation="landscape"] .xc-track-ends { line-height: 10px; }
+
+    .xc-app[data-orientation="landscape"] .xc-rail {
+      top: auto;
+      right: 20px;
+      bottom: 76px;
+      left: 20px;
+      flex-direction: row;
+      gap: 8px;
+      width: auto;
+      transform: none;
+    }
+    .xc-app[data-orientation="landscape"] .xc-rail::before {
+      top: 50%;
+      right: 0;
+      bottom: auto;
+      left: 0;
+      width: auto;
+      height: 1px;
+    }
+    .xc-app[data-orientation="landscape"] .xc-node {
+      justify-content: center;
+      flex: 1 1 0;
+      width: auto;
+      min-width: 44px;
+      background: var(--surface-1);
+      border: 1px solid var(--hairline);
+    }
+    .xc-app[data-orientation="landscape"] .xc-node.is-current { border-color: var(--hairline-strong); }
+    .xc-app[data-orientation="landscape"] .xc-bottom {
+      grid-template-columns: minmax(0, 1fr) 240px;
+      align-items: end;
+      gap: 16px;
+    }
+    .xc-app[data-orientation="landscape"] .xc-context { align-self: end; }
+    .xc-app[data-orientation="landscape"] .xc-primary { width: 100%; }
+    .xc-app[data-orientation="landscape"] .xc-toast { bottom: 128px; }
+    .xc-app[data-orientation="landscape"] .xc-station-wrap { max-height: 78%; }
+
+    .sr-only {
+      position: absolute !important;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .xc-app *,
+      .xc-app *::before,
+      .xc-app *::after {
+        scroll-behavior: auto !important;
+        transition-duration: .01ms !important;
+        animation-duration: .01ms !important;
+        animation-iteration-count: 1 !important;
+      }
+    }
+
+    /* -------------------------------------------------------------------------
+       Annotation specimens
+       ------------------------------------------------------------------------- */
+    .annot {
+      display: grid;
+      gap: 32px;
+      padding: 24px;
+      border: 1px solid rgba(255,255,255,.10);
+      border-radius: 14px;
+      background: var(--board-dark);
+      color: #F2F4F8;
+    }
+    .annot-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 32px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid rgba(255,255,255,.10);
+    }
+    .annot-kicker {
+      margin: 0;
+      font-size: 11px;
+      line-height: 1.4;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: #9A9DA2;
+    }
+    .annot-title {
+      margin: 4px 0 0;
+      font-family: var(--font-display);
+      font-size: 20px;
+      line-height: 1.35;
+      font-weight: 600;
+    }
+    .annot-note {
+      max-width: 44ch;
+      margin: 0;
+      font-size: 12px;
+      line-height: 1.65;
+      color: #9A9DA2;
+      text-align: right;
+    }
+    .annot-block { display: grid; gap: 16px; }
+    .annot-block-head {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 16px;
+    }
+    .annot-block-title {
+      margin: 0;
+      font-size: 15px;
+      line-height: 1.4;
+      font-weight: 500;
+    }
+    .annot-block-meta {
+      margin: 0;
+      font-size: 11px;
+      line-height: 1.4;
+      color: #9A9DA2;
+      font-variant-numeric: tabular-nums;
+    }
+    .state-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 16px;
+    }
+    .state-card {
+      display: grid;
+      gap: 12px;
+      padding: 16px;
+      border: 1px solid rgba(255,255,255,.10);
+      border-radius: 8px;
+      background: #0C1018;
+    }
+    .state-label {
+      font-size: 12px;
+      line-height: 1.4;
+      font-weight: 500;
+    }
+    .xa-node {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 8px;
+      width: 100%;
+      height: 44px;
+      padding: 0 11px 0 8px;
+      border: 1px solid transparent;
+      border-radius: 8px;
+      color: #9A9DA2;
+      font-size: 12px;
+      line-height: 1.4;
+      font-variant-numeric: tabular-nums;
+    }
+    .xa-node-dot {
+      width: 6px;
+      height: 6px;
+      flex: none;
+      border-radius: 50%;
+      background: currentColor;
+    }
+    .xa-node.is-current { color: #E8B15C; font-weight: 500; }
+    .xa-node.is-current .xa-node-dot { width: 8px; height: 8px; background: #E8B15C; }
+    .xa-node.is-disabled { opacity: .30; }
+    .xa-node.is-disabled .xa-node-dot { background: transparent; border: 1px solid currentColor; }
+    .xa-node.is-pressed { transform: scale(.96); background: #141922; }
+    .state-desc {
+      padding-top: 8px;
+      border-top: 1px solid rgba(255,255,255,.10);
+      font-size: 11px;
+      line-height: 1.55;
+      color: #9A9DA2;
+    }
+    .state-desc b { color: #F2F4F8; font-weight: 500; }
+
+    .ruler-samples {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+    }
+    .ruler-sample {
+      display: grid;
+      gap: 8px;
+      padding: 12px;
+      border: 1px solid rgba(255,255,255,.10);
+      border-radius: 8px;
+      background: #05070D;
+    }
+    .xa-ruler-head {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+      font-size: 11px;
+      line-height: 1.4;
+      color: #9A9DA2;
+    }
+    .xa-readout {
+      color: #6FA8C8;
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+    .xa-track {
+      position: relative;
+      height: 12px;
+    }
+    .xa-line {
+      position: absolute;
+      top: 5px;
+      right: 0;
+      left: 0;
+      height: 1px;
+      background: rgba(255,255,255,.18);
+    }
+    .xa-band {
+      position: absolute;
+      top: 4px;
+      left: 82.9%;
+      width: 14.35%;
+      height: 3px;
+      background: #6FA8C8;
+    }
+    .xa-band.is-mid {
+      left: 54%;
+      width: 9.35%;
+    }
+    .xa-marker {
+      position: absolute;
+      top: 0;
+      left: 91%;
+      width: 2px;
+      height: 12px;
+      background: #6FA8C8;
+      transform: translateX(-50%);
+    }
+    .xa-marker.is-mid { left: 73.5%; }
+    .xa-ends {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      font-size: 11px;
+      line-height: 1.3;
+      color: #9A9DA2;
+    }
+    .xa-caption {
+      font-size: 11px;
+      line-height: 1.55;
+      color: #9A9DA2;
+    }
+    .xa-caption b { color: #F2F4F8; font-weight: 500; }
+    .xa-toast {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 32px;
+      padding: 0 12px;
+      border: 1px solid rgba(255,255,255,.10);
+      border-radius: 8px;
+      background: #0C1018;
+      color: #F2F4F8;
+      font-size: 11px;
+      line-height: 1.4;
+    }
+    .annot-grid-2 {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+    }
+    .decision {
+      display: grid;
+      gap: 8px;
+      padding: 16px;
+      border: 1px solid rgba(255,255,255,.10);
+      border-radius: 8px;
+    }
+    .decision-key {
+      font-size: 11px;
+      line-height: 1.4;
+      letter-spacing: .08em;
+      color: #6FA8C8;
+    }
+    .decision-title {
+      margin: 0;
+      font-size: 12px;
+      line-height: 1.5;
+      font-weight: 500;
+      color: #F2F4F8;
+    }
+    .decision-copy {
+      margin: 0;
+      font-size: 11px;
+      line-height: 1.65;
+      color: #9A9DA2;
+    }
+    .spec-table {
+      width: 100%;
+      table-layout: fixed;
+      border-collapse: collapse;
+      font-size: 11px;
+      line-height: 1.5;
+    }
+    .spec-table th {
+      padding: 8px 12px;
+      border-bottom: 1px solid rgba(255,255,255,.10);
+      color: #9A9DA2;
+      font-weight: 500;
+      text-align: left;
+      letter-spacing: .01em;
+    }
+    .spec-table td {
+      padding: 8px 12px;
+      border-bottom: 1px solid rgba(255,255,255,.10);
+      color: #F2F4F8;
+      vertical-align: top;
+      overflow-wrap: anywhere;
+    }
+    .spec-table td:first-child { color: #9A9DA2; }
+    .spec-table code {
+      font-family: var(--font-ui);
+      font-size: 11px;
+      color: #6FA8C8;
+    }
+    .swatch {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      margin-right: 6px;
+      border: 1px solid rgba(255,255,255,.18);
+      vertical-align: -1px;
+    }
+    .swatch.is-light { border-color: rgba(17,21,26,.22); }
+
+    @media (max-width: 980px) {
+      .specimen-grid { grid-template-columns: minmax(0, 1fr); }
+      .section-head { flex-direction: column; gap: 8px; }
+      .section-note { max-width: 56ch; text-align: left; }
+      .state-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .annot-grid-2 { grid-template-columns: minmax(0, 1fr); }
+      .annot-head { flex-direction: column; gap: 8px; }
+      .annot-note { max-width: 60ch; text-align: left; }
+    }
+    @media (max-width: 620px) {
+      .od-board { padding: 32px 20px 64px; }
+      .board-meta { gap: 16px 24px; }
+      .ruler-samples { grid-template-columns: minmax(0, 1fr); }
+      .state-grid { grid-template-columns: minmax(0, 1fr); }
+      .annot { padding: 20px; }
+      .spec-table { font-size: 11px; }
+      .spec-table th,
+      .spec-table td { padding: 8px; }
+    }
+    @media (max-width: 640px) {
+      .landscape-board {
+        width: 874px;
+        height: 402px;
+        max-width: none;
+        aspect-ratio: auto;
+        zoom: .55;
+      }
+    }
+    @media (max-width: 550px) { .landscape-board { zoom: .48; } }
+    @media (max-width: 450px) { .landscape-board { zoom: .40; } }
+    @media (max-width: 390px) { .landscape-board { zoom: .34; } }
+    @media (max-width: 330px) { .landscape-board { zoom: .28; } }
+    @media (max-width: 480px) {
+      .specimen .phone-frame { zoom: 1; }
+      .specimen figcaption { max-width: 100%; }
+    }
+  </style>
+</head>
+<body class="od-stage">
+  <div class="od-board">
+    <header class="board-head">
+      <p class="board-kicker">XINGCHA · SCALE-LADDER NAVIGATION / STUDY 01</p>
+      <h1 class="board-title">星槎 · 尺度阶梯导航与常显尺子</h1>
+      <p class="board-lede">四层尺度、四个问题。用右侧阶梯替代底部页签，用一条常显尺子把“现在看到多远”留在视野里；暖金只标记当前层与主操作。</p>
+      <dl class="board-meta">
+        <div><dt>Screen</dt><dd>402 × 874 / 874 × 402</dd></div>
+        <div><dt>Theme</dt><dd>深色 + 亮色</dd></div>
+        <div><dt>Type</dt><dd>11 / 12 / 15 / 20</dd></div>
+        <div><dt>Accent</dt><dd>暖金 × 1</dd></div>
+      </dl>
+    </header>
+
+    <section class="board-section" aria-labelledby="section-dark">
+      <div class="section-head">
+        <div>
+          <p class="section-index">01 / Dark</p>
+          <h2 class="section-title" id="section-dark">深色主稿</h2>
+        </div>
+        <p class="section-note">星图层默认态与太阳系层切层后。四个节点始终常显；点节点切层，双击当前节点回到本层全览。</p>
+      </div>
+      <div class="specimen-grid">
+        <figure class="specimen">
+          <div class="phone-frame" data-phone-shell data-platform="iphone">
+            <span class="hardware-button silent" aria-hidden="true"></span>
+            <span class="hardware-button volume-up" aria-hidden="true"></span>
+            <span class="hardware-button volume-down" aria-hidden="true"></span>
+            <span class="hardware-button power" aria-hidden="true"></span>
+            <section class="phone-screen" data-phone-screen data-theme="dark">
+              <main class="phone-content xc-host" data-phone-content>
+                <div class="xc-app" data-theme="dark" data-init="0" data-orientation="portrait" aria-label="星槎，深色星图层"></div>
+              </main>
+              <div class="status-bar" aria-hidden="true">
+                <span>9:41</span>
+                <span class="status-icons">
+                  <svg viewBox="0 0 18 12"><path d="M1 10.5h2V8H1v2.5Zm4 0h2V5.5H5v5Zm4 0h2V3H9v7.5Zm4 0h2V.5h-2v10Z"/></svg>
+                  <svg viewBox="0 0 18 12"><path d="M9 11.2 7.2 9.4a2.55 2.55 0 0 1 3.6 0L9 11.2Zm4.1-4.1-1.35 1.35a3.9 3.9 0 0 0-5.5 0L4.9 7.1a5.8 5.8 0 0 1 8.2 0Zm3-3-1.35 1.35a8.15 8.15 0 0 0-11.5 0L1.9 4.1a10.05 10.05 0 0 1 14.2 0Z"/></svg>
+                  <svg class="battery" viewBox="0 0 27 12"><path fill-rule="evenodd" d="M2.5 1h19A2.5 2.5 0 0 1 24 3.5v5a2.5 2.5 0 0 1-2.5 2.5h-19A2.5 2.5 0 0 1 0 8.5v-5A2.5 2.5 0 0 1 2.5 1Zm0 1A1.5 1.5 0 0 0 1 3.5v5A1.5 1.5 0 0 0 2.5 10h19A1.5 1.5 0 0 0 23 8.5v-5A1.5 1.5 0 0 0 21.5 2h-19Zm.5 1h17.5A1.5 1.5 0 0 1 22 4.5v3A1.5 1.5 0 0 1 20.5 9H3V3Zm22 1.5a1.5 1.5 0 0 1 0 3v-3Z"/></svg>
+                </span>
+              </div>
+              <div class="dynamic-island" aria-hidden="true"></div>
+              <div class="home-indicator" aria-hidden="true"></div>
+            </section>
+          </div>
+          <figcaption><strong>深色 · 星图层</strong><span>默认态 / 402 × 874</span></figcaption>
+        </figure>
+
+        <figure class="specimen">
+          <div class="phone-frame" data-phone-shell data-platform="iphone">
+            <span class="hardware-button silent" aria-hidden="true"></span>
+            <span class="hardware-button volume-up" aria-hidden="true"></span>
+            <span class="hardware-button volume-down" aria-hidden="true"></span>
+            <span class="hardware-button power" aria-hidden="true"></span>
+            <section class="phone-screen" data-phone-screen data-theme="dark">
+              <main class="phone-content xc-host" data-phone-content>
+                <div class="xc-app" data-theme="dark" data-init="1" data-orientation="portrait" aria-label="星槎，深色太阳系层"></div>
+              </main>
+              <div class="status-bar" aria-hidden="true">
+                <span>9:41</span>
+                <span class="status-icons">
+                  <svg viewBox="0 0 18 12"><path d="M1 10.5h2V8H1v2.5Zm4 0h2V5.5H5v5Zm4 0h2V3H9v7.5Zm4 0h2V.5h-2v10Z"/></svg>
+                  <svg viewBox="0 0 18 12"><path d="M9 11.2 7.2 9.4a2.55 2.55 0 0 1 3.6 0L9 11.2Zm4.1-4.1-1.35 1.35a3.9 3.9 0 0 0-5.5 0L4.9 7.1a5.8 5.8 0 0 1 8.2 0Zm3-3-1.35 1.35a8.15 8.15 0 0 0-11.5 0L1.9 4.1a10.05 10.05 0 0 1 14.2 0Z"/></svg>
+                  <svg class="battery" viewBox="0 0 27 12"><path fill-rule="evenodd" d="M2.5 1h19A2.5 2.5 0 0 1 24 3.5v5a2.5 2.5 0 0 1-2.5 2.5h-19A2.5 2.5 0 0 1 0 8.5v-5A2.5 2.5 0 0 1 2.5 1Zm0 1A1.5 1.5 0 0 0 1 3.5v5A1.5 1.5 0 0 0 2.5 10h19A1.5 1.5 0 0 0 23 8.5v-5A1.5 1.5 0 0 0 21.5 2h-19Zm.5 1h17.5A1.5 1.5 0 0 1 22 4.5v3A1.5 1.5 0 0 1 20.5 9H3V3Zm22 1.5a1.5 1.5 0 0 1 0 3v-3Z"/></svg>
+                </span>
+              </div>
+              <div class="dynamic-island" aria-hidden="true"></div>
+              <div class="home-indicator" aria-hidden="true"></div>
+            </section>
+          </div>
+          <figcaption><strong>深色 · 太阳系层</strong><span>切层后 / 402 × 874</span></figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section class="board-section" aria-labelledby="section-light">
+      <div class="section-head">
+        <div>
+          <p class="section-index">02 / Light</p>
+          <h2 class="section-title" id="section-light">亮色一屏</h2>
+        </div>
+        <p class="section-note">同一星图层换用亮色 token。信息层青色调整为 #2F6F8A，保证 11pt 读数与标注仍可读。</p>
+      </div>
+      <div class="specimen-grid is-single">
+        <figure class="specimen">
+          <div class="phone-frame" data-phone-shell data-platform="iphone">
+            <span class="hardware-button silent" aria-hidden="true"></span>
+            <span class="hardware-button volume-up" aria-hidden="true"></span>
+            <span class="hardware-button volume-down" aria-hidden="true"></span>
+            <span class="hardware-button power" aria-hidden="true"></span>
+            <section class="phone-screen" data-phone-screen data-theme="light">
+              <main class="phone-content xc-host" data-phone-content>
+                <div class="xc-app" data-theme="light" data-init="0" data-orientation="portrait" aria-label="星槎，亮色星图层"></div>
+              </main>
+              <div class="status-bar" aria-hidden="true">
+                <span>9:41</span>
+                <span class="status-icons">
+                  <svg viewBox="0 0 18 12"><path d="M1 10.5h2V8H1v2.5Zm4 0h2V5.5H5v5Zm4 0h2V3H9v7.5Zm4 0h2V.5h-2v10Z"/></svg>
+                  <svg viewBox="0 0 18 12"><path d="M9 11.2 7.2 9.4a2.55 2.55 0 0 1 3.6 0L9 11.2Zm4.1-4.1-1.35 1.35a3.9 3.9 0 0 0-5.5 0L4.9 7.1a5.8 5.8 0 0 1 8.2 0Zm3-3-1.35 1.35a8.15 8.15 0 0 0-11.5 0L1.9 4.1a10.05 10.05 0 0 1 14.2 0Z"/></svg>
+                  <svg class="battery" viewBox="0 0 27 12"><path fill-rule="evenodd" d="M2.5 1h19A2.5 2.5 0 0 1 24 3.5v5a2.5 2.5 0 0 1-2.5 2.5h-19A2.5 2.5 0 0 1 0 8.5v-5A2.5 2.5 0 0 1 2.5 1Zm0 1A1.5 1.5 0 0 0 1 3.5v5A1.5 1.5 0 0 0 2.5 10h19A1.5 1.5 0 0 0 23 8.5v-5A1.5 1.5 0 0 0 21.5 2h-19Zm.5 1h17.5A1.5 1.5 0 0 1 22 4.5v3A1.5 1.5 0 0 1 20.5 9H3V3Zm22 1.5a1.5 1.5 0 0 1 0 3v-3Z"/></svg>
+                </span>
+              </div>
+              <div class="dynamic-island" aria-hidden="true"></div>
+              <div class="home-indicator" aria-hidden="true"></div>
+            </section>
+          </div>
+          <figcaption><strong>亮色 · 星图层</strong><span>亮色 token / 402 × 874</span></figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section class="board-section" aria-labelledby="section-landscape">
+      <div class="section-head">
+        <div>
+          <p class="section-index">03 / Landscape</p>
+          <h2 class="section-title" id="section-landscape">横屏一屏</h2>
+        </div>
+        <p class="section-note">874 × 402 的地月系。阶梯改为底部横排，四节点一次可达；主操作与上下文控件仍在底部。</p>
+      </div>
+      <div class="specimen-grid is-single">
+        <figure class="specimen specimen--wide">
+          <div class="landscape-board">
+            <div class="xc-app" data-theme="dark" data-init="2" data-orientation="landscape" aria-label="星槎，深色地月系横屏"></div>
+          </div>
+          <figcaption><strong>深色 · 地月系 / 横屏</strong><span>横排阶梯 / 874 × 402</span></figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section class="board-section" aria-labelledby="section-annot">
+      <div class="section-head">
+        <div>
+          <p class="section-index">04 / Components</p>
+          <h2 class="section-title" id="section-annot">组件标注与数值</h2>
+        </div>
+        <p class="section-note">标注只出现在展示页，不进入应用 UI。所有应用内尺寸均映射回 token；新增数值单独给出理由。</p>
+      </div>
+
+      <div class="annot">
+        <div class="annot-head">
+          <div>
+            <p class="annot-kicker">Instrument spec / 01</p>
+            <h3 class="annot-title">阶梯节点四态</h3>
+          </div>
+          <p class="annot-note">节点文字 12pt，触达 44×44pt，垂直间距 8pt。当前层与主操作是画面里仅有的暖金。</p>
+        </div>
+
+        <div class="state-grid">
+          <div class="state-card">
+            <span class="state-label">默认 / 可达</span>
+            <div class="xa-node"><span>太阳系</span><span class="xa-node-dot"></span></div>
+            <p class="state-desc"><b>#9A9DA2</b><br>44×44 hit area<br>上行任意层，下钻仅相邻一层</p>
+          </div>
+          <div class="state-card">
+            <span class="state-label">当前层</span>
+            <div class="xa-node is-current"><span>地月系</span><span class="xa-node-dot"></span></div>
+            <p class="state-desc"><b>#E8B15C</b><br>8pt dot / 12pt label<br>双击或键盘激活回到本层全览</p>
+          </div>
+          <div class="state-card">
+            <span class="state-label">不可达</span>
+            <div class="xa-node is-disabled"><span>天宫一号</span><span class="xa-node-dot"></span></div>
+            <p class="state-desc"><b>30% opacity</b><br>空心点 / 原生 disabled<br>隔层下钻点了不动</p>
+          </div>
+          <div class="state-card">
+            <span class="state-label">按压</span>
+            <div class="xa-node is-pressed"><span>星图</span><span class="xa-node-dot"></span></div>
+            <p class="state-desc"><b>scale .96</b><br>150ms linear<br>表面 #141922</p>
+          </div>
+        </div>
+
+        <div class="annot-block">
+          <div class="annot-block-head">
+            <h3 class="annot-block-title">尺子两态</h3>
+            <p class="annot-block-meta">固定区间 + 独立读数 + 全局对数轨</p>
+          </div>
+          <div class="ruler-samples">
+            <div class="ruler-sample">
+              <div class="xa-ruler-head"><span>4–3000 光年</span><span class="xa-readout">视距 10^18.2 m</span></div>
+              <div class="xa-track" aria-hidden="true">
+                <span class="xa-line"></span>
+                <span class="xa-band"></span>
+                <span class="xa-marker"></span>
+              </div>
+              <div class="xa-ends"><span>10^0</span><span>10^20 m</span></div>
+              <p class="xa-caption"><b>静态</b> · 星图区间亮起，标记停在 91%。</p>
+            </div>
+            <div class="ruler-sample">
+              <div class="xa-ruler-head"><span>0.4–30 AU</span><span class="xa-readout">视距 10^14.7 m</span></div>
+              <div class="xa-track" aria-hidden="true">
+                <span class="xa-line"></span>
+                <span class="xa-band is-mid"></span>
+                <span class="xa-marker is-mid"></span>
+              </div>
+              <div class="xa-ends"><span>10^0</span><span>10^20 m</span></div>
+              <p class="xa-caption"><b>插值中</b> · 450ms easeInOut，读数只减不回头。</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="annot-grid-2">
+          <div class="annot-block">
+            <div class="annot-block-head">
+              <h3 class="annot-block-title">一次性提示</h3>
+              <p class="annot-block-meta">上行回星图时出现</p>
+            </div>
+            <div class="xa-toast"><span class="xa-node-dot" style="width:4px;height:4px;background:#6FA8C8"></span><span>已恢复姿态跟随</span></div>
+            <p class="xa-caption"><b>32pt 高 / 8pt 圆角 / 2s 自动消失。</b><br>位于上下文控件上方，不遮挡尺子与主操作；进入 280ms easeOut，退出 150ms linear。</p>
+          </div>
+          <div class="annot-block">
+            <div class="annot-block-head">
+              <h3 class="annot-block-title">阅读顺序</h3>
+              <p class="annot-block-meta">一个屏幕，一条主线</p>
+            </div>
+            <p class="xa-caption" style="margin:0; max-width:46ch">层名与问题 → 固定区间 → 实时读数 → 主画面 → 阶梯 → 上下文控件 → 主操作。暖金不参与任何装饰性信息，避免与当前层竞争。</p>
+          </div>
+        </div>
+
+        <div class="annot-grid-2">
+          <div class="annot-block">
+            <div class="annot-block-head">
+              <h3 class="annot-block-title">A–D 设计裁定</h3>
+              <p class="annot-block-meta">实现选择</p>
+            </div>
+            <div class="decision">
+              <span class="decision-key">A / POSITION</span>
+              <p class="decision-title">右侧悬浮竖排</p>
+              <p class="decision-copy">四节点总高 200pt，落在画面中段，右手拇指自然可达。底部四行会吃掉约 180pt 视场，仅作为被否决对照。</p>
+            </div>
+            <div class="decision">
+              <span class="decision-key">B / RULER</span>
+              <p class="decision-title">顶部独立细条</p>
+              <p class="decision-copy">固定区间在左，读数在右，轨道表示 10^0–10^20 m 的全局对数域。跨层不换单位，读数单调。</p>
+            </div>
+            <div class="decision">
+              <span class="decision-key">C / CURRENT</span>
+              <p class="decision-title">暖金只给当前层与主操作</p>
+              <p class="decision-copy">可达节点用次文字色；隔层下钻降为 30% 空心点。不可达不只靠颜色，还靠形状与 disabled 语义。</p>
+            </div>
+            <div class="decision">
+              <span class="decision-key">D / HINT</span>
+              <p class="decision-title">一次性低位提示</p>
+              <p class="decision-copy">只在上行回星图时出现，位于控件上方，2 秒后消失；一次页面会话仅出现一次。</p>
+            </div>
+          </div>
+
+          <div class="annot-block">
+            <div class="annot-block-head">
+              <h3 class="annot-block-title">Token 映射</h3>
+              <p class="annot-block-meta">深色 / 亮色</p>
+            </div>
+            <table class="spec-table">
+              <thead><tr><th style="width:31%">Token</th><th style="width:41%">Dark / Light</th><th>Use</th></tr></thead>
+              <tbody>
+                <tr><td>bg</td><td><span class="swatch" style="background:#05070D"></span>#05070D<br><span class="swatch is-light" style="background:#F6F7F8"></span>#F6F7F8</td><td>应用底</td></tr>
+                <tr><td>surface 1</td><td><span class="swatch" style="background:#0C1018"></span>#0C1018<br><span class="swatch is-light" style="background:#FFFFFF"></span>#FFFFFF</td><td>控件 / 面板</td></tr>
+                <tr><td>surface 2</td><td><span class="swatch" style="background:#141922"></span>#141922<br><span class="swatch is-light" style="background:#E6E9EC"></span>#E6E9EC</td><td>按压 / 激活面</td></tr>
+                <tr><td>text</td><td><span class="swatch" style="background:#F2F4F8"></span>#F2F4F8<br><span class="swatch is-light" style="background:#11151A"></span>#11151A</td><td>主文字</td></tr>
+                <tr><td>text-2</td><td><span class="swatch" style="background:#9A9DA2"></span>#9A9DA2<br><span class="swatch is-light" style="background:#696D71"></span>#696D71</td><td>次文字</td></tr>
+                <tr><td>gold</td><td><span class="swatch" style="background:#E8B15C"></span>#E8B15C<br><span class="swatch is-light" style="background:#8A5A16"></span>#8A5A16</td><td>当前节点 / 主操作</td></tr>
+                <tr><td>cyan</td><td><span class="swatch" style="background:#6FA8C8"></span>#6FA8C8<br><span class="swatch is-light" style="background:#2F6F8A"></span>#2F6F8A</td><td>尺子 / 信息标注</td></tr>
+                <tr><td>hairline</td><td>white 10%<br>ink 10%</td><td>1px 分界</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="annot-block">
+          <div class="annot-block-head">
+            <h3 class="annot-block-title">新增数值与理由</h3>
+            <p class="annot-block-meta">未由任务书直接给出</p>
+          </div>
+          <table class="spec-table">
+            <thead><tr><th style="width:32%">Value</th><th>Reason</th></tr></thead>
+            <tbody>
+              <tr><td>阶梯总高 200pt</td><td>4 × 44pt + 3 × 8pt；四点常显，同时避开顶部尺子与底部主操作。</td></tr>
+              <tr><td>阶梯列宽 84pt / 右缘 8pt</td><td>容纳最长「天宫一号」12pt 标签与 8pt 当前点，同时让右侧保持“细”。</td></tr>
+              <tr><td>尺子高 56 / 48pt</td><td>竖屏容纳两行 11pt、轨道与端点；横屏压到 48pt 让出主画面。</td></tr>
+              <tr><td>全局轨 10^0–10^20 m</td><td>覆盖天宫 10m 到星图 3000 光年，读数不跨层换单位。</td></tr>
+              <tr><td>读数 1 位小数</td><td>450ms 内变化可读，又不会因位数变化推动布局。</td></tr>
+              <tr><td>禁用 30% 不透明度</td><td>层名仍可辨认，但明显弱于可达节点；配合空心点避免只靠颜色。</td></tr>
+              <tr><td>焦点环 2px / 偏移 2px</td><td>透明节点与金色主按钮上都能稳定看见键盘焦点。</td></tr>
+              <tr><td>提示条 32pt / 2s</td><td>只占一行，不压尺子与主按钮；2 秒完成一次状态告知。</td></tr>
+              <tr><td>亮色青 #2F6F8A</td><td>原冷青在白底上 11pt 对比不足；该值保持信息层角色并达到 4.5:1。</td></tr>
+              <tr><td>画面拖动 ±24px</td><td>提供“回全览”可感知的视图偏移，同时不把场景拖出安全范围。</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+  (() => {
+    "use strict";
+
+    const LAYERS = [
+      { name: "星图", question: "我看到的光从多远来？", range: "4–3000 光年", min: 16.58, max: 19.45, reading: 18.2, cta: "下钻至太阳系" },
+      { name: "太阳系", question: "那颗亮星其实是行星，它在哪？", range: "0.4–30 AU", min: 10.78, max: 12.65, reading: 11.2, cta: "下钻至地月系" },
+      { name: "地月系", question: "天宫离我们有多近？", range: "350 km–38 万 km", min: 5.54, max: 8.58, reading: 7.2, cta: "下钻至天宫一号" },
+      { name: "天宫一号", question: "它长什么样？", range: "约 10 米", min: 0.90, max: 1.15, reading: 1.0, cta: "回望星图" }
+    ];
+
+    const DOMAIN = 20;
+    const reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    const ICONS = {
+      more: '<svg class="od-icon xc-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" aria-hidden="true" focusable="false"><path d="M6 12h.01M12 12h.01M18 12h.01" stroke-width="2.2"/></svg>',
+      label: '<svg class="od-icon xc-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4.5 5.5h8.2L20 12.8l-7.2 7.2L5.5 12.7V5.5Z"/><circle cx="9" cy="9" r="1.4"/></svg>',
+      grid: '<svg class="od-icon xc-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4 9h16M4 15h16M9 4v16M15 4v16"/></svg>',
+      frame: '<svg class="od-icon xc-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M9 4H4v5M15 4h5v5M9 20H4v-5M15 20h5v-5"/></svg>',
+      close: '<svg class="od-icon xc-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" aria-hidden="true" focusable="false"><path d="M6 6l12 12M18 6 6 18"/></svg>'
+    };
+
+    function mulberry32(a) {
+      return function () {
+        a |= 0;
+        a = a + 0x6D2B79F5 | 0;
+        let t = Math.imul(a ^ a >>> 15, 1 | a);
+        t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+        return ((t ^ t >>> 14) >>> 0) / 4294967296;
+      };
+    }
+
+    function starsSvg(seed, count) {
+      const random = mulberry32(seed);
+      let stars = "";
+      for (let i = 0; i < count; i += 1) {
+        const x = (random() * 1000).toFixed(1);
+        const y = (random() * 1000).toFixed(1);
+        const r = (0.55 + random() * 1.65).toFixed(2);
+        const opacity = (0.16 + random() * 0.68).toFixed(2);
+        stars += `<circle cx="${x}" cy="${y}" r="${r}" fill="currentColor" opacity="${opacity}"/>`;
+      }
+      return `<svg class="xc-starfield" viewBox="0 0 1000 1000" preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false">${stars}</svg>`;
+    }
+
+    function sceneStars() {
+      return `
+        <div class="xc-sky">${starsSvg(101, 190)}</div>
+        <svg class="xc-art" viewBox="0 0 1000 1000" preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false">
+          <g class="sv-guide">
+            <circle cx="470" cy="500" r="310" class="sv-hair"/>
+            <circle cx="470" cy="500" r="210" class="sv-hair" opacity=".65"/>
+            <path d="M470 160v680M130 500h680" class="sv-hair" opacity=".65"/>
+          </g>
+          <circle cx="336" cy="303" r="2.2" fill="var(--text)"/>
+          <circle cx="522" cy="392" r="1.8" fill="var(--text)"/>
+          <circle cx="286" cy="452" r="1.6" fill="var(--text)"/>
+        </svg>
+        <p class="xc-scene-note"><span class="xc-note-mark"></span>银河系 · 猎户臂</p>
+        <div class="xc-label" style="left:14%;top:22%"><span class="xc-label-copy"><b>参宿四</b><em>约 550 光年</em></span></div>
+        <div class="xc-label" style="left:43%;top:33%"><span class="xc-label-copy"><b>织女星</b><em>25 光年</em></span></div>
+        <div class="xc-label" style="left:20%;top:46%"><span class="xc-label-copy"><b>比邻星</b><em>4.24 光年</em></span></div>
+      `;
+    }
+
+    function sceneSolar() {
+      return `
+        <div class="xc-sky">${starsSvg(202, 70)}</div>
+        <p class="xc-scene-note"><span class="xc-note-mark"></span>轨道对数压缩 · 非等比</p>
+        <div class="xc-system" aria-hidden="true">
+          <span class="xc-axis"></span>
+          <span class="xc-axis is-vertical"></span>
+          <div class="xc-orbit" style="--orbit:28%"><span class="xc-planet-track" style="--angle:210deg"><span class="xc-planet" style="--dot:3px"></span></span></div>
+          <div class="xc-orbit" style="--orbit:46%"><span class="xc-planet-track" style="--angle:35deg"><span class="xc-planet is-earth" style="--dot:5px"></span></span></div>
+          <div class="xc-orbit" style="--orbit:68%"><span class="xc-planet-track" style="--angle:205deg"><span class="xc-planet" style="--dot:7px"></span></span></div>
+          <div class="xc-orbit" style="--orbit:100%"><span class="xc-planet-track" style="--angle:120deg"><span class="xc-planet" style="--dot:4px"></span></span></div>
+          <span class="xc-sun"></span>
+        </div>
+        <div class="xc-label xc-label--planet xc-label--earth"><span class="xc-label-copy"><b>地球</b><em>1 AU</em></span></div>
+      `;
+    }
+
+    function sceneEarthMoon() {
+      return `
+        <div class="xc-sky">${starsSvg(303, 60)}</div>
+        <p class="xc-scene-note"><span class="xc-note-mark"></span>距离非等比 · 近地轨道放大</p>
+        <div class="xc-earthmoon" aria-hidden="true">
+          <span class="xc-axis"></span>
+          <span class="xc-axis is-vertical"></span>
+          <div class="xc-moon-orbit"><span class="xc-moon-track" style="--angle:35deg"><span class="xc-moon"></span></span></div>
+          <div class="xc-leo"><span class="xc-station-track" style="--angle:300deg"><span class="xc-station-dot"></span></span></div>
+          <svg class="xc-earth" viewBox="0 0 200 200" aria-hidden="true" focusable="false">
+            <circle cx="100" cy="100" r="98" class="sv-body"/>
+            <ellipse cx="100" cy="100" rx="34" ry="98" class="sv-hair"/>
+            <ellipse cx="100" cy="100" rx="98" ry="34" class="sv-hair"/>
+            <path d="M20 100h160" class="sv-hair" opacity=".55"/>
+          </svg>
+        </div>
+        <div class="xc-label xc-label--moon"><span class="xc-label-copy"><b>月球</b><em>38 万 km</em></span></div>
+        <div class="xc-label xc-label--station"><span class="xc-label-copy"><b>天宫</b><em>约 400 km</em></span></div>
+      `;
+    }
+
+    function sceneTiangong() {
+      const grid = [];
+      for (let x = 40; x < 760; x += 40) grid.push(`<line x1="${x}" y1="0" x2="${x}" y2="380" class="sv-hair"/>`);
+      for (let y = 40; y < 380; y += 40) grid.push(`<line x1="0" y1="${y}" x2="760" y2="${y}" class="sv-hair"/>`);
+
+      const panelGrid = [];
+      [121, 162, 203].forEach((x) => {
+        panelGrid.push(`<line x1="${x}" y1="132" x2="${x}" y2="232" class="sv-fine"/>`);
+        panelGrid.push(`<line x1="${x + 435}" y1="132" x2="${x + 435}" y2="232" class="sv-fine"/>`);
+      });
+      [157, 182, 207].forEach((y) => {
+        panelGrid.push(`<line x1="80" y1="${y}" x2="244" y2="${y}" class="sv-fine"/>`);
+        panelGrid.push(`<line x1="516" y1="${y}" x2="680" y2="${y}" class="sv-fine"/>`);
+      });
+
+      return `
+        <div class="xc-sky">${starsSvg(404, 65)}</div>
+        <p class="xc-scene-note"><span class="xc-note-mark"></span>结构示意 · 非等比</p>
+        <div class="xc-station-wrap">
+          <svg class="xc-station" viewBox="0 0 760 380" preserveAspectRatio="xMidYMid meet" aria-hidden="true" focusable="false">
+            <g class="sv-guide">${grid.join("")}</g>
+            <line x1="244" y1="176" x2="300" y2="176" class="sv-hair-strong"/>
+            <line x1="460" y1="176" x2="516" y2="176" class="sv-hair-strong"/>
+            <rect x="80" y="132" width="164" height="100" rx="8" class="sv-panel"/>
+            <rect x="516" y="132" width="164" height="100" rx="8" class="sv-panel"/>
+            ${panelGrid.join("")}
+            <rect x="300" y="148" width="160" height="56" rx="14" class="sv-body"/>
+            <rect x="252" y="163" width="48" height="26" rx="8" class="sv-body"/>
+            <circle cx="252" cy="176" r="10" class="sv-hair-strong"/>
+            <rect x="342" y="119" width="76" height="29" rx="8" class="sv-body"/>
+            <rect x="354" y="204" width="52" height="18" rx="8" class="sv-body"/>
+            <path d="M300 162h-26M410 148v-18M430 204v18" class="sv-hair-strong"/>
+            <g class="sv-dim">
+              <line x1="80" y1="350" x2="680" y2="350"/>
+              <line x1="80" y1="342" x2="80" y2="358"/>
+              <line x1="680" y1="342" x2="680" y2="358"/>
+            </g>
+          </svg>
+          <p class="xc-measure">约 10 米</p>
+        </div>
+      `;
+    }
+
+    function sceneMarkup(index) {
+      if (index === 1) return sceneSolar();
+      if (index === 2) return sceneEarthMoon();
+      if (index === 3) return sceneTiangong();
+      return sceneStars();
+    }
+
+    function bandStyle(layer) {
+      return {
+        left: (layer.min / DOMAIN * 100).toFixed(3),
+        width: ((layer.max - layer.min) / DOMAIN * 100).toFixed(3)
+      };
+    }
+
+    function appMarkup(initial) {
+      const layer = LAYERS[initial];
+      const band = bandStyle(layer);
+      const ticks = Array.from({ length: 21 }, (_, i) =>
+        `<span class="xc-tick${i % 5 === 0 ? " is-major" : ""}" style="left:${i * 5}%"></span>`
+      ).join("");
+
+      return `
+        <header class="xc-header">
+          <div class="xc-head-copy">
+            <h2 class="xc-title" data-title>${layer.name}</h2>
+            <p class="xc-question" data-question>${layer.question}</p>
+          </div>
+          <button class="xc-more" type="button" data-more aria-label="观测说明" aria-haspopup="dialog" aria-expanded="false">${ICONS.more}</button>
+        </header>
+
+        <section class="xc-ruler" aria-label="尺度尺子">
+          <div class="xc-ruler-head">
+            <span class="xc-range" data-range>${layer.range}</span>
+            <span class="xc-readout" aria-hidden="true"><span class="xc-readout-label">视距</span><span class="xc-readout-value" data-readout>10^${layer.reading.toFixed(1)} m</span></span>
+          </div>
+          <div class="xc-track" aria-hidden="true">
+            <span class="xc-track-line"></span>
+            ${ticks}
+            <span class="xc-band" data-band style="left:${band.left}%;width:${band.width}%"></span>
+            <span class="xc-marker" data-marker></span>
+          </div>
+          <div class="xc-track-ends" aria-hidden="true"><span>10^0</span><span>10^20 m</span></div>
+        </section>
+
+        <section class="xc-stage" data-stage aria-label="主画面">
+          <div class="xc-scene" data-scene>
+            <div class="xc-camera" data-camera>
+              ${LAYERS.map((item, i) =>
+                `<div class="xc-scene-layer${i === initial ? " is-active" : ""}" data-scene-index="${i}" aria-hidden="true">${sceneMarkup(i)}</div>`
+              ).join("")}
+            </div>
+          </div>
+
+          <nav class="xc-rail" aria-label="尺度阶梯">
+            ${LAYERS.map((item, i) =>
+              `<button class="xc-node" type="button" data-node="${i}"><span class="xc-node-name">${item.name}</span><span class="xc-node-dot" aria-hidden="true"></span></button>`
+            ).join("")}
+          </nav>
+
+          <p class="xc-toast" data-toast role="status" hidden><span class="xc-toast-dot" aria-hidden="true"></span><span>已恢复姿态跟随</span></p>
+
+          <div class="xc-bottom">
+            <div class="xc-context" role="group" aria-label="观测控件">
+              <button class="xc-ctx" type="button" data-labels aria-pressed="true">${ICONS.label}<span>标注</span></button>
+              <button class="xc-ctx" type="button" data-guides aria-pressed="false">${ICONS.grid}<span>辅助线</span></button>
+              <button class="xc-ctx" type="button" data-reset>${ICONS.frame}<span>全览</span></button>
+            </div>
+            <button class="xc-primary" type="button" data-primary>${layer.cta}</button>
+          </div>
+        </section>
+
+        <div class="xc-panel" data-panel role="dialog" aria-label="观测说明" hidden>
+          <div class="xc-panel-head">
+            <p class="xc-panel-kicker">OBSERVATION / 观测说明</p>
+            <button class="xc-panel-close" type="button" data-panel-close aria-label="关闭观测说明">${ICONS.close}</button>
+          </div>
+          <h3 class="xc-panel-title" data-panel-title>${layer.name}</h3>
+          <dl class="xc-panel-list">
+            <div class="xc-panel-row"><dt>固定区间</dt><dd data-panel-range>${layer.range}</dd></div>
+            <div class="xc-panel-row"><dt>实时读数</dt><dd data-panel-reading>10^${layer.reading.toFixed(1)} m</dd></div>
+            <div class="xc-panel-row"><dt>跳层规则</dt><dd>上行任意层；下钻仅相邻一层</dd></div>
+          </dl>
+          <p class="xc-panel-note">双击当前层节点，回到本层全览。画面可轻微拖动。</p>
+        </div>
+
+        <div class="sr-only" aria-live="polite" data-live></div>
+      `;
+    }
+
+    function initApp(app) {
+      const initial = Math.max(0, Math.min(3, Number.parseInt(app.dataset.init, 10) || 0));
+      app.setAttribute("role", "group");
+      app.innerHTML = appMarkup(initial);
+
+      const dom = {
+        title: app.querySelector("[data-title]"),
+        question: app.querySelector("[data-question]"),
+        heads: app.querySelector(".xc-head-copy"),
+        range: app.querySelector("[data-range]"),
+        readout: app.querySelector("[data-readout]"),
+        marker: app.querySelector("[data-marker]"),
+        band: app.querySelector("[data-band]"),
+        stage: app.querySelector("[data-stage]"),
+        scene: app.querySelector("[data-scene]"),
+        camera: app.querySelector("[data-camera]"),
+        scenes: Array.from(app.querySelectorAll("[data-scene-index]")),
+        nodes: Array.from(app.querySelectorAll("[data-node]")),
+        primary: app.querySelector("[data-primary]"),
+        labels: app.querySelector("[data-labels]"),
+        guides: app.querySelector("[data-guides]"),
+        reset: app.querySelector("[data-reset]"),
+        toast: app.querySelector("[data-toast]"),
+        more: app.querySelector("[data-more]"),
+        panel: app.querySelector("[data-panel]"),
+        panelClose: app.querySelector("[data-panel-close]"),
+        panelTitle: app.querySelector("[data-panel-title]"),
+        panelRange: app.querySelector("[data-panel-range]"),
+        panelReading: app.querySelector("[data-panel-reading]"),
+        live: app.querySelector("[data-live]")
+      };
+
+      const state = {
+        current: initial,
+        log: LAYERS[initial].reading,
+        labelsOn: true,
+        guidesOn: false,
+        panelOpen: false,
+        panelTimer: 0,
+        toastTimer: 0,
+        toastHideTimer: 0,
+        renderRaf: 0,
+        resetTimer: 0,
+        drag: null,
+        panX: 0,
+        panY: 0,
+        dblSafe: false,
+        lastChange: -Infinity
+      };
+
+      function restartSwap(el) {
+        if (!el) return;
+        el.classList.remove("is-swapping");
+        void el.offsetWidth;
+        el.classList.add("is-swapping");
+      }
+
+      function renderReadout(value) {
+        const clamped = Math.max(0, Math.min(DOMAIN, value));
+        dom.readout.textContent = `10^${value.toFixed(1)} m`;
+        dom.marker.style.left = `${(clamped / DOMAIN) * 100}%`;
+      }
+
+      function setBand(layer) {
+        dom.band.style.left = `${(layer.min / DOMAIN) * 100}%`;
+        dom.band.style.width = `${((layer.max - layer.min) / DOMAIN) * 100}%`;
+      }
+
+      function updateNodes() {
+        dom.nodes.forEach((button, index) => {
+          const isCurrent = index === state.current;
+          const reachable = index <= state.current || index === state.current + 1;
+          button.disabled = !reachable;
+          button.classList.toggle("is-current", isCurrent);
+          if (isCurrent) button.setAttribute("aria-current", "step");
+          else button.removeAttribute("aria-current");
+          button.setAttribute("aria-label", `${LAYERS[index].name}${isCurrent ? "，当前层" : reachable ? "，可跳转" : "，不可直达"}`);
+        });
+      }
+
+      function updatePanel() {
+        const layer = LAYERS[state.current];
+        dom.panelTitle.textContent = layer.name;
+        dom.panelRange.textContent = layer.range;
+        dom.panelReading.textContent = `10^${state.log.toFixed(1)} m`;
+      }
+
+      function showToast() {
+        window.clearTimeout(state.toastTimer);
+        window.clearTimeout(state.toastHideTimer);
+        dom.toast.hidden = false;
+        dom.toast.classList.remove("is-visible");
+        window.requestAnimationFrame(() => dom.toast.classList.add("is-visible"));
+        state.toastTimer = window.setTimeout(() => {
+          dom.toast.classList.remove("is-visible");
+          state.toastHideTimer = window.setTimeout(() => {
+            if (!dom.toast.classList.contains("is-visible")) dom.toast.hidden = true;
+          }, 300);
+        }, 2000);
+      }
+
+      function maybePostureHint(previous, next) {
+        if (previous > 0 && next === 0 && !window.__xcPostureHintShown) {
+          window.__xcPostureHintShown = true;
+          window.setTimeout(showToast, reduceMotion ? 0 : 260);
+        }
+      }
+
+      function animateReadout(from, to, shouldAnimate, done) {
+        if (state.renderRaf) {
+          window.cancelAnimationFrame(state.renderRaf);
+          state.renderRaf = 0;
+        }
+
+        if (!shouldAnimate || reduceMotion || from === to) {
+          state.log = to;
+          renderReadout(to);
+          if (done) done();
+          return;
+        }
+
+        const duration = 450;
+        const startedAt = performance.now();
+        const direction = Math.sign(to - from) || 1;
+        let last = from;
+
+        function frame(now) {
+          const t = Math.min(1, (now - startedAt) / duration);
+          const eased = t < 0.5
+            ? 4 * t * t * t
+            : 1 - Math.pow(-2 * t + 2, 3) / 2;
+          let value = from + (to - from) * eased;
+
+          if (direction > 0) value = Math.max(last, value);
+          if (direction < 0) value = Math.min(last, value);
+          last = value;
+          state.log = value;
+          renderReadout(value);
+
+          if (t < 1) {
+            state.renderRaf = window.requestAnimationFrame(frame);
+          } else {
+            state.renderRaf = 0;
+            state.log = to;
+            renderReadout(to);
+            if (done) done();
+          }
+        }
+
+        state.renderRaf = window.requestAnimationFrame(frame);
+      }
+
+      function goTo(index) {
+        if (index < 0 || index > 3 || index === state.current) return;
+        const previous = state.current;
+        const layer = LAYERS[index];
+
+        state.current = index;
+        state.lastChange = performance.now();
+        state.dblSafe = false;
+
+        dom.title.textContent = layer.name;
+        dom.question.textContent = layer.question;
+        dom.range.textContent = layer.range;
+        dom.primary.textContent = layer.cta;
+
+        restartSwap(dom.heads);
+        restartSwap(dom.range);
+
+        setBand(layer);
+        updateNodes();
+        updatePanel();
+
+        dom.scenes.forEach((scene, sceneIndex) => {
+          scene.classList.toggle("is-active", sceneIndex === index);
+        });
+
+        animateReadout(state.log, layer.reading, true, () => {
+          updatePanel();
+          dom.live.textContent = `已切换至${layer.name}。固定区间 ${layer.range}。读数 10 的 ${layer.reading.toFixed(1)} 次方米。`;
+        });
+
+        maybePostureHint(previous, index);
+      }
+
+      function resetView() {
+        const camera = dom.camera;
+        window.clearTimeout(state.resetTimer);
+        camera.classList.remove("is-resetting");
+        void camera.offsetWidth;
+        camera.classList.add("is-resetting");
+        camera.style.transform = "translate3d(0, 0, 0)";
+        state.panX = 0;
+        state.panY = 0;
+        state.drag = null;
+        dom.scene.classList.remove("is-dragging");
+        dom.live.textContent = `已回到${LAYERS[state.current].name}全览。`;
+        state.resetTimer = window.setTimeout(() => camera.classList.remove("is-resetting"), 470);
+      }
+
+      function openPanel() {
+        if (state.panelOpen) return;
+        window.clearTimeout(state.panelTimer);
+        state.panelOpen = true;
+        updatePanel();
+        dom.panel.hidden = false;
+        dom.more.setAttribute("aria-expanded", "true");
+        window.requestAnimationFrame(() => {
+          dom.panel.classList.add("is-open");
+          dom.panelClose.focus({ preventScroll: true });
+        });
+      }
+
+      function closePanel(restoreFocus) {
+        if (!state.panelOpen) return;
+        state.panelOpen = false;
+        dom.panel.classList.remove("is-open");
+        dom.more.setAttribute("aria-expanded", "false");
+        window.clearTimeout(state.panelTimer);
+        state.panelTimer = window.setTimeout(() => {
+          dom.panel.hidden = true;
+          if (restoreFocus) dom.more.focus({ preventScroll: true });
+        }, 280);
+      }
+
+      dom.nodes.forEach((button, index) => {
+        button.addEventListener("click", (event) => {
+          if (index === state.current) {
+            if (event.detail === 0) {
+              resetView();
+              return;
+            }
+            if (event.detail === 1) {
+              state.dblSafe = performance.now() - state.lastChange > 500;
+            }
+            return;
+          }
+
+          state.dblSafe = false;
+          if (index < state.current || index === state.current + 1) goTo(index);
+        });
+
+        button.addEventListener("dblclick", () => {
+          if (index === state.current && state.dblSafe) resetView();
+        });
+      });
+
+      dom.primary.addEventListener("click", () => {
+        const target = state.current === LAYERS.length - 1 ? 0 : state.current + 1;
+        goTo(target);
+      });
+
+      dom.labels.addEventListener("click", () => {
+        state.labelsOn = !state.labelsOn;
+        dom.stage.classList.toggle("xc-labels-off", !state.labelsOn);
+        dom.labels.setAttribute("aria-pressed", String(state.labelsOn));
+      });
+
+      dom.guides.addEventListener("click", () => {
+        state.guidesOn = !state.guidesOn;
+        dom.stage.classList.toggle("xc-guides-on", state.guidesOn);
+        dom.guides.setAttribute("aria-pressed", String(state.guidesOn));
+      });
+
+      dom.reset.addEventListener("click", resetView);
+
+      dom.more.addEventListener("click", () => {
+        if (state.panelOpen) closePanel(true);
+        else openPanel();
+      });
+
+      dom.panelClose.addEventListener("click", () => closePanel(true));
+
+      app.addEventListener("pointerdown", (event) => {
+        if (!state.panelOpen) return;
+        const target = event.target;
+        if (dom.panel.contains(target) || dom.more.contains(target)) return;
+        closePanel(false);
+      });
+
+      app.addEventListener("keydown", (event) => {
+        if (event.key === "Escape" && state.panelOpen) {
+          event.preventDefault();
+          closePanel(true);
+        }
+      });
+
+      dom.scene.addEventListener("pointerdown", (event) => {
+        if (event.pointerType === "mouse" && event.button !== 0) return;
+        window.clearTimeout(state.resetTimer);
+        dom.camera.classList.remove("is-resetting");
+        state.drag = {
+          id: event.pointerId,
+          x: event.clientX,
+          y: event.clientY,
+          panX: state.panX,
+          panY: state.panY
+        };
+        dom.scene.classList.add("is-dragging");
+        try { dom.scene.setPointerCapture(event.pointerId); } catch (error) { /* pointer capture is best effort */ }
+      });
+
+      dom.scene.addEventListener("pointermove", (event) => {
+        if (!state.drag || state.drag.id !== event.pointerId) return;
+        const dx = event.clientX - state.drag.x;
+        const dy = event.clientY - state.drag.y;
+        state.panX = Math.max(-24, Math.min(24, state.drag.panX + dx));
+        state.panY = Math.max(-24, Math.min(24, state.drag.panY + dy));
+        dom.camera.style.transform = `translate3d(${state.panX}px, ${state.panY}px, 0)`;
+      });
+
+      function endDrag(event) {
+        if (!state.drag || state.drag.id !== event.pointerId) return;
+        state.drag = null;
+        dom.scene.classList.remove("is-dragging");
+      }
+
+      dom.scene.addEventListener("pointerup", endDrag);
+      dom.scene.addEventListener("pointercancel", endDrag);
+      dom.scene.addEventListener("lostpointercapture", () => {
+        state.drag = null;
+        dom.scene.classList.remove("is-dragging");
+      });
+
+      updateNodes();
+      renderReadout(state.log);
+      updatePanel();
+    }
+
+    document.querySelectorAll(".xc-app").forEach(initApp);
+  })();
+  </script>
+</body>
+</html>

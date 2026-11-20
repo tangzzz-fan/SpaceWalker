@@ -32,10 +32,33 @@ enum ChromeSelection: Equatable, Sendable {
     }
 }
 
-struct ChromeTab: Equatable, Sendable {
+enum ChromeLadderNodeState: Equatable, Sendable {
+    case current
+    case reachable
+    case unreachable
+}
+
+struct ChromeLadderNode: Equatable, Sendable {
     var route: AppRoute
     var title: String
-    var isSelected: Bool
+    var state: ChromeLadderNodeState
+
+    var isSelected: Bool { state == .current }
+    var isEnabled: Bool { state != .unreachable }
+
+    static func nodes(for route: AppRoute) -> [ChromeLadderNode] {
+        ScaleLevel.allCases.map { level in
+            let state: ChromeLadderNodeState
+            if level == route {
+                state = .current
+            } else if route.canAscend(to: level) || route.canDescend(to: level) {
+                state = .reachable
+            } else {
+                state = .unreachable
+            }
+            return ChromeLadderNode(route: level, title: level.title, state: state)
+        }
+    }
 }
 
 struct DebugOverlay: Equatable, Sendable {
@@ -131,7 +154,7 @@ struct ChromeLabel: Equatable, Sendable {
 
 struct ChromeState: Equatable, Sendable {
     var route: AppRoute
-    var tabs: [ChromeTab]
+    var ladder: [ChromeLadderNode]
     var debugOverlay: DebugOverlay
     var diagnosticsVisible: Bool
     var mode: ChromeMode
@@ -171,9 +194,7 @@ struct ChromeState: Equatable, Sendable {
         }
         return ChromeState(
             route: route,
-            tabs: ScaleLevel.allCases.map {
-                ChromeTab(route: $0, title: $0.title, isSelected: route == $0)
-            },
+            ladder: ChromeLadderNode.nodes(for: route),
             debugOverlay: .off,
             diagnosticsVisible: diagnosticsEnabled,
             mode: mode,

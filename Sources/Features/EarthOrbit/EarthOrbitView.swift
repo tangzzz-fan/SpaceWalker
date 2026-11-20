@@ -7,14 +7,16 @@ struct EarthOrbitView: View {
     @Environment(Store<AppState, AppAction>.self) private var store
     let actions: ChromeActionRegistry
 
-    @State private var scene = EarthOrbitScene()
-    @State private var rig = EarthOrbitCameraStop.overview.rig
-    @State private var stop: EarthOrbitCameraStop = .overview
-    @State private var phase: Double = 0
+    let scene: EarthOrbitScene
+    let engine: ScaleTransitionEngine
     @State private var lastDrag: CGSize = .zero
     @State private var ticker = Timer.publish(every: 1.0 / 30.0, on: .main, in: .common).autoconnect()
     @State private var lastTick = ProcessInfo.processInfo.systemUptime
     @State private var picked: String?
+
+    private var rig: OrbitRig { engine.earthRig }
+    private var stop: EarthOrbitCameraStop { engine.earthStop }
+    private var phase: Double { engine.earthPhase }
 
     private var julianDay: Double {
         store.state.space.julianDay
@@ -31,6 +33,7 @@ struct EarthOrbitView: View {
                 scene.attach(content)
                 scene.apply(julianDay: julianDay, phase: phase, rig: rig, stop: stop)
             } update: { _ in
+                guard !engine.isTransitioning else { return }
                 scene.apply(julianDay: julianDay, phase: phase, rig: rig, stop: stop)
             }
             .coordinateSpace(name: EarthOrbitScene.coordinateSpaceName)
@@ -97,8 +100,8 @@ struct EarthOrbitView: View {
         actions.primary = { id in
             switch id {
             case .earthOrbitOverview:
-                stop = .overview
-                rig = stop.rig
+                engine.earthStop = .overview
+                engine.earthRig = EarthOrbitCameraStop.overview.rig
                 picked = nil
             default:
                 break
@@ -107,8 +110,8 @@ struct EarthOrbitView: View {
         actions.control = { id in
             switch id {
             case .earthOrbitView:
-                stop = stop == .overview ? .orbitClose : .overview
-                rig = stop.rig
+                engine.earthStop = stop == .overview ? .orbitClose : .overview
+                engine.earthRig = engine.earthStop.rig
             default:
                 break
             }
@@ -116,17 +119,16 @@ struct EarthOrbitView: View {
     }
 
     private func tick() {
+        guard store.state.route == .earthOrbit, !engine.isTransitioning else { return }
         let now = ProcessInfo.processInfo.systemUptime
-        let delta = min(max(now - lastTick, 0), 0.2)
         lastTick = now
-        phase += delta / 20
-        if phase >= 1 { phase -= 1 }
+        scene.apply(julianDay: julianDay, phase: phase, rig: rig, stop: stop)
     }
 
     private var orbitGesture: some Gesture {
         DragGesture(minimumDistance: 6)
             .onChanged { value in
-                rig.rotate(
+                engine.earthRig.rotate(
                     deltaX: Float(value.translation.width - lastDrag.width),
                     deltaY: Float(value.translation.height - lastDrag.height)
                 )
@@ -138,7 +140,7 @@ struct EarthOrbitView: View {
     private var zoomGesture: some Gesture {
         MagnifyGesture()
             .onChanged { value in
-                rig.dolly(scale: Float(value.magnification))
+                engine.earthRig.dolly(scale: Float(value.magnification))
             }
     }
 
@@ -147,8 +149,8 @@ struct EarthOrbitView: View {
             .onEnded { value in
                 picked = scene.pick(at: value.location)
                 if picked == "tiangong", stop == .overview {
-                    stop = .orbitClose
-                    rig = stop.rig
+                    engine.earthStop = .orbitClose
+                    engine.earthRig = EarthOrbitCameraStop.orbitClose.rig
                 }
             }
     }

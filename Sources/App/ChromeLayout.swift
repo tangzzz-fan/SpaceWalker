@@ -55,12 +55,25 @@ enum ChromeTokens {
     static let sectionSpacing: CGFloat = 24
 
     static let statusBarHeight: CGFloat = 44
+    static let rulerHeight: CGFloat = 56
+    static let rulerLandscapeHeight: CGFloat = 48
     static let primaryDockHeight: CGFloat = 60
     static let contextDockHeight: CGFloat = 44
-    static let tabBarHeight: CGFloat = 56
-    static let barHeight: CGFloat = tabBarHeight
     static let buttonHeight: CGFloat = 44
     static let minTouchHeight: CGFloat = 44
+    static let ladderNodeWidth: CGFloat = 100
+    static let ladderNodeSpacing: CGFloat = 8
+    static let ladderEdgeInset: CGFloat = 8
+    static let ladderCurrentDot: CGFloat = 8
+    static let ladderDefaultDot: CGFloat = 6
+    static let ladderDisabledOpacity: Double = 0.3
+    static let ladderDoubleTapWindow: Double = 0.5
+    static let toastHeight: CGFloat = 32
+    static let toastHoldDuration: Double = 2
+    static let toastEnterDuration: Double = 0.28
+    static let toastExitDuration: Double = 0.15
+    static let rulerTrackHeight: CGFloat = 12
+    static let rulerMarkerWidth: CGFloat = 2
 
     static let cameraDuration: Double = 0.45
     static let panelDuration: Double = 0.28
@@ -215,48 +228,14 @@ struct ChromeContextDock: View {
     }
 }
 
-struct ChromeTabBar: View {
-    let tabs: [ChromeTab]
-    let onSelect: (AppRoute) -> Void
-
-    var body: some View {
-        HStack(spacing: 0) {
-            ForEach(tabs, id: \.route) { tab in
-                Button {
-                    onSelect(tab.route)
-                } label: {
-                    VStack(spacing: ChromeTokens.labelSpacing) {
-                        Text(tab.title)
-                            .font(.system(size: ChromeTokens.labelSize, weight: tab.isSelected ? .semibold : .regular))
-                        Circle()
-                            .fill(tab.isSelected ? ChromeTokens.accent : Color.clear)
-                            .frame(width: ChromeTokens.indicatorSize, height: ChromeTokens.indicatorSize)
-                    }
-                    .frame(maxWidth: .infinity, minHeight: ChromeTokens.minTouchHeight)
-                    .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-                .foregroundStyle(tab.isSelected ? ChromeTokens.primaryText : ChromeTokens.secondaryText)
-                .accessibilityLabel(tab.title)
-                .accessibilityAddTraits(tab.isSelected ? [.isSelected] : [])
-            }
-        }
-        .frame(height: ChromeTokens.tabBarHeight)
-        .padding(.horizontal, ChromeTokens.horizontalPadding)
-    }
-}
-
 struct ChromeBottomBar: View {
-    @Environment(Store<AppState, AppAction>.self) private var store
     let actions: ChromeActionRegistry
+    @Environment(Store<AppState, AppAction>.self) private var store
 
     var body: some View {
         VStack(spacing: 0) {
             ChromePrimaryDock(action: store.state.chrome.primaryAction, actions: actions)
             ChromeContextDock(controls: store.state.chrome.contextControls, actions: actions)
-            ChromeTabBar(tabs: store.state.chrome.tabs) { route in
-                store.dispatch(.route(route))
-            }
         }
         .background(ChromeTokens.surface1)
         .overlay(alignment: .top) {

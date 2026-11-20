@@ -1562,7 +1562,9 @@ final class AppRouteTests: XCTestCase {
     func testRouteSwitchIsReduced() {
         var state = AppState()
         XCTAssertEqual(state.route, .sky)
-        makeAppReducer()(&state, .route(.tiangong))
+        makeAppReducer()(&state, .descend(.solar))
+        makeAppReducer()(&state, .descend(.earthOrbit))
+        makeAppReducer()(&state, .descend(.tiangong))
         XCTAssertEqual(state.route, .tiangong)
     }
 

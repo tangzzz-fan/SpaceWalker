@@ -28,26 +28,26 @@ final class AppReducerTests: XCTestCase {
         XCTAssertEqual(state.route, .sky)
     }
 
-    func testDefaultChromeIsSkyWithFourLabeledTabs() {
+    func testDefaultChromeIsSkyWithFourLadderNodes() {
         let state = AppState()
         XCTAssertEqual(state.route, .sky)
         XCTAssertEqual(state.chrome.route, .sky)
-        XCTAssertEqual(state.chrome.tabs.map(\.title), ["星图", "太阳系", "地月系", "天宫一号"])
-        XCTAssertEqual(state.chrome.tabs.map(\.route), [.sky, .solar, .earthOrbit, .tiangong])
-        XCTAssertEqual(state.chrome.tabs.map(\.isSelected), [true, false, false, false])
+        XCTAssertEqual(state.chrome.ladder.map(\.title), ["星图", "太阳系", "地月系", "天宫一号"])
+        XCTAssertEqual(state.chrome.ladder.map(\.route), [.sky, .solar, .earthOrbit, .tiangong])
+        XCTAssertEqual(state.chrome.ladder.map(\.isSelected), [true, false, false, false])
     }
 
     func testRouteActionRecomputesChrome() {
-        let state = reduce([.route(.tiangong)])
+        let state = reduce([.descend(.solar), .descend(.earthOrbit), .descend(.tiangong)])
         XCTAssertEqual(state.route, .tiangong)
         XCTAssertEqual(state.chrome.route, .tiangong)
-        XCTAssertEqual(state.chrome.tabs.map(\.isSelected), [false, false, false, true])
-        XCTAssertEqual(state.chrome.tabs.count, 4)
+        XCTAssertEqual(state.chrome.ladder.map(\.isSelected), [false, false, false, true])
+        XCTAssertEqual(state.chrome.ladder.count, 4)
     }
 
     func testAppStartedDoesNotDesyncChrome() {
         let state = reduce([.appStarted], from: AppState(route: .tiangong))
-        XCTAssertEqual(state.chrome.tabs.map(\.isSelected), [false, false, false, true])
+        XCTAssertEqual(state.chrome.ladder.map(\.isSelected), [false, false, false, true])
         XCTAssertEqual(state.chrome.route, state.route)
     }
 
@@ -66,7 +66,7 @@ final class AppReducerTests: XCTestCase {
     }
 
     func testRouteChangeClosesDiagnosticsPanel() {
-        let state = reduce([.chrome(.toggleDiagnostics), .route(.tiangong)])
+        let state = reduce([.chrome(.toggleDiagnostics), .descend(.solar), .descend(.earthOrbit), .descend(.tiangong)])
         XCTAssertEqual(state.chrome.route, .tiangong)
         XCTAssertFalse(state.chrome.diagnosticsVisible)
     }
@@ -84,13 +84,13 @@ final class AppReducerTests: XCTestCase {
     }
 
     func testSetReentryUnlockedUpdatesControl() {
-        let state = reduce([.route(.tiangong), .chrome(.setReentryUnlocked(true))])
+        let state = reduce([.descend(.solar), .descend(.earthOrbit), .descend(.tiangong), .chrome(.setReentryUnlocked(true))])
         XCTAssertEqual(state.chrome.contextControls.first { $0.id == .tiangongReentry }?.isEnabled, true)
     }
 
     func testSetDockingFineUpdatesHighlight() {
         let state = reduce([
-            .route(.tiangong),
+            .descend(.solar), .descend(.earthOrbit), .descend(.tiangong),
             .chrome(.setMode(.docking)),
             .chrome(.setDockingFine(true))
         ])
@@ -107,7 +107,7 @@ final class AppReducerTests: XCTestCase {
         ])
         XCTAssertEqual(state.chrome.contextControls.first { $0.id == .skyTonight }?.isSelected, true)
 
-        let tiangong = reduce([.route(.tiangong)], from: state)
+        let tiangong = reduce([.descend(.solar), .descend(.earthOrbit), .descend(.tiangong)], from: state)
         XCTAssertEqual(
             tiangong.chrome.contextControls.first { $0.id == .tiangongReentry }?.isEnabled, true
         )

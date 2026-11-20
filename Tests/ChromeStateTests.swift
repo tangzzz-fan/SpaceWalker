@@ -74,7 +74,7 @@ final class ChromeStateTests: XCTestCase {
 
     func testReducerRecomputesChromeOnSelectionAndMode() {
         let selected = reduce([
-            .route(.tiangong),
+            .descend(.solar), .descend(.earthOrbit), .descend(.tiangong),
             .chrome(.select(.module(.lab))),
             .chrome(.setMode(.card)),
             .chrome(.setSeparation(["lab"]))
@@ -82,14 +82,14 @@ final class ChromeStateTests: XCTestCase {
         XCTAssertEqual(selected.chrome.mode, .card)
         XCTAssertEqual(selected.chrome.selection, .module(.lab))
         XCTAssertEqual(selected.chrome.primaryAction.title, "装回")
-        XCTAssertEqual(selected.chrome.tabs.map(\.isSelected), [false, false, false, true])
+        XCTAssertEqual(selected.chrome.ladder.map(\.isSelected), [false, false, false, true])
     }
 
     func testRouteChangeResetsModeAndSelection() {
         let state = reduce([
             .chrome(.select(.star("织女星"))),
             .chrome(.setMode(.card)),
-            .route(.tiangong)
+            .descend(.solar), .descend(.earthOrbit), .descend(.tiangong)
         ])
         XCTAssertEqual(state.chrome.mode, .normal)
         XCTAssertNil(state.chrome.selection)
@@ -154,7 +154,7 @@ final class ChromeStateTests: XCTestCase {
 
     func testSetThemePreservesRouteSelectionAndStructure() {
         let state = reduce([
-            .route(.tiangong),
+            .descend(.solar), .descend(.earthOrbit), .descend(.tiangong),
             .chrome(.select(.module(.lab))),
             .chrome(.setMode(.card)),
             .chrome(.setTheme(.light))
@@ -163,11 +163,11 @@ final class ChromeStateTests: XCTestCase {
         XCTAssertEqual(state.chrome.route, .tiangong)
         XCTAssertEqual(state.chrome.selection, .module(.lab))
         XCTAssertEqual(state.chrome.primaryAction.title, "分离")
-        XCTAssertEqual(state.chrome.tabs.map(\.isSelected), [false, false, false, true])
+        XCTAssertEqual(state.chrome.ladder.map(\.isSelected), [false, false, false, true])
     }
 
     func testRouteChangePreservesTheme() {
-        let state = reduce([.chrome(.setTheme(.light)), .route(.sky)])
+        let state = reduce([.chrome(.setTheme(.light)), .descend(.solar), .descend(.earthOrbit), .descend(.tiangong), .route(.sky)])
         XCTAssertEqual(state.chrome.theme, .light)
     }
 

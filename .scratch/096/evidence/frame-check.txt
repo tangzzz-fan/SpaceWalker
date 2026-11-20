@@ -1,0 +1,7 @@
+PASS sky->solar token=1 frames=1334-1362 n=29 blackRun=0 whiteRun=0 readings=28 violations=0 (log reported=0)
+PASS solar->earthOrbit token=2 frames=1905-1932 n=28 blackRun=0 whiteRun=0 readings=28 violations=0 (log reported=0)
+PASS earthOrbit->tiangong token=3 frames=2474-2501 n=28 blackRun=0 whiteRun=0 readings=28 violations=0 (log reported=0)
+PASS tiangong->earthOrbit token=4 frames=2921-2948 n=28 blackRun=0 whiteRun=0 readings=28 violations=0 (log reported=0)
+PASS earthOrbit->solar token=5 frames=3369-3396 n=28 blackRun=0 whiteRun=0 readings=28 violations=0 (log reported=0)
+PASS solar->sky token=6 frames=3817-3844 n=28 blackRun=0 whiteRun=0 readings=28 violations=0 (log reported=0)
+ALL PASS (6 transitions)

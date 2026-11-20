@@ -1,0 +1,248 @@
+[7ms] # arm64 | Version 27.2 (Build 24B8117) | app 1.0(1) | bundle com.tango.xingcha
+[443ms] sky.session boot
+[444ms] tiangong.session boot separated=0
+[997ms] sky.mode follow=1 manual=1
+[1559ms] space.environment ready=1 elapsedMs=284
+[1616ms] sky.catalog stars=2996 elapsedMs=55
+[2046ms] tiangong.build ms=162 triangles=6244 entities=53 models=38
+[2049ms] tiangong.attach modules=5
+[2050ms] tiangong.budget triangles=6244
+[2101ms] sky.orient angle=0
+[2103ms] sky.layout 402x574 portrait
+[2328ms] sky.budget entities=25 meshes=20 constellation=724 asterism=814 pattern=98
+[2329ms] sky.perf avg=0.0 min=0.0 hitch=0.0% thermal=nominal layers=line
+[2380ms] app.flags culture=0 deep=0
+[2761ms] space.firstFrame ms=2761
+[3002ms] tiangong.pick tiangong.pick ok=4/5 occluded=leftWing->lab failed=none
+[7480ms] sky.perf avg=60.0 min=59.7 hitch=0.0% thermal=nominal layers=line
+[12631ms] sky.perf avg=60.0 min=59.9 hitch=0.0% thermal=nominal layers=line
+[13446ms] ladder.tap from=sky to=solar
+[13463ms] sky.mode follow=0 manual=1
+[13464ms] scale.transition begin from=sky to=solar token=1
+[13477ms] scale.tick token=1 p=0.000 gapMs=0.0 applyMs=0.2
+[13491ms] scale.tick token=1 p=0.001 gapMs=14.7 applyMs=0.2
+[13508ms] scale.tick token=1 p=0.004 gapMs=16.5 applyMs=0.1
+[13524ms] scale.tick token=1 p=0.010 gapMs=16.6 applyMs=0.1
+[13541ms] scale.tick token=1 p=0.020 gapMs=16.2 applyMs=0.2
+[13558ms] scale.tick token=1 p=0.037 gapMs=17.1 applyMs=0.1
+[13574ms] scale.tick token=1 p=0.060 gapMs=16.8 applyMs=0.1
+[13591ms] scale.tick token=1 p=0.091 gapMs=16.6 applyMs=0.1
+[13608ms] scale.tick token=1 p=0.132 gapMs=16.7 applyMs=0.1
+[13624ms] scale.tick token=1 p=0.183 gapMs=16.6 applyMs=0.1
+[13640ms] scale.tick token=1 p=0.243 gapMs=16.0 applyMs=0.1
+[13658ms] scale.tick token=1 p=0.322 gapMs=17.3 applyMs=0.1
+[13674ms] scale.tick token=1 p=0.407 gapMs=15.9 applyMs=0.1
+[13691ms] scale.tick token=1 p=0.517 gapMs=17.4 applyMs=0.1
+[13708ms] scale.tick token=1 p=0.618 gapMs=16.8 applyMs=0.1
+[13724ms] scale.tick token=1 p=0.703 gapMs=16.6 applyMs=0.1
+[13741ms] scale.tick token=1 p=0.773 gapMs=16.3 applyMs=0.1
+[13758ms] scale.tick token=1 p=0.834 gapMs=17.1 applyMs=0.1
+[13774ms] scale.tick token=1 p=0.882 gapMs=16.7 applyMs=0.1
+[13791ms] scale.tick token=1 p=0.919 gapMs=16.6 applyMs=0.1
+[13807ms] scale.tick token=1 p=0.948 gapMs=16.4 applyMs=0.1
+[13824ms] scale.tick token=1 p=0.969 gapMs=17.0 applyMs=0.1
+[13841ms] scale.tick token=1 p=0.983 gapMs=16.2 applyMs=0.1
+[13858ms] scale.tick token=1 p=0.992 gapMs=17.1 applyMs=0.1
+[13874ms] scale.tick token=1 p=0.997 gapMs=16.7 applyMs=0.1
+[13890ms] scale.tick token=1 p=0.999 gapMs=15.6 applyMs=0.1
+[13908ms] scale.tick token=1 p=1.000 gapMs=17.8 applyMs=0.1
+[13924ms] scale.tick token=1 p=1.000 gapMs=16.6 applyMs=0.1
+[13925ms] scale.transition end from=sky to=solar samples=28 violations=0 avg=55.0 min=11.6 hitches=4
+[13926ms] scale.readings.1.0 9.4462e+18,9.3223e+18,8.9115e+18,8.0969e+18,6.8976e+18,5.3195e+18,3.6932e+18,2.2683e+18,1.1973e+18,5.3928e+17,2.0966e+17,6.1252e+16,1.6054e+16,2.8849e+15,5.9203e+14,1.5598e+14,5.2013e+13,2.0080e+13,9.4873e+12,5.2858e+12,3.3963e+12,2.4323e+12,1.9514e+12,1.6849e+12
+[13926ms] scale.readings.1.1 1.5583e+12,1.5093e+12,1.4962e+12,1.4960e+12
+[13958ms] probe.fps avg=55.0 min=11.6 hitches=4
+[17802ms] sky.perf avg=60.0 min=42.4 hitch=0.0% thermal=nominal layers=line
+[18991ms] probe.fps avg=60.0 min=42.4 hitches=0
+[20801ms] sky.orient angle=0
+[20801ms] sky.layout 402x574 portrait
+[22947ms] sky.perf avg=29.6 min=0.9 hitch=2.5% thermal=nominal layers=line
+[22961ms] ladder.tap from=solar to=earthOrbit
+[22973ms] scale.transition begin from=solar to=earthOrbit token=2
+[22981ms] scale.tick token=2 p=0.000 gapMs=9056.7 applyMs=0.1
+[22991ms] scale.tick token=2 p=0.000 gapMs=9.7 applyMs=0.1
+[23008ms] scale.tick token=2 p=0.002 gapMs=17.0 applyMs=0.1
+[23024ms] scale.tick token=2 p=0.006 gapMs=15.9 applyMs=0.1
+[23041ms] scale.tick token=2 p=0.013 gapMs=16.9 applyMs=0.2
+[23058ms] scale.tick token=2 p=0.026 gapMs=17.1 applyMs=0.2
+[23074ms] scale.tick token=2 p=0.045 gapMs=16.7 applyMs=0.2
+[23091ms] scale.tick token=2 p=0.072 gapMs=16.6 applyMs=0.2
+[23108ms] scale.tick token=2 p=0.107 gapMs=16.8 applyMs=0.1
+[23124ms] scale.tick token=2 p=0.151 gapMs=16.6 applyMs=0.2
+[23140ms] scale.tick token=2 p=0.204 gapMs=15.9 applyMs=0.2
+[23158ms] scale.tick token=2 p=0.274 gapMs=17.2 applyMs=0.2
+[23174ms] scale.tick token=2 p=0.357 gapMs=17.0 applyMs=0.2
+[23191ms] scale.tick token=2 p=0.453 gapMs=16.6 applyMs=0.1
+[23208ms] scale.tick token=2 p=0.561 gapMs=16.8 applyMs=0.2
+[23224ms] scale.tick token=2 p=0.655 gapMs=16.6 applyMs=0.2
+[23241ms] scale.tick token=2 p=0.733 gapMs=16.2 applyMs=0.2
+[23258ms] scale.tick token=2 p=0.801 gapMs=17.1 applyMs=0.2
+[23273ms] scale.tick token=2 p=0.851 gapMs=15.2 applyMs=0.2
+[23291ms] scale.tick token=2 p=0.898 gapMs=18.1 applyMs=0.1
+[23306ms] scale.tick token=2 p=0.929 gapMs=15.0 applyMs=0.2
+[23323ms] scale.tick token=2 p=0.956 gapMs=17.1 applyMs=0.1
+[23341ms] scale.tick token=2 p=0.975 gapMs=17.5 applyMs=0.1
+[23358ms] scale.tick token=2 p=0.988 gapMs=17.1 applyMs=0.1
+[23374ms] scale.tick token=2 p=0.995 gapMs=16.7 applyMs=0.1
+[23391ms] scale.tick token=2 p=0.998 gapMs=16.2 applyMs=0.1
+[23406ms] scale.tick token=2 p=1.000 gapMs=15.7 applyMs=0.1
+[23424ms] scale.tick token=2 p=1.000 gapMs=18.0 applyMs=0.1
+[23425ms] scale.transition end from=solar to=earthOrbit samples=28 violations=0 avg=29.4 min=0.9 hitches=3
+[23425ms] scale.readings.2.0 1.4957e+12,1.4931e+12,1.4738e+12,1.4279e+12,1.3389e+12,1.2021e+12,1.0273e+12,8.2719e+11,6.1829e+11,4.2777e+11,2.7598e+11,1.5473e+11,7.7894e+10,3.5312e+10,1.4514e+10,6.6704e+09,3.5065e+09,1.9943e+09,1.3204e+09,8.9063e+08,6.9088e+08,5.5374e+08,4.7186e+08,4.2584e+08
+[23426ms] scale.readings.2.1 4.0103e+08,3.8928e+08,3.8507e+08,3.8440e+08
+[28180ms] sky.perf avg=60.0 min=59.8 hitch=0.0% thermal=nominal layers=line
+[32442ms] ladder.tap from=earthOrbit to=tiangong
+[32458ms] scale.transition begin from=earthOrbit to=tiangong token=3
+[32466ms] scale.tick token=3 p=0.000 gapMs=9042.0 applyMs=0.1
+[32473ms] scale.tick token=3 p=0.000 gapMs=6.5 applyMs=0.1
+[32490ms] scale.tick token=3 p=0.001 gapMs=17.1 applyMs=0.1
+[32507ms] scale.tick token=3 p=0.005 gapMs=16.8 applyMs=0.1
+[32524ms] scale.tick token=3 p=0.013 gapMs=17.8 applyMs=0.1
+[32540ms] scale.tick token=3 p=0.024 gapMs=15.5 applyMs=0.1
+[32558ms] scale.tick token=3 p=0.044 gapMs=17.8 applyMs=0.1
+[32574ms] scale.tick token=3 p=0.070 gapMs=16.7 applyMs=0.1
+[32591ms] scale.tick token=3 p=0.104 gapMs=16.6 applyMs=0.1
+[32608ms] scale.tick token=3 p=0.148 gapMs=16.8 applyMs=0.1
+[32624ms] scale.tick token=3 p=0.203 gapMs=16.6 applyMs=0.1
+[32640ms] scale.tick token=3 p=0.266 gapMs=15.7 applyMs=0.1
+[32656ms] scale.tick token=3 p=0.342 gapMs=15.9 applyMs=0.1
+[32674ms] scale.tick token=3 p=0.447 gapMs=18.5 applyMs=0.1
+[32691ms] scale.tick token=3 p=0.553 gapMs=16.6 applyMs=0.1
+[32707ms] scale.tick token=3 p=0.645 gapMs=16.1 applyMs=0.1
+[32724ms] scale.tick token=3 p=0.729 gapMs=17.3 applyMs=0.1
+[32741ms] scale.tick token=3 p=0.795 gapMs=16.3 applyMs=0.1
+[32758ms] scale.tick token=3 p=0.852 gapMs=17.1 applyMs=0.1
+[32773ms] scale.tick token=3 p=0.892 gapMs=14.9 applyMs=0.1
+[32791ms] scale.tick token=3 p=0.930 gapMs=18.4 applyMs=0.1
+[32808ms] scale.tick token=3 p=0.956 gapMs=16.8 applyMs=0.1
+[32824ms] scale.tick token=3 p=0.975 gapMs=16.6 applyMs=0.1
+[32841ms] scale.tick token=3 p=0.987 gapMs=16.2 applyMs=0.1
+[32858ms] scale.tick token=3 p=0.995 gapMs=17.1 applyMs=0.1
+[32874ms] scale.tick token=3 p=0.998 gapMs=16.3 applyMs=0.1
+[32890ms] scale.tick token=3 p=1.000 gapMs=16.2 applyMs=0.1
+[32908ms] scale.tick token=3 p=1.000 gapMs=17.5 applyMs=0.1
+[32909ms] scale.transition end from=earthOrbit to=tiangong samples=28 violations=0 avg=29.4 min=0.9 hitches=5
+[32909ms] scale.readings.3.0 3.8422e+08,3.8341e+08,3.7479e+08,3.5147e+08,3.0641e+08,2.5126e+08,1.7898e+08,1.1404e+08,6.2807e+07,2.8948e+07,1.1153e+07,3.7178e+06,9.9307e+05,1.6011e+05,2.4996e+04,5.0119e+03,1.1610e+03,3.6893e+02,1.3764e+02,6.8761e+01,3.5130e+01,2.2329e+01,1.6194e+01,1.3108e+01
+[32909ms] scale.readings.3.1 1.1443e+01,1.0709e+01,1.0442e+01,1.0400e+01
+[32991ms] probe.fps avg=29.4 min=0.9 hitches=5
+[32992ms] tiangong.fps avg=29.4 min=0.9 hitch=5
+[33394ms] sky.perf avg=29.4 min=0.9 hitch=4.2% thermal=nominal layers=line
+[34991ms] tiangong.fps avg=60.0 min=55.6 hitch=0
+[37091ms] tiangong.fps avg=60.0 min=59.9 hitch=0
+[38597ms] sky.perf avg=60.0 min=59.3 hitch=0.0% thermal=nominal layers=line
+[39091ms] probe.fps avg=60.0 min=59.3 hitches=0
+[39092ms] tiangong.fps avg=60.0 min=59.3 hitch=0
+[39892ms] ladder.tap from=tiangong to=earthOrbit
+[39901ms] scale.transition begin from=tiangong to=earthOrbit token=4
+[39908ms] scale.tick token=4 p=0.000 gapMs=6999.9 applyMs=0.1
+[39924ms] scale.tick token=4 p=0.001 gapMs=16.7 applyMs=0.1
+[39941ms] scale.tick token=4 p=0.003 gapMs=16.3 applyMs=0.1
+[39958ms] scale.tick token=4 p=0.008 gapMs=17.1 applyMs=0.1
+[39974ms] scale.tick token=4 p=0.017 gapMs=16.5 applyMs=0.1
+[39990ms] scale.tick token=4 p=0.031 gapMs=16.1 applyMs=0.1
+[40008ms] scale.tick token=4 p=0.053 gapMs=17.4 applyMs=0.1
+[40024ms] scale.tick token=4 p=0.083 gapMs=16.6 applyMs=0.1
+[40041ms] scale.tick token=4 p=0.120 gapMs=16.2 applyMs=0.1
+[40058ms] scale.tick token=4 p=0.169 gapMs=17.1 applyMs=0.1
+[40074ms] scale.tick token=4 p=0.229 gapMs=16.7 applyMs=0.1
+[40091ms] scale.tick token=4 p=0.301 gapMs=16.6 applyMs=0.1
+[40108ms] scale.tick token=4 p=0.388 gapMs=16.7 applyMs=0.1
+[40124ms] scale.tick token=4 p=0.489 gapMs=16.6 applyMs=0.1
+[40141ms] scale.tick token=4 p=0.594 gapMs=16.6 applyMs=0.1
+[40158ms] scale.tick token=4 p=0.683 gapMs=16.7 applyMs=0.1
+[40174ms] scale.tick token=4 p=0.758 gapMs=16.7 applyMs=0.1
+[40191ms] scale.tick token=4 p=0.820 gapMs=16.6 applyMs=0.1
+[40208ms] scale.tick token=4 p=0.871 gapMs=16.8 applyMs=0.1
+[40224ms] scale.tick token=4 p=0.911 gapMs=16.6 applyMs=0.1
+[40241ms] scale.tick token=4 p=0.941 gapMs=16.3 applyMs=0.1
+[40258ms] scale.tick token=4 p=0.964 gapMs=17.1 applyMs=0.1
+[40274ms] scale.tick token=4 p=0.980 gapMs=16.7 applyMs=0.1
+[40291ms] scale.tick token=4 p=0.991 gapMs=16.6 applyMs=0.1
+[40308ms] scale.tick token=4 p=0.996 gapMs=16.8 applyMs=0.1
+[40324ms] scale.tick token=4 p=0.999 gapMs=16.6 applyMs=0.1
+[40341ms] scale.tick token=4 p=1.000 gapMs=16.2 applyMs=0.1
+[40358ms] scale.tick token=4 p=1.000 gapMs=17.1 applyMs=0.1
+[40358ms] scale.transition end from=tiangong to=earthOrbit samples=28 violations=0 avg=60.0 min=44.2 hitches=0
+[40359ms] scale.readings.4.0 1.0402e+01,1.0502e+01,1.0908e+01,1.1960e+01,1.4047e+01,1.7957e+01,2.6410e+01,4.3811e+01,8.3500e+01,1.9773e+02,5.6347e+02,1.9818e+03,9.0062e+03,5.2591e+04,3.2379e+05,1.5352e+06,5.7106e+06,1.6790e+07,4.0651e+07,8.1413e+07,1.3755e+08,2.0660e+08,2.7273e+08,3.2592e+08
+[40359ms] scale.readings.4.1 3.6138e+08,3.7890e+08,3.8407e+08,3.8440e+08
+[43674ms] sky.perf avg=60.0 min=59.3 hitch=0.0% thermal=nominal layers=line
+[47358ms] ladder.tap from=earthOrbit to=solar
+[47367ms] scale.transition begin from=earthOrbit to=solar token=5
+[47374ms] scale.tick token=5 p=0.000 gapMs=7016.7 applyMs=0.1
+[47391ms] scale.tick token=5 p=0.001 gapMs=16.3 applyMs=0.1
+[47408ms] scale.tick token=5 p=0.003 gapMs=17.1 applyMs=0.1
+[47424ms] scale.tick token=5 p=0.008 gapMs=16.6 applyMs=0.1
+[47441ms] scale.tick token=5 p=0.017 gapMs=16.2 applyMs=0.1
+[47458ms] scale.tick token=5 p=0.032 gapMs=17.1 applyMs=0.2
+[47474ms] scale.tick token=5 p=0.054 gapMs=16.6 applyMs=0.1
+[47491ms] scale.tick token=5 p=0.083 gapMs=16.7 applyMs=0.1
+[47508ms] scale.tick token=5 p=0.122 gapMs=16.8 applyMs=0.1
+[47523ms] scale.tick token=5 p=0.166 gapMs=15.3 applyMs=0.1
+[47541ms] scale.tick token=5 p=0.229 gapMs=17.5 applyMs=0.1
+[47558ms] scale.tick token=5 p=0.303 gapMs=17.1 applyMs=0.1
+[47574ms] scale.tick token=5 p=0.390 gapMs=16.7 applyMs=0.1
+[47591ms] scale.tick token=5 p=0.491 gapMs=16.6 applyMs=0.1
+[47607ms] scale.tick token=5 p=0.589 gapMs=15.6 applyMs=0.2
+[47624ms] scale.tick token=5 p=0.685 gapMs=17.8 applyMs=0.1
+[47641ms] scale.tick token=5 p=0.759 gapMs=16.4 applyMs=0.1
+[47656ms] scale.tick token=5 p=0.817 gapMs=15.6 applyMs=0.2
+[47674ms] scale.tick token=5 p=0.870 gapMs=17.2 applyMs=0.1
+[47691ms] scale.tick token=5 p=0.912 gapMs=17.4 applyMs=0.1
+[47708ms] scale.tick token=5 p=0.942 gapMs=16.8 applyMs=0.2
+[47724ms] scale.tick token=5 p=0.965 gapMs=16.6 applyMs=0.2
+[47741ms] scale.tick token=5 p=0.980 gapMs=16.2 applyMs=0.2
+[47757ms] scale.tick token=5 p=0.991 gapMs=16.8 applyMs=0.1
+[47774ms] scale.tick token=5 p=0.997 gapMs=17.0 applyMs=0.1
+[47791ms] scale.tick token=5 p=0.999 gapMs=16.5 applyMs=0.1
+[47808ms] scale.tick token=5 p=1.000 gapMs=16.8 applyMs=0.2
+[47824ms] scale.tick token=5 p=1.000 gapMs=16.6 applyMs=0.2
+[47825ms] scale.transition end from=earthOrbit to=solar samples=28 violations=0 avg=59.5 min=26.8 hitches=1
+[47826ms] scale.readings.5.0 3.8445e+08,3.8618e+08,3.9373e+08,4.1116e+08,4.4337e+08,5.0264e+08,5.9955e+08,7.6419e+08,1.0510e+09,1.5152e+09,2.5424e+09,4.7051e+09,9.6688e+09,2.2326e+10,5.0145e+10,1.1059e+11,2.0335e+11,3.2986e+11,5.0984e+11,7.2024e+11,9.2893e+11,1.1182e+12,1.2701e+12,1.3839e+12
+[47826ms] scale.readings.5.1 1.4539e+12,1.4861e+12,1.4955e+12,1.4960e+12
+[47858ms] probe.fps avg=59.5 min=26.8 hitches=1
+[48132ms] sky.orient angle=0
+[48133ms] sky.layout 402x574 portrait
+[48816ms] sky.perf avg=59.5 min=26.8 hitch=0.8% thermal=nominal layers=line
+[52132ms] sky.orient angle=0
+[52133ms] sky.layout 402x574 portrait
+[52890ms] probe.fps avg=60.0 min=39.1 hitches=0
+[53133ms] sky.orient angle=0
+[53134ms] sky.layout 402x574 portrait
+[54014ms] sky.perf avg=60.0 min=38.1 hitch=0.0% thermal=nominal layers=line
+[54827ms] ladder.tap from=solar to=sky
+[54838ms] scale.transition begin from=solar to=sky token=6
+[54838ms] chrome.attitudeToast show
+[54843ms] chrome.attitudeToast show
+[54848ms] scale.tick token=6 p=0.000 gapMs=7023.6 applyMs=0.1
+[54857ms] scale.tick token=6 p=0.000 gapMs=9.5 applyMs=0.1
+[54874ms] scale.tick token=6 p=0.002 gapMs=16.5 applyMs=0.1
+[54890ms] scale.tick token=6 p=0.006 gapMs=16.5 applyMs=0.1
+[54908ms] scale.tick token=6 p=0.015 gapMs=17.3 applyMs=0.1
+[54924ms] scale.tick token=6 p=0.028 gapMs=16.6 applyMs=0.2
+[54941ms] scale.tick token=6 p=0.048 gapMs=16.3 applyMs=0.1
+[54956ms] scale.tick token=6 p=0.072 gapMs=15.3 applyMs=0.1
+[54975ms] scale.tick token=6 p=0.112 gapMs=18.5 applyMs=0.1
+[54990ms] scale.tick token=6 p=0.154 gapMs=15.3 applyMs=0.1
+[55006ms] scale.tick token=6 p=0.208 gapMs=16.2 applyMs=0.1
+[55024ms] scale.tick token=6 p=0.285 gapMs=18.4 applyMs=0.1
+[55041ms] scale.tick token=6 p=0.366 gapMs=16.2 applyMs=0.1
+[55058ms] scale.tick token=6 p=0.466 gapMs=17.1 applyMs=0.1
+[55074ms] scale.tick token=6 p=0.573 gapMs=16.7 applyMs=0.1
+[55091ms] scale.tick token=6 p=0.665 gapMs=16.6 applyMs=0.1
+[55108ms] scale.tick token=6 p=0.743 gapMs=16.8 applyMs=0.1
+[55124ms] scale.tick token=6 p=0.808 gapMs=16.6 applyMs=0.1
+[55141ms] scale.tick token=6 p=0.861 gapMs=16.7 applyMs=0.1
+[55158ms] scale.tick token=6 p=0.903 gapMs=16.6 applyMs=0.1
+[55174ms] scale.tick token=6 p=0.936 gapMs=16.7 applyMs=0.1
+[55191ms] scale.tick token=6 p=0.960 gapMs=16.2 applyMs=0.1
+[55208ms] scale.tick token=6 p=0.977 gapMs=17.1 applyMs=0.1
+[55224ms] scale.tick token=6 p=0.989 gapMs=16.6 applyMs=0.1
+[55241ms] scale.tick token=6 p=0.995 gapMs=16.3 applyMs=0.1
+[55257ms] scale.tick token=6 p=0.999 gapMs=16.3 applyMs=0.1
+[55274ms] scale.tick token=6 p=1.000 gapMs=17.5 applyMs=0.1
+[55291ms] scale.tick token=6 p=1.000 gapMs=16.5 applyMs=0.1
+[55292ms] scale.transition end from=solar to=sky samples=28 violations=0 avg=58.6 min=27.5 hitches=1
+[55292ms] scale.readings.6.0 1.4970e+12,1.5037e+12,1.5448e+12,1.6530e+12,1.8907e+12,2.3330e+12,3.1519e+12,4.6307e+12,8.6074e+12,1.6591e+13,3.9125e+13,1.2894e+14,4.5844e+14,2.2169e+15,1.1801e+16,4.9802e+16,1.7020e+17,4.6816e+17,1.0744e+18,2.0754e+18,3.4660e+18,5.0283e+18,6.6419e+18,7.9318e+18
+[55292ms] scale.readings.6.1 8.7980e+18,9.2698e+18,9.4448e+18,9.4607e+18
+[55293ms] sky.mode follow=1 manual=1
+[56956ms] chrome.attitudeToast hide
+[59228ms] sky.perf avg=60.0 min=59.8 hitch=0.0% thermal=nominal layers=line

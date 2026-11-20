@@ -1,0 +1,99 @@
+Command line invocation:
+    /Applications/Xcode.app/Contents/Developer/usr/bin/xcodebuild test-without-building -xctestrun /Users/tango/Developments/SpaceWalker/DerivedData/Build/Products/SkyCheck-record.xctestrun -destination "platform=iOS Simulator,id=298A26A4-853E-40FD-A42C-08531FC1DF06" "-only-testing:SpaceWalkerUITests/ScaleLadderUITests/testRecordedSixSegmentRoundTrip"
+
+2026-11-20 08:32:32.038828+0800 SpaceWalkerUITests-Runner[65095:23268361] [Default] Running tests...
+    t =      nans Interface orientation changed to Portrait
+Test Suite 'Selected tests' started at 2026-11-20 08:32:34.706.
+Test Suite 'SpaceWalkerUITests.xctest' started at 2026-11-20 08:32:34.707.
+Test Suite 'ScaleLadderUITests' started at 2026-11-20 08:32:34.707.
+Test Case '-[SpaceWalkerUITests.ScaleLadderUITests testRecordedSixSegmentRoundTrip]' started.
+    t =     0.00s Start Test at 2026-11-20 08:32:34.709
+    t =     0.02s Set Up
+    t =     0.02s     Setting device orientation to Portrait
+    t =     0.03s         Wait for com.apple.springboard to idle
+    t =     0.04s Open com.tango.xingcha
+    t =     0.04s     Launch com.tango.xingcha
+2026-11-20 08:32:34.810 xcodebuild[65061:23268123] [MT] IDELaunchParametersSnapshot: debugger version lookup failed for path '<nil>': noURL
+2026-11-20 08:32:34.810 xcodebuild[65061:23268123] [MT] IDELaunchParametersSnapshot: no debugger version
+objc[65095]: Class UIAccessibilityLoaderWebShared is implemented in both /private/var/run/com.apple.security.cryptexd/mnt/com.apple.iPhoneOS.SimulatorRuntime-v24.2.8117.0.LDcOZY/Library/Developer/CoreSimulator/Profiles/Runtimes/iOS 27.2.simruntime/Contents/Resources/RuntimeRoot/System/Library/AccessibilityBundles/WebCore.axbundle/WebCore (0x105a98310) and /private/var/run/com.apple.security.cryptexd/mnt/com.apple.iPhoneOS.SimulatorRuntime-v24.2.8117.0.LDcOZY/Library/Developer/CoreSimulator/Profiles/Runtimes/iOS 27.2.simruntime/Contents/Resources/RuntimeRoot/System/Library/AccessibilityBundles/WebKit.axbundle/WebKit (0x105acc398). This may cause spurious casting failures and mysterious crashes. One of the duplicates must be removed or renamed.
+    t =     0.52s         Setting up automation session
+    t =     3.05s         Wait for com.tango.xingcha to idle
+    t =     6.82s Wait for com.tango.xingcha to become Running Foreground
+    t =    14.83s Waiting 5.0s for "太阳系" Button to exist
+    t =    15.91s     Checking `Expect predicate `existsNoRetry == 1` for object "太阳系" Button`
+    t =    15.91s         Checking existence of `"太阳系" Button`
+    t =    16.00s Find the "太阳系" Button
+    t =    16.03s Tap "太阳系" Button
+    t =    16.03s     Wait for com.tango.xingcha to idle
+    t =    16.03s     Find the "太阳系" Button
+    t =    16.05s     Check for interrupting elements affecting "太阳系" Button
+    t =    16.07s     Synthesize event
+    t =    16.41s     Wait for com.tango.xingcha to idle
+    t =    22.42s Waiting 5.0s for "地月系" Button to exist
+    t =    23.49s     Checking `Expect predicate `existsNoRetry == 1` for object "地月系" Button`
+    t =    23.49s         Checking existence of `"地月系" Button`
+    t =    23.52s Find the "地月系" Button
+    t =    23.54s Tap "地月系" Button
+    t =    23.54s     Wait for com.tango.xingcha to idle
+    t =    23.55s     Find the "地月系" Button
+    t =    23.57s     Check for interrupting elements affecting "地月系" Button
+    t =    25.62s     Synthesize event
+    t =    25.92s     Wait for com.tango.xingcha to idle
+    t =    31.93s Waiting 5.0s for "天宫一号" Button to exist
+    t =    32.99s     Checking `Expect predicate `existsNoRetry == 1` for object "天宫一号" Button`
+    t =    32.99s         Checking existence of `"天宫一号" Button`
+    t =    33.02s Find the "天宫一号" Button
+    t =    33.04s Tap "天宫一号" Button
+    t =    33.04s     Wait for com.tango.xingcha to idle
+    t =    33.04s     Find the "天宫一号" Button
+    t =    34.15s     Check for interrupting elements affecting "天宫一号" Button
+    t =    35.10s     Synthesize event
+    t =    35.40s     Wait for com.tango.xingcha to idle
+    t =    41.41s Waiting 5.0s for "地月系" Button to exist
+    t =    42.48s     Checking `Expect predicate `existsNoRetry == 1` for object "地月系" Button`
+    t =    42.48s         Checking existence of `"地月系" Button`
+    t =    42.50s Find the "地月系" Button
+    t =    42.52s Tap "地月系" Button
+    t =    42.52s     Wait for com.tango.xingcha to idle
+    t =    42.52s     Find the "地月系" Button
+    t =    42.54s     Check for interrupting elements affecting "地月系" Button
+    t =    42.56s     Synthesize event
+    t =    42.86s     Wait for com.tango.xingcha to idle
+    t =    48.87s Waiting 5.0s for "太阳系" Button to exist
+    t =    49.94s     Checking `Expect predicate `existsNoRetry == 1` for object "太阳系" Button`
+    t =    49.94s         Checking existence of `"太阳系" Button`
+    t =    49.97s Find the "太阳系" Button
+    t =    49.99s Tap "太阳系" Button
+    t =    49.99s     Wait for com.tango.xingcha to idle
+    t =    49.99s     Find the "太阳系" Button
+    t =    50.01s     Check for interrupting elements affecting "太阳系" Button
+    t =    50.03s     Synthesize event
+    t =    50.32s     Wait for com.tango.xingcha to idle
+    t =    56.34s Waiting 5.0s for "星图" Button to exist
+    t =    57.40s     Checking `Expect predicate `existsNoRetry == 1` for object "星图" Button`
+    t =    57.40s         Checking existence of `"星图" Button`
+    t =    57.42s Find the "星图" Button
+    t =    57.44s Tap "星图" Button
+    t =    57.44s     Wait for com.tango.xingcha to idle
+    t =    57.45s     Find the "星图" Button
+    t =    57.47s     Check for interrupting elements affecting "星图" Button
+    t =    57.49s     Synthesize event
+    t =    57.78s     Wait for com.tango.xingcha to idle
+    t =    65.79s Tear Down
+Test Case '-[SpaceWalkerUITests.ScaleLadderUITests testRecordedSixSegmentRoundTrip]' passed (66.343 seconds).
+Test Suite 'ScaleLadderUITests' passed at 2026-11-20 08:33:41.053.
+	 Executed 1 test, with 0 failures (0 unexpected) in 66.343 (66.346) seconds
+Test Suite 'SpaceWalkerUITests.xctest' passed at 2026-11-20 08:33:41.054.
+	 Executed 1 test, with 0 failures (0 unexpected) in 66.343 (66.347) seconds
+Test Suite 'Selected tests' passed at 2026-11-20 08:33:41.054.
+	 Executed 1 test, with 0 failures (0 unexpected) in 66.343 (66.348) seconds
+2026-11-20 08:33:41.370 xcodebuild[65061:23268123] [MT] IDETestOperationsObserverDebug: 70.586 elapsed -- Testing started completed.
+2026-11-20 08:33:41.370 xcodebuild[65061:23268123] [MT] IDETestOperationsObserverDebug: 0.000 sec, +0.000 sec -- start
+2026-11-20 08:33:41.370 xcodebuild[65061:23268123] [MT] IDETestOperationsObserverDebug: 70.586 sec, +70.586 sec -- end
+
+Test session results, code coverage, and logs:
+	/Users/tango/Library/Developer/Xcode/DerivedData/SpaceWalker-ciwerwzdkcdpukgnsekffkdcolqf/Logs/Test/Test-SkyCheck-2026.11.20_08-32-30-+0800.xcresult
+
+** TEST EXECUTE SUCCEEDED **
+
+Testing started
