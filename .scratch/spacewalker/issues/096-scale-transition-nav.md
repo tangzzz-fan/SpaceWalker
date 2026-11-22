@@ -1,7 +1,7 @@
 ---
 id: 096
 title: 层间转场与竖向尺度阶梯导航
-status: ready-for-agent
+status: done
 stage: M4
 blocked_by: [085, 088, 091, 094]
 ---
